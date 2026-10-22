@@ -1,0 +1,18 @@
+# Environment secrets
+.env
+.env.*
+!.env.example
+
+# Dependencies and generated development data
+node_modules/
+.continue/dev_data/
+.continue/index/
+.continue/sessions/
+
+# Logs and operating-system files
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+.DS_Store
+Thumbs.db

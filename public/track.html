@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#030712">
+  <title>訂單確認與查詢 | LittlePlanet</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    try {
+      const savedTheme = localStorage.getItem('littleplanet_theme');
+      if (savedTheme ? savedTheme === 'dark' : true) {
+        document.documentElement.classList.add('dark');
+      }
+    } catch (e) {
+      document.documentElement.classList.add('dark');
+    }
+  </script>
+  <style>
+    .dark body { background-color: #030712; color: #f8fafc; }
+    .dark .bg-white { background-color: #111827; }
+    .dark .text-slate-900 { color: #f8fafc; }
+    .dark .text-slate-800 { color: #f1f5f9; }
+    .dark .text-slate-700 { color: #cbd5e1; }
+    .dark .text-slate-600 { color: #94a3b8; }
+    .dark .text-slate-500 { color: #94a3b8; }
+    .dark .border-slate-200, .dark .border-slate-100 { border-color: #1f2937; }
+    .dark .bg-slate-50 { background-color: #030712; }
+    .dark .bg-slate-100 { background-color: #1f2937; }
+    .dark input, .dark select { background-color: #111827; border-color: #374151; color: #f8fafc; }
+    .dark input::placeholder { color: #6b7280; }
+    /* 關鍵：保留文字原本的換行與段落排版 */
+    .formatted-desc {
+      white-space: pre-line;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased p-4 sm:p-8 transition-colors duration-300">
+  <main class="mx-auto w-full max-w-3xl space-y-6">
+    <div class="flex items-center justify-between">
+      <a href="/" class="text-sm font-bold text-indigo-500 hover:underline">← 返回商品列表繼續購物</a>
+      <div class="flex items-center gap-3">
+        <button id="themeToggleBtn" type="button" class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-lg transition hover:bg-slate-100 dark:border-slate-800 dark:hover:bg-slate-800" aria-label="切換深色/淺色模式">☀️</button>
+        <button id="toggleSearchModeBtn" type="button" class="text-xs font-semibold text-slate-500 hover:text-slate-800 dark:hover:text-slate-200 underline">查詢其他訂單</button>
+      </div>
+    </div>
+
+    <!-- 1. 訂單詳情總結面板 -->
+    <section id="resultCard" class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-xl dark:border-slate-800" style="display: none;">
+      <div class="bg-indigo-600 px-6 py-5 text-white">
+        <div class="flex items-center gap-3">
+          <span class="grid h-10 w-10 place-items-center rounded-full bg-white/20 text-xl">🎉</span>
+          <div>
+            <h1 class="text-lg font-black tracking-tight sm:text-xl">感謝您的訂單！我們已收到您的購買請求</h1>
+            <p class="text-xs text-indigo-100 mt-0.5">以下為您的即時訂單詳情與商品明細，請核對無誤</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="p-6 sm:p-8 space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 border-b border-slate-100 pb-6 dark:border-slate-800">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-widest text-slate-400">Order Number</p>
+            <h2 id="resOrderNo" class="text-2xl font-black text-slate-900 mt-0.5">--</h2>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="resStatusBadge" class="inline-flex items-center rounded-full bg-amber-50 px-3 py-1 text-xs font-extrabold text-amber-700 border border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800">處理中</span>
+            <span id="resPaymentBadge" class="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-extrabold text-indigo-700 border border-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800">待付款 / 處理中</span>
+          </div>
+        </div>
+
+        <!-- 網格化關鍵資訊 -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-2xl text-sm dark:bg-slate-900">
+          <div>
+            <span class="block text-xs font-bold text-slate-400">聯絡電話</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <strong id="resPhone" class="font-bold text-slate-800 dark:text-slate-200">-</strong>
+              <button id="editPhoneBtn" type="button" class="text-xs text-indigo-500 hover:underline">修改</button>
+            </div>
+          </div>
+          <div>
+            <span class="block text-xs font-bold text-slate-400">出貨方式</span>
+            <div class="flex items-center gap-2 mt-0.5">
+              <strong id="resShippingMethod" class="font-bold text-slate-800 dark:text-slate-200">待後台安排</strong>
+              <button id="editShippingBtn" type="button" class="text-xs text-indigo-500 hover:underline">修改</button>
+            </div>
+          </div>
+          <div>
+            <span class="block text-xs font-bold text-slate-400">訂單總額</span>
+            <strong id="resTotalAmount" class="font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">HK$0.00</strong>
+          </div>
+        </div>
+
+        <!-- 商品明細清單 -->
+        <div>
+          <h3 class="text-sm font-black uppercase tracking-wider text-slate-500 mb-3">商品明細 (Items)</h3>
+          <div id="resItemsList" class="divide-y divide-slate-100 border-t border-b border-slate-100 dark:divide-slate-800 dark:border-slate-800">
+            <!-- 動態填入商品列 -->
+          </div>
+        </div>
+
+        <!-- 金額結算 -->
+        <div class="flex justify-end pt-2">
+          <div class="w-full sm:w-72 space-y-2 text-sm">
+            <div class="flex justify-between text-slate-600 dark:text-slate-400"><span>商品小計</span><span id="resSubtotal">HK$0.00</span></div>
+            <div class="flex justify-between text-base font-black text-slate-900 dark:text-slate-100 border-t border-slate-200 dark:border-slate-800 pt-2"><span>應付總額</span><span id="resGrandTotal" class="text-indigo-600 dark:text-indigo-400">HK$0.00</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 手動查詢表單面板 -->
+    <section id="searchPanel" class="rounded-3xl border border-slate-200 bg-white p-6 sm:p-8 shadow-xl dark:border-slate-800">
+      <h1 class="text-2xl font-black text-slate-900">查詢訂單</h1>
+      <p class="text-sm text-slate-500 mt-1">請同時輸入您的<strong>手提電話號碼</strong>與<strong>訂單編號</strong>以進行安全查詢。</p>
+      
+      <form id="lookupForm" class="mt-6 space-y-4">
+        <div>
+          <label for="phoneInput" class="block text-sm font-bold text-slate-700">手提電話號碼</label>
+          <input id="phoneInput" name="customer_phone" type="tel" autocomplete="tel" placeholder="例如：91234567" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900">
+        </div>
+        <div>
+          <label for="orderNoInput" class="block text-sm font-bold text-slate-700">訂單編號</label>
+          <input id="orderNoInput" name="order_no" type="text" autocomplete="off" placeholder="例如：LP-20261018-0005" required class="mt-1.5 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-900">
+        </div>
+        <button id="lookupButton" type="submit" class="w-full rounded-xl bg-indigo-600 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700">立即查詢訂單</button>
+      </form>
+      <p id="lookupMessage" class="mt-3 text-center text-sm font-semibold text-rose-600" role="status" aria-live="polite"></p>
+    </section>
+  </main>
+
+  <script>
+    'use strict';
+
+    const THEME_STORAGE_KEY = 'littleplanet_theme';
+    const themeToggleBtn = document.querySelector('#themeToggleBtn');
+
+    function updateThemeButton(isDark) {
+      themeToggleBtn.textContent = isDark ? '☀️' : '🌙';
+      themeToggleBtn.setAttribute('aria-label', isDark ? '切換淺色模式' : '切換深色模式');
+    }
+
+    const isCurrentlyDark = document.documentElement.classList.contains('dark');
+    updateThemeButton(isCurrentlyDark);
+
+    themeToggleBtn.addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      updateThemeButton(dark);
+      try { localStorage.setItem(THEME_STORAGE_KEY, dark ? 'dark' : 'light'); } catch (e) {}
+    });
+
+    const searchPanel = document.querySelector('#searchPanel');
+    const resultCard = document.querySelector('#resultCard');
+    const toggleSearchModeBtn = document.querySelector('#toggleSearchModeBtn');
+    const form = document.querySelector('#lookupForm');
+    const phoneInput = document.querySelector('#phoneInput');
+    const orderNoInput = document.querySelector('#orderNoInput');
+    const lookupButton = document.querySelector('#lookupButton');
+    const lookupMessage = document.querySelector('#lookupMessage');
+    const editPhoneBtn = document.querySelector('#editPhoneBtn');
+    const editShippingBtn = document.querySelector('#editShippingBtn');
+
+    let isEditingPhone = false;
+    let isEditingShipping = false;
+
+    // 修改聯絡電話邏輯
+    editPhoneBtn.addEventListener('click', async () => {
+      const phoneEl = document.querySelector('#resPhone');
+      const currentPhone = phoneEl.dataset.rawPhone || phoneEl.textContent.trim();
+      const orderNo = document.querySelector('#resOrderNo').textContent.trim();
+
+      if (!isEditingPhone) {
+        phoneEl.innerHTML = `<input id="newPhoneInput" type="tel" value="${currentPhone}" class="w-full px-2 py-1 text-xs rounded border border-indigo-300 dark:bg-slate-800 dark:text-white">`;
+        editPhoneBtn.textContent = '儲存';
+        isEditingPhone = true;
+      } else {
+        const newPhone = document.querySelector('#newPhoneInput').value.trim();
+        if (!/^[0-9]{8,15}$/.test(newPhone)) {
+          alert('請輸入有效的 8 至 15 位電話號碼');
+          return;
+        }
+
+        editPhoneBtn.disabled = true;
+        editPhoneBtn.textContent = '儲存中...';
+
+        try {
+          const res = await fetch('/api/orders/update-info', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: currentPhone,
+              orderNo: orderNo,
+              customer_phone: newPhone
+            })
+          });
+          const result = await res.json();
+          if (!res.ok || !result.success) throw new Error(result.message || '更新失敗');
+
+          phoneEl.textContent = result.data.customer_phone;
+          phoneEl.dataset.rawPhone = result.data.customer_phone;
+          editPhoneBtn.textContent = '修改';
+          isEditingPhone = false;
+          alert('聯絡電話已成功更新！');
+        } catch (err) {
+          alert(err.message);
+          editPhoneBtn.textContent = '儲存';
+        } finally {
+          editPhoneBtn.disabled = false;
+        }
+      }
+    });
+
+    // 修改出貨方式邏輯
+    editShippingBtn.addEventListener('click', async () => {
+      const shippingEl = document.querySelector('#resShippingMethod');
+      const currentShipping = shippingEl.textContent.trim();
+      const currentPhone = document.querySelector('#resPhone').dataset.rawPhone || document.querySelector('#resPhone').textContent.trim();
+      const orderNo = document.querySelector('#resOrderNo').textContent.trim();
+
+      if (!isEditingShipping) {
+        const methods = ['面交', '自取', '順豐', '京東'];
+        let optionsHtml = methods.map(m => `<option value="${m}" ${m === currentShipping ? 'selected' : ''}>${m}</option>`).join('');
+        shippingEl.innerHTML = `<select id="newShippingSelect" class="w-full px-2 py-1 text-xs rounded border border-indigo-300 dark:bg-slate-800 dark:text-white">${optionsHtml}</select>`;
+        editShippingBtn.textContent = '儲存';
+        isEditingShipping = true;
+      } else {
+        const newShipping = document.querySelector('#newShippingSelect').value;
+
+        editShippingBtn.disabled = true;
+        editShippingBtn.textContent = '儲存中...';
+
+        try {
+          const res = await fetch('/api/orders/update-info', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              phone: currentPhone,
+              orderNo: orderNo,
+              shipping_method: newShipping
+            })
+          });
+          const result = await res.json();
+          if (!res.ok || !result.success) throw new Error(result.message || '更新失敗');
+
+          shippingEl.textContent = result.data.shipping_method;
+          editShippingBtn.textContent = '修改';
+          isEditingShipping = false;
+          alert('出貨方式已成功更新！');
+        } catch (err) {
+          alert(err.message);
+          editShippingBtn.textContent = '儲存';
+        } finally {
+          editShippingBtn.disabled = false;
+        }
+      }
+    });
+
+    function renderOrderData(order) {
+      document.querySelector('#resOrderNo').textContent = order.order_number || order.order_no || '未知單號';
+      
+      const phoneEl = document.querySelector('#resPhone');
+      const phoneVal = order.customer_phone || order.phone || '未提供';
+      phoneEl.textContent = phoneVal;
+      phoneEl.dataset.rawPhone = phoneVal;
+
+      document.querySelector('#resShippingMethod').textContent = order.shipping_method || '待後台安排';
+      
+      const total = order.total_amount != null ? `HK$${order.total_amount}` : '計算中';
+      document.querySelector('#resTotalAmount').textContent = total;
+      document.querySelector('#resSubtotal').textContent = total;
+      document.querySelector('#resGrandTotal').textContent = total;
+
+      document.querySelector('#resStatusBadge').textContent = order.status === 'completed' ? '已完成' : order.status === 'shipping' ? '已出貨' : '處理中';
+      document.querySelector('#resPaymentBadge').textContent = order.payment_status || '待付款 / 處理中';
+
+      const itemsList = document.querySelector('#resItemsList');
+      itemsList.replaceChildren();
+
+      const items = Array.isArray(order.items) ? order.items : [];
+      if (items.length === 0) {
+        const empty = document.createElement('div');
+        empty.className = 'py-4 text-center text-sm text-slate-400';
+        empty.textContent = '（此訂單暫未包含商品細節記錄）';
+        itemsList.append(empty);
+      } else {
+        items.forEach(item => {
+          const row = document.createElement('div');
+          row.className = 'py-4 border-b border-slate-100 dark:border-slate-800 last:border-0 space-y-3';
+
+          // 上半部：縮圖、名稱、數量與單價
+          const topPart = document.createElement('div');
+          topPart.className = 'flex items-center justify-between gap-4';
+
+          const left = document.createElement('div');
+          left.className = 'flex items-center gap-3.5';
+
+          // 商品縮圖
+          const img = document.createElement('img');
+          img.src = item.image_url || item.imageUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=150&auto=format&fit=crop&q=80';
+          img.alt = item.product_name || item.name || '精選商品';
+          img.className = 'w-14 h-14 object-cover rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-800 flex-shrink-0';
+
+          const nameDiv = document.createElement('div');
+          const nameSpan = document.createElement('h4');
+          nameSpan.className = 'font-black text-slate-900 dark:text-slate-100 text-sm sm:text-base';
+          nameSpan.textContent = item.product_name || item.name || '精選商品';
+          nameDiv.append(nameSpan);
+
+          if (item.product_code) {
+            const codeP = document.createElement('p');
+            codeP.className = 'text-xs text-slate-400 mt-0.5';
+            codeP.textContent = `代號: ${item.product_code}`;
+            nameDiv.append(codeP);
+          }
+
+          left.append(img, nameDiv);
+
+          // 右側：數量與價格
+          const right = document.createElement('div');
+          right.className = 'text-right flex-shrink-0';
+          const qty = item.quantity || 1;
+          const unitPrice = item.unit_price || item.price;
+          
+          const qtyDiv = document.createElement('div');
+          qtyDiv.className = 'font-bold text-slate-800 dark:text-slate-200 text-sm';
+          qtyDiv.textContent = `數量：${qty}`;
+          right.append(qtyDiv);
+
+          if (unitPrice != null) {
+            const priceDiv = document.createElement('div');
+            priceDiv.className = 'text-xs font-semibold text-indigo-600 dark:text-indigo-400 mt-0.5';
+            priceDiv.textContent = `單價：HK$${unitPrice}`;
+            right.append(priceDiv);
+          }
+
+          topPart.append(left, right);
+          row.append(topPart);
+
+          // 下半部：詳細描述文字（加上 formatted-desc 類別，完美保留段落與換行）
+          const descText = item.description || item.desc || '';
+          if (descText) {
+            const descP = document.createElement('p');
+            descP.className = 'text-xs text-slate-500 dark:text-slate-400 leading-relaxed bg-slate-50 dark:bg-slate-900 p-3.5 rounded-xl border border-slate-100 dark:border-slate-800 formatted-desc';
+            descP.textContent = descText;
+            row.append(descP);
+          }
+
+          itemsList.append(row);
+        });
+      }
+
+      searchPanel.style.display = 'none';
+      resultCard.style.display = 'block';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    async function fetchAndShowOrder(phone, orderNo) {
+      lookupMessage.textContent = '正在載入訂單資料…';
+      try {
+        const response = await fetch('/api/orders/query-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone, orderNo })
+        });
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true) {
+          throw new Error(result && result.message ? result.message : '找不到對應的訂單資料。');
+        }
+        const order = result.data;
+        if (!order) throw new Error('查無訂單');
+        renderOrderData(order);
+      } catch (error) {
+        console.error(error);
+        lookupMessage.textContent = error.message || '查詢失敗，請檢查資料。';
+        searchPanel.style.display = 'block';
+        resultCard.style.display = 'none';
+      }
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramOrderNo = urlParams.get('order_no') || urlParams.get('order_id');
+    const paramPhone = urlParams.get('phone');
+
+    if (paramPhone && paramOrderNo) {
+      phoneInput.value = paramPhone;
+      orderNoInput.value = paramOrderNo;
+      fetchAndShowOrder(paramPhone, paramOrderNo);
+    }
+
+    toggleSearchModeBtn.addEventListener('click', () => {
+      resultCard.style.display = 'none';
+      searchPanel.style.display = 'block';
+      window.history.replaceState({}, '', window.location.pathname);
+    });
+
+    form.addEventListener('submit', async event => {
+      event.preventDefault();
+      lookupMessage.textContent = '';
+      const phone = phoneInput.value.trim();
+      const orderNo = orderNoInput.value.trim();
+      if (!phone || !orderNo) {
+        lookupMessage.textContent = '請填寫完整的電話與訂單編號。';
+        return;
+      }
+      lookupButton.disabled = true;
+      lookupButton.textContent = '查詢中…';
+      await fetchAndShowOrder(phone, orderNo);
+      lookupButton.disabled = false;
+      lookupButton.textContent = '立即查詢訂單';
+    });
+  </script>
+</body>
+</html>

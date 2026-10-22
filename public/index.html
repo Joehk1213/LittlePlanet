@@ -1,0 +1,1457 @@
+﻿<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f8fafc">
+  <title>LittlePlanet 小行星｜探索星球精選好物</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .drawer-panel { transition: transform 280ms cubic-bezier(.2,.8,.2,1); }
+    .drawer-backdrop { transition: opacity 220ms ease; }
+    .product-image { transition: transform 420ms cubic-bezier(.2,.8,.2,1); }
+    .product-card:hover .product-image { transform: scale(1.06); }
+    .skeleton {
+      background: linear-gradient(100deg, #e2e8f0 20%, #f8fafc 38%, #e2e8f0 58%);
+      background-size: 200% 100%;
+      animation: shimmer 1.3s linear infinite;
+    }
+    @keyframes shimmer { to { background-position-x: -200%; } }
+    .dark body { background-color: #030712; color: #f8fafc; }
+    .dark .bg-white { background-color: #111827; }
+    .dark .bg-slate-50 { background-color: #030712; }
+    .dark .bg-slate-100 { background-color: #1f2937; }
+    .dark .bg-indigo-50 { background-color: #1e1b4b; }
+    .dark .bg-indigo-50\/70 { background-color: rgb(30 27 75 / .7); }
+    .dark .text-slate-900, .dark .text-slate-800 { color: #f8fafc; }
+    .dark .text-slate-700, .dark .text-slate-600 { color: #cbd5e1; }
+    .dark .text-slate-500, .dark .text-slate-400 { color: #94a3b8; }
+    .dark .border-slate-200, .dark .border-slate-300 { border-color: #334155; }
+    .dark .border-indigo-100 { border-color: #312e81; }
+    .dark .placeholder\:text-slate-400::placeholder { color: #94a3b8; }
+    .dark .skeleton { background-image: linear-gradient(100deg, #1e293b 20%, #334155 38%, #1e293b 58%); }
+    /* 關鍵：完美保留換行與段落排版 */
+    .formatted-desc {
+      white-space: pre-line;
+      word-break: break-all;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased">
+  <div class="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 px-4 py-2 text-center text-sm font-semibold text-white">
+    ✨ 為日常發掘一點小宇宙，從一件喜歡的好物開始
+  </div>
+
+  <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+    <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+      <a href="/" class="flex min-w-0 items-center gap-2.5 text-slate-900 no-underline" aria-label="LittlePlanet 小行星首頁">
+        <img src="/image/littleplanet.png" alt="LittlePlanet 小行星 Logo" class="h-10 w-10 shrink-0 rounded-2xl object-cover shadow-lg shadow-indigo-200">
+        <span>
+          <span class="block text-lg font-black leading-tight tracking-tight sm:text-xl">LittlePlanet 小行星</span>
+          <span class="hidden text-xs font-medium text-slate-500 sm:block">把喜歡的生活好物帶回家</span>
+        </span>
+      </a>
+      <nav class="flex shrink-0 items-center gap-2 sm:gap-3" aria-label="主要導覽">
+        <a href="/track.html" class="hidden rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-indigo-700 sm:inline-flex">查詢訂單</a>
+        <a href="/customer.html" class="hidden rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-indigo-700 sm:inline-flex">會員中心</a>
+        <button id="themeToggleBtn" type="button" class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-lg transition hover:bg-slate-100" aria-label="切換深色模式">🌙</button>
+        <button id="cartButton" type="button" class="relative inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700 sm:px-5">
+          <span aria-hidden="true">🛒</span><span class="hidden sm:inline">購物車</span>
+          <span id="cartCount" class="grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-xs font-extrabold text-white" aria-label="購物車商品數量">0</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-7xl flex-1 px-4 pb-24 pt-7 sm:px-6 sm:pt-10 lg:px-8 lg:pb-12">
+    <section class="relative isolate overflow-hidden rounded-[2rem] bg-slate-950 px-6 py-8 text-white shadow-xl shadow-indigo-100 sm:px-10 sm:py-10 lg:px-16">
+      <div class="absolute -right-16 -top-24 -z-10 h-72 w-72 rounded-full bg-fuchsia-500/30 blur-3xl"></div>
+      <div class="absolute -bottom-28 left-1/3 -z-10 h-72 w-72 rounded-full bg-indigo-500/40 blur-3xl"></div>
+      <div class="max-w-2xl">
+        <span class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-bold tracking-wide text-indigo-100">LITTLEPLANET SELECT · 星球精選</span>
+        <h1 class="mt-5 text-4xl font-black leading-tight tracking-tight sm:text-5xl lg:text-6xl">探索日常裡的<br><span class="bg-gradient-to-r from-indigo-300 to-pink-300 bg-clip-text text-transparent">小小宇宙</span></h1>
+        <p class="mt-4 max-w-xl text-base leading-7 text-slate-300 sm:text-lg">嚴選實用又有趣的生活好物，讓每一次打開包裹，都成為值得期待的小小時刻。</p>
+        <a href="#products" class="mt-7 inline-flex items-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-extrabold text-slate-900 transition hover:bg-indigo-50">探索商品 <span aria-hidden="true">↓</span></a>
+      </div>
+      <div class="pointer-events-none absolute bottom-4 right-7 hidden lg:block opacity-90 overflow-hidden rounded-full" aria-hidden="true">
+        <img src="/image/littleplanet.png" alt="LittlePlanet Logo" class="h-60 w-60 object-cover shadow-2xl">
+      </div>
+    </section>
+
+    <section class="mt-6 grid gap-3 sm:grid-cols-3" aria-label="購物承諾">
+      <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-indigo-50 text-xl">🚀</span>
+        <div><h2 class="text-sm font-extrabold">用心安排出貨</h2><p class="mt-0.5 text-xs text-slate-500">訂單確認後盡快處理</p></div>
+      </div>
+      <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-emerald-50 text-xl">🔒</span>
+        <div><h2 class="text-sm font-extrabold">安心下單</h2><p class="mt-0.5 text-xs text-slate-500">結帳資料由安全連線傳送</p></div>
+      </div>
+      <div class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
+        <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-amber-50 text-xl">💫</span>
+        <div><h2 class="text-sm font-extrabold">精選生活好物</h2><p class="mt-0.5 text-xs text-slate-500">每件商品都值得細看</p></div>
+      </div>
+    </section>
+
+    <section id="products" class="scroll-mt-24 pt-11 sm:pt-14">
+      <div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+        <div>
+          <p class="text-xs font-extrabold uppercase tracking-[.2em] text-indigo-600">Our collection</p>
+          <h2 class="mt-1 text-2xl font-black tracking-tight sm:text-3xl">星球商品選集</h2>
+          <p class="mt-1 text-sm text-slate-500">找到下一件讓生活更喜歡的小物。</p>
+        </div>
+        <p id="resultCount" class="text-sm font-semibold text-slate-500" aria-live="polite"></p>
+      </div>
+
+      <div class="mt-6 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div id="categoryTabs" class="flex gap-2 overflow-x-auto pb-1" aria-label="商品分類篩選">
+          <button type="button" data-category="all" class="category-button shrink-0 rounded-full bg-indigo-600 px-4 py-2 text-sm font-bold text-white shadow-sm">全部商品</button>
+          <button type="button" data-category="hot" class="category-button shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-700">🔥 熱賣推薦</button>
+          <button type="button" data-category="new" class="category-button shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-700">✨ 新品上市</button>
+          <button type="button" data-category="in-stock" class="category-button shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-700">📦 現貨供應</button>
+        </div>
+        <div class="flex flex-col gap-3 sm:flex-row">
+          <label>
+            <span class="sr-only">商品分類</span>
+            <select id="categoryFilter" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 sm:w-44">
+              <option value="">所有分類</option>
+            </select>
+          </label>
+          <label class="relative block min-w-0 flex-1 sm:min-w-64 lg:flex-none">
+            <span class="sr-only">搜尋商品名稱或描述</span>
+            <span class="pointer-events-none absolute inset-y-0 left-3.5 flex items-center text-slate-400" aria-hidden="true">⌕</span>
+            <input id="searchInput" type="search" maxlength="100" autocomplete="off" placeholder="搜尋商品名稱或描述..." class="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 sm:w-72">
+          </label>
+          <label>
+            <span class="sr-only">商品排序</span>
+            <select id="sortSelect" class="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100 sm:w-auto">
+              <option value="default">預設排序</option>
+              <option value="newest">最新上架</option>
+              <option value="price-asc">價格：由低至高</option>
+              <option value="price-desc">價格：由高至低</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div id="productGrid" class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4" aria-label="商品列表" aria-live="polite"></div>
+      <p class="mt-4 text-xs leading-5 text-slate-500">
+        最佳使用日期為已登記收貨批次資料；不同批次可能有不同日期。日期未設定及舊庫存日期未知會分別標示，實際商品包裝日期及出貨批次請以收到的商品為準。
+      </p>
+      <div class="mt-6 flex flex-col items-center justify-between gap-3 sm:flex-row">
+        <p id="productPageStatus" class="text-sm font-semibold text-slate-500" aria-live="polite"></p>
+        <div class="flex gap-2">
+          <button id="previousProductsButton" type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50" disabled>上一頁</button>
+          <button id="nextProductsButton" type="button" class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-slate-700 transition hover:border-indigo-200 hover:text-indigo-700 disabled:cursor-not-allowed disabled:opacity-50" disabled>下一頁</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="mt-12 rounded-3xl border border-indigo-100 bg-indigo-50/70 px-5 py-6 sm:flex sm:items-center sm:justify-between sm:px-7">
+      <div><h2 class="font-extrabold">需要協助選購？</h2><p class="mt-1 text-sm text-slate-600">歡迎聯絡我們，或前往訂單查詢頁查看訂單狀態。</p></div>
+      <a href="/track.html" class="mt-4 inline-flex rounded-xl border border-indigo-200 bg-white px-4 py-2.5 text-sm font-bold text-indigo-700 transition hover:bg-indigo-100 sm:mt-0">查詢訂單</a>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-200 bg-white px-4 py-7 pb-24 text-center text-xs font-medium text-slate-500 sm:pb-7">
+    <p>© 2026 LittlePlanet 小行星 · 用心挑選，分享生活好物</p>
+  </footer>
+
+  <!-- Quick View Modal (快速查看彈窗) -->
+  <div id="quickViewModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+    <div class="relative w-full max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col md:flex-row">
+      <button id="quickViewCloseBtn" type="button" class="absolute top-3 right-3 z-20 h-10 w-10 rounded-full bg-white/85 hover:bg-white text-slate-700 transition shadow flex items-center justify-center">
+        ✕
+      </button>
+      <div class="w-full md:w-1/2 flex items-center justify-center bg-gradient-to-br from-indigo-50 via-violet-50 to-pink-50 p-6 min-h-[300px]">
+        <img id="quickViewImg" src="" alt="" class="max-h-[350px] max-w-full object-contain rounded-lg">
+      </div>
+      <div class="w-full md:w-1/2 p-6 space-y-4 overflow-y-auto flex flex-col justify-between">
+        <div class="space-y-3">
+          <span id="quickViewCategory" class="inline-block bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">分類</span>
+          <h2 id="quickViewTitle" class="text-2xl font-bold text-slate-900">商品標題</h2>
+          <p id="quickViewPrice" class="text-xl font-semibold text-indigo-600">HK$ 0</p>
+          <p id="quickViewStock" class="text-sm text-slate-500">庫存：0 件</p>
+          <!-- 加上 formatted-desc 類別以完整支援排版換行 -->
+          <div id="quickViewDescription" class="text-sm text-slate-600 leading-relaxed formatted-desc">商品描述將顯示在這裡...</div>
+        </div>
+        <div class="space-y-4 pt-4 border-t border-slate-100">
+          <div class="flex items-center gap-4">
+            <span class="text-sm font-medium text-slate-700">數量</span>
+            <div class="flex items-center border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+              <button id="quickViewQuantityMinus" type="button" class="h-10 w-10 grid place-items-center text-slate-600 hover:bg-slate-200 transition">−</button>
+              <span id="quickViewQuantityValue" class="min-w-[3rem] text-center font-bold text-slate-800">1</span>
+              <button id="quickViewQuantityPlus" type="button" class="h-10 w-10 grid place-items-center text-slate-600 hover:bg-slate-200 transition">+</button>
+            </div>
+          </div>
+          <button id="quickViewAddToCartBtn" type="button" class="w-full rounded-xl bg-slate-900 px-4 py-3.5 text-base font-bold text-white transition hover:bg-indigo-600 focus:outline-none focus:ring-4 focus:ring-indigo-100 shadow-lg shadow-slate-200">
+            加入購物車
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="cartBackdrop" class="drawer-backdrop fixed inset-0 z-40 hidden bg-slate-950/50 opacity-0" aria-hidden="true"></div>
+  <aside id="cartDrawer" class="drawer-panel fixed inset-y-0 right-0 z-50 flex w-full max-w-md translate-x-full flex-col bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="cartTitle" aria-hidden="true" inert>
+    <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4 sm:px-6">
+      <div><p class="text-xs font-bold uppercase tracking-widest text-indigo-600">Your basket</p><h2 id="cartTitle" class="mt-0.5 text-xl font-black">購物車 <span id="drawerCartCount" class="text-base font-semibold text-slate-400">(0)</span></h2></div>
+      <div class="flex items-center gap-2">
+        <button id="clearCartButton" type="button" class="rounded-lg px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-100 hover:text-rose-600">清空</button>
+        <button id="closeCartButton" type="button" class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-lg transition hover:bg-slate-100" aria-label="關閉購物車">✕</button>
+      </div>
+    </div>
+    <div id="cartItems" class="flex-1 overflow-y-auto px-5 py-4 sm:px-6"></div>
+    <div class="border-t border-slate-200 bg-slate-50 px-5 py-5 sm:px-6">
+      <label for="customerPhone" class="block text-sm font-bold text-slate-800">WhatsApp 聯絡電話</label>
+      <p class="mt-1 text-xs leading-5 text-slate-500">請輸入可接收出貨通知的電話號碼（可加國際區碼）。</p>
+      <input id="customerPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="例如：91234567 或 +85291234567" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
+      <div class="mt-4 flex items-center justify-between text-sm"><span class="font-semibold text-slate-600">商品小計（估算）</span><strong id="cartSubtotal" class="text-lg font-black text-slate-900">HK$0.00</strong></div>
+      <p class="mt-1 text-xs leading-5 text-slate-500">最終價格及庫存會由伺服器於建立訂單時再次核實。</p>
+      <button id="checkoutButton" type="button" class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">前往結帳 <span aria-hidden="true">→</span></button>
+      <p id="checkoutStatus" class="mt-3 min-h-5 text-center text-sm font-semibold" role="status" aria-live="polite"></p>
+    </div>
+  </aside>
+
+  <dialog id="reviewDialog" class="m-auto w-[calc(100%-2rem)] max-w-2xl rounded-3xl p-0 shadow-2xl backdrop:bg-slate-950/50">
+    <section class="max-h-[90vh] overflow-y-auto bg-white p-5 sm:p-7">
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-widest text-indigo-600">Product reviews</p>
+          <h2 id="reviewDialogTitle" class="mt-1 text-xl font-black text-slate-900">商品評價</h2>
+          <p id="reviewSummary" class="mt-1 text-sm font-semibold text-amber-600" aria-live="polite">正在載入評價…</p>
+        </div>
+        <button id="closeReviewDialog" type="button" class="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-lg text-slate-700 hover:bg-slate-50" aria-label="關閉商品評價">✕</button>
+      </div>
+      <p id="reviewStatus" class="mt-4 min-h-5 text-sm text-slate-600" role="status" aria-live="polite"></p>
+      <ul id="reviewList" class="mt-2 space-y-3"></ul>
+      <section id="reviewVerifyPanel" class="mt-6 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">
+        <h3 class="font-extrabold text-slate-900">會員驗證後即可寫評價</h3>
+        <p class="mt-1 text-sm text-slate-600">請使用曾下單的電話號碼及訂單 UUID 驗證會員身份。</p>
+        <label class="mt-3 block text-sm font-semibold text-slate-700" for="reviewCustomerPhone">聯絡電話</label>
+        <input id="reviewCustomerPhone" type="tel" inputmode="tel" autocomplete="tel" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm" placeholder="例如：91234567">
+        <label class="mt-3 block text-sm font-semibold text-slate-700" for="reviewOrderId">訂單 UUID</label>
+        <input id="reviewOrderId" type="text" autocomplete="off" class="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm" placeholder="輸入曾收到的訂單編號">
+        <button id="reviewVerifyButton" type="button" class="mt-3 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">驗證會員身份</button>
+      </section>
+      <form id="reviewForm" class="mt-6 space-y-3 rounded-2xl border border-slate-200 p-4" hidden>
+        <h3 class="font-extrabold text-slate-900">撰寫商品評價</h3>
+        <label for="reviewRating" class="block text-sm font-semibold text-slate-700">評分</label>
+        <select id="reviewRating" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm">
+          <option value="5">★★★★★（5 分）</option>
+          <option value="4">★★★★☆（4 分）</option>
+          <option value="3">★★★☆☆（3 分）</option>
+          <option value="2">★★☆☆☆（2 分）</option>
+          <option value="1">★☆☆☆☆（1 分）</option>
+        </select>
+        <label for="reviewComment" class="block text-sm font-semibold text-slate-700">評價內容</label>
+        <textarea id="reviewComment" required minlength="1" maxlength="1000" rows="3" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm" placeholder="分享使用感受（最多 1000 字）"></textarea>
+        <button id="submitReviewButton" type="submit" class="rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-700">提交評價</button>
+      </form>
+    </section>
+  </dialog>
+
+  <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-4 border-t border-slate-200 bg-white/95 px-3 py-2 pb-[max(.5rem,env(safe-area-inset-bottom))] backdrop-blur sm:hidden" aria-label="手機導覽列">
+    <a href="/" class="flex flex-col items-center gap-0.5 py-1 text-xs font-bold text-indigo-700"><span class="text-lg" aria-hidden="true">🏠</span>商店</a>
+    <a href="/track.html" class="flex flex-col items-center gap-0.5 py-1 text-xs font-semibold text-slate-500"><span class="text-lg" aria-hidden="true">📦</span>查單</a>
+    <a href="/customer.html" class="flex flex-col items-center gap-0.5 py-1 text-xs font-semibold text-slate-500"><span class="text-lg" aria-hidden="true">👤</span>會員</a>
+    <button id="mobileCartBtn" type="button" class="flex flex-col items-center gap-0.5 py-1 text-xs font-semibold text-slate-500"><span class="text-lg" aria-hidden="true">🛒</span>購物車</button>
+  </nav>
+  <div id="toastNotification" class="pointer-events-none fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 translate-y-3 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white opacity-0 shadow-xl transition sm:bottom-6" role="status" aria-live="polite"></div>
+
+  <script>
+    'use strict';
+
+    const CART_STORAGE_KEY = 'littleplanet_cart';
+    const THEME_STORAGE_KEY = 'littleplanet_theme';
+    const NEW_PRODUCT_DAYS = 30;
+    const PRODUCT_PAGE_SIZE = 24;
+    const currencyFormatter = new Intl.NumberFormat('zh-HK', { style: 'currency', currency: 'HKD' });
+    const productGrid = document.querySelector('#productGrid');
+    const cartDrawer = document.querySelector('#cartDrawer');
+    const cartBackdrop = document.querySelector('#cartBackdrop');
+    const cartItemsElement = document.querySelector('#cartItems');
+    let products = [];
+    let productsTotalCount = 0;
+    let productsOffset = 0;
+    let productRequestController = null;
+    let productSearchTimer = null;
+    let cart = loadCart();
+    let activeCategory = 'all';
+    let toastTimer;
+    let lastFocusedElement;
+    let memberSessionChecked = false;
+    let memberAuthenticated = false;
+    const wishlistProductIds = new Set();
+
+    let currentQuickViewProduct = null;
+    let currentQuickViewQuantity = 1;
+
+    function loadCart() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(CART_STORAGE_KEY) || '[]');
+        if (!Array.isArray(saved)) return [];
+        return saved.filter(item =>
+          item && item.product && (typeof item.product.id === 'string' || typeof item.product.id === 'number') &&
+          Number.isSafeInteger(item.quantity) && item.quantity > 0
+        );
+      } catch (error) {
+        console.error('讀取購物車失敗：', error);
+        return [];
+      }
+    }
+
+    function persistCart() {
+      try {
+        if (cart.length === 0) {
+          localStorage.removeItem(CART_STORAGE_KEY);
+        } else {
+          localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
+        }
+      } catch (error) {
+        console.error('儲存購物車失敗：', error);
+        showToast('無法儲存購物車，請檢查瀏覽器儲存空間。');
+      }
+    }
+
+    function clearCart() {
+      try {
+        localStorage.removeItem(CART_STORAGE_KEY);
+      } catch (error) {
+        console.error('清除購物車失敗：', error);
+      }
+      cart = [];
+    }
+
+    function makeElement(tag, className, text) {
+      const element = document.createElement(tag);
+      if (className) element.className = className;
+      if (text !== undefined) element.textContent = String(text);
+      return element;
+    }
+
+    function getProductName(product) {
+      return String(product.name || product.product_name || '未命名商品');
+    }
+
+    function getProductPrice(product) {
+      const price = Number(product.price ?? product.retail_price);
+      return Number.isFinite(price) && price >= 0 ? price : null;
+    }
+
+    function getProductStock(product) {
+      const stock = Number(product.stock);
+      return Number.isSafeInteger(stock) && stock >= 0 ? stock : null;
+    }
+
+    function getProductId(product) {
+      return String(product.id ?? product.product_id ?? '');
+    }
+
+    function getProductById(productId) {
+      if (!productId) return null;
+      const id = String(productId);
+      return products.find(p => getProductId(p) === id) || null;
+    }
+
+    function isNewProduct(product) {
+      if (product.is_new === true) return true;
+      const createdAt = Date.parse(product.created_at || '');
+      if (!Number.isFinite(createdAt)) return false;
+      const age = Date.now() - createdAt;
+      return age >= 0 && age <= NEW_PRODUCT_DAYS * 24 * 60 * 60 * 1000;
+    }
+
+    function formatPrice(price) {
+      return price === null ? '價格待確認' : currencyFormatter.format(price);
+    }
+
+    function showToast(message) {
+      const toast = document.querySelector('#toastNotification');
+      toast.textContent = message;
+      toast.classList.remove('translate-y-3', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.add('translate-y-3', 'opacity-0');
+        toast.classList.remove('translate-y-0', 'opacity-100');
+      }, 2400);
+    }
+
+    function updateCartCount() {
+      const count = cart.reduce((total, item) => total + item.quantity, 0);
+      document.querySelector('#cartCount').textContent = String(count);
+      document.querySelector('#drawerCartCount').textContent = `(${count})`;
+      persistCart();
+      if (!cartDrawer.inert) renderCart();
+    }
+
+    function setLoadingProducts() {
+      productGrid.replaceChildren();
+      for (let index = 0; index < 8; index += 1) {
+        const card = makeElement('div', 'overflow-hidden rounded-2xl border border-slate-200 bg-white p-3');
+        card.append(makeElement('div', 'skeleton aspect-[4/3] rounded-xl'));
+        card.append(makeElement('div', 'skeleton mt-4 h-4 w-3/4 rounded'));
+        card.append(makeElement('div', 'skeleton mt-3 h-4 w-1/3 rounded'));
+        card.append(makeElement('div', 'skeleton mt-5 h-10 rounded-xl'));
+        productGrid.append(card);
+      }
+      document.querySelector('#resultCount').textContent = '正在載入商品…';
+    }
+
+    function showProductLoadError(message = '請檢查網絡連線後重試。') {
+      productGrid.replaceChildren();
+      const panel = makeElement('div', 'col-span-full rounded-3xl border border-rose-200 bg-white px-6 py-12 text-center');
+      panel.append(makeElement('div', 'text-4xl', '⚠️'));
+      panel.append(makeElement('h3', 'mt-3 text-lg font-extrabold', '暫時無法載入商品'));
+      panel.append(makeElement('p', 'mt-1 text-sm text-slate-500', message));
+      const retry = makeElement('button', 'mt-5 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700', '重新載入');
+      retry.type = 'button';
+      retry.addEventListener('click', () => loadProducts(0));
+      panel.append(retry);
+      productGrid.append(panel);
+      document.querySelector('#resultCount').textContent = '';
+    }
+
+    function renderCategoryTabs() {
+      const tabs = document.querySelector('#categoryTabs');
+      const categoryFilter = document.querySelector('#categoryFilter');
+      const existingCategories = [...new Set(products
+        .map(product => typeof product.category === 'string' ? product.category.trim() : '')
+        .filter(Boolean))];
+
+      tabs.querySelectorAll('[data-dynamic-category]').forEach(button => button.remove());
+      const selectedCategory = categoryFilter.value;
+      categoryFilter.replaceChildren(makeElement('option', '', '所有分類'));
+      categoryFilter.options[0].value = '';
+      existingCategories.forEach(category => {
+        const button = makeElement('button', 'category-button shrink-0 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-600 transition hover:border-indigo-200 hover:text-indigo-700', category);
+        button.type = 'button';
+        button.dataset.category = `category:${category}`;
+        button.dataset.dynamicCategory = 'true';
+        tabs.append(button);
+        const option = makeElement('option', '', category);
+        option.value = category;
+        categoryFilter.append(option);
+      });
+      if (selectedCategory && !existingCategories.includes(selectedCategory)) {
+        const selectedOption = makeElement('option', '', selectedCategory);
+        selectedOption.value = selectedCategory;
+        categoryFilter.append(selectedOption);
+      }
+      categoryFilter.value = selectedCategory;
+      updateCategoryTabStyles();
+    }
+
+    function updateCategoryTabStyles() {
+      document.querySelectorAll('.category-button').forEach(button => {
+        const selected = button.dataset.category === activeCategory ||
+          button.dataset.category === `category:${document.querySelector('#categoryFilter').value}`;
+        button.classList.toggle('bg-indigo-600', selected);
+        button.classList.toggle('text-white', selected);
+        button.classList.toggle('border-indigo-600', selected);
+        button.classList.toggle('shadow-sm', selected);
+        button.classList.toggle('border-slate-200', !selected);
+        button.classList.toggle('bg-white', !selected);
+        button.classList.toggle('text-slate-600', !selected);
+      });
+    }
+
+    function productMatchesCategory(product) {
+      const stock = getProductStock(product);
+      if (activeCategory === 'hot') return stock !== null && stock > 0 && stock <= 5;
+      if (activeCategory === 'new') return isNewProduct(product);
+      if (activeCategory === 'in-stock') return stock !== null && stock > 0;
+      return true;
+    }
+
+    function openQuickView(product) {
+      currentQuickViewProduct = product;
+      currentQuickViewQuantity = 1;
+      
+      const hasUploadedImage =
+        (Array.isArray(product.images) && product.images.length > 0) ||
+        (typeof product.image_url === 'string' && product.image_url.trim() !== '') ||
+        (typeof product.imageUrl === 'string' && product.imageUrl.trim() !== '');
+
+      let imgUrl = '';
+      if (hasUploadedImage) {
+        imgUrl = (Array.isArray(product.images) && product.images[0]) || product.image_url || product.imageUrl;
+      } else {
+        const randomSeed = Math.random().toString(36).substring(2, 15);
+        imgUrl = `https://picsum.photos/seed/${randomSeed}/400/300`;
+      }
+
+      const quickViewImg = document.querySelector('#quickViewImg');
+      quickViewImg.src = imgUrl;
+      if (!hasUploadedImage) {
+        quickViewImg.addEventListener('error', function onQuickViewImgError() {
+          quickViewImg.removeEventListener('error', onQuickViewImgError);
+          quickViewImg.src = 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=60';
+        }, { once: true });
+      }
+
+      document.querySelector('#quickViewCategory').textContent = product.category || '精選商品';
+      document.querySelector('#quickViewTitle').textContent = getProductName(product);
+      document.querySelector('#quickViewPrice').textContent = formatPrice(getProductPrice(product));
+      const stock = getProductStock(product);
+
+      const isPreorder = (product.description && product.description.includes('截單')) || (product.name && product.name.includes('【預購】'));
+document.querySelector('#quickViewStock').textContent = isPreorder ? '商品狀態：預購中（請參考下方截單日期）' : stock === null ? '庫存：待確認' : `庫存：${stock} 件`;
+      // ✨ 關鍵修復：使用 textContent 或 innerText 讓帶有換行符號的描述文字完美顯示換行與排版 ✨
+      const descEl = document.querySelector('#quickViewDescription');
+      descEl.textContent = product.description || '暫無商品描述';
+
+      document.querySelector('#quickViewQuantityValue').textContent = currentQuickViewQuantity;
+
+      const modal = document.querySelector('#quickViewModal');
+      modal.classList.remove('hidden');
+      modal.classList.add('flex');
+    }
+
+    function closeQuickView() {
+      const modal = document.querySelector('#quickViewModal');
+      modal.classList.remove('flex');
+      modal.classList.add('hidden');
+      currentQuickViewProduct = null;
+    }
+
+    function makeProductCard(product) {
+      const productId = getProductId(product);
+      const stock = getProductStock(product);
+      const price = getProductPrice(product);
+      const soldOut = stock === 0 || product.status === '已下架' || product.is_active === false;
+      const card = makeElement('article', 'product-card group flex flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white p-3.5 shadow-sm transition duration-300 hover:-translate-y-1 hover:border-indigo-100 hover:shadow-xl hover:shadow-indigo-100/60');
+
+      const imageWrap = makeElement('div', 'relative grid aspect-[4/3] place-items-center overflow-hidden rounded-xl bg-gradient-to-br from-indigo-50 via-violet-50 to-pink-50 cursor-pointer');
+      imageWrap.addEventListener('click', () => openQuickView(product));
+      
+      const hasUploadedImage =
+        (Array.isArray(product.images) && product.images.length > 0) ||
+        (typeof product.image_url === 'string' && product.image_url.trim() !== '') ||
+        (typeof product.imageUrl === 'string' && product.imageUrl.trim() !== '');
+
+      let imagesList = [];
+      if (Array.isArray(product.images) && product.images.length > 0) {
+        imagesList = product.images;
+      } else if (typeof product.image_url === 'string' && product.image_url.trim()) {
+        imagesList = [product.image_url];
+      } else if (typeof product.imageUrl === 'string' && product.imageUrl.trim()) {
+        imagesList = [product.imageUrl];
+      } else {
+        imagesList = ['https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&auto=format&fit=crop&q=60'];
+      }
+
+      const primaryImg = document.createElement('img');
+      if (hasUploadedImage) {
+        primaryImg.src = imagesList[0];
+      } else {
+        const primaryRandomSeed = Math.random().toString(36).substring(2, 15);
+        primaryImg.src = `https://picsum.photos/seed/${primaryRandomSeed}/400/300`;
+        primaryImg.addEventListener('error', function onPrimaryImageError() {
+          primaryImg.removeEventListener('error', onPrimaryImageError);
+          primaryImg.src = imagesList[0];
+        });
+      }
+      primaryImg.alt = getProductName(product);
+      primaryImg.loading = 'lazy';
+      primaryImg.className = 'product-image absolute inset-0 h-full w-full object-cover transition-opacity duration-300';
+      imageWrap.append(primaryImg);
+
+      if (imagesList.length > 1) {
+        const secondaryImg = document.createElement('img');
+        secondaryImg.src = imagesList[1];
+        secondaryImg.alt = `${getProductName(product)} - 另一角度`;
+        secondaryImg.loading = 'lazy';
+        secondaryImg.className = 'product-image absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-300 group-hover:opacity-100';
+        imageWrap.append(secondaryImg);
+      }
+
+      if (soldOut) {
+        imageWrap.append(makeElement('span', 'absolute left-3 top-3 rounded-full bg-slate-900/80 px-2.5 py-1 text-xs font-bold text-white', product.status === '已下架' ? '暫停供應' : '已售罄'));
+      } else if (isNewProduct(product)) {
+        imageWrap.append(makeElement('span', 'absolute left-3 top-3 rounded-full bg-fuchsia-600 px-2.5 py-1 text-xs font-bold text-white shadow', 'NEW 新品'));
+      } else if (stock !== null && stock <= 5) {
+        imageWrap.append(makeElement('span', 'absolute left-3 top-3 rounded-full bg-rose-500 px-2.5 py-1 text-xs font-bold text-white shadow', 'HOT 熱賣'));
+      }
+
+      const content = makeElement('div', 'flex flex-1 flex-col px-1 pb-1 pt-4');
+      if (product.category) content.append(makeElement('p', 'text-xs font-bold tracking-wide text-indigo-600', product.category));
+      
+      const titleElem = makeElement('h3', 'mt-1 line-clamp-2 min-h-12 text-[15px] font-extrabold leading-6 text-slate-900 cursor-pointer hover:text-indigo-600 transition', getProductName(product));
+      titleElem.addEventListener('click', () => openQuickView(product));
+      content.append(titleElem);
+
+      content.append(makeElement('p', 'mt-2 text-lg font-black tracking-tight text-indigo-700', formatPrice(price)));
+
+const isPreorder = (product.description && product.description.includes('截單')) || (product.name && product.name.includes('【預購】'));
+const stockText = soldOut ? '暫無庫存' : isPreorder ? '⏳ 預購中（按公告日期到貨）' : stock === null ? '庫存資訊待確認' : stock <= 5 ? `庫存緊張 · 剩餘 ${stock} 件` : `現貨 · ${stock} 件`;
+content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-slate-400' : isPreorder ? 'text-indigo-600 font-bold' : stock !== null && stock <= 5 ? 'text-rose-600' : 'text-emerald-700'}`, stockText));
+
+      content.append(createBestBeforeSummary(product.best_before_summary));
+
+      const actions = makeElement('div', 'mt-auto pt-4');
+      
+      const quickViewBtn = makeElement('button', 'mb-2 w-full rounded-xl bg-indigo-50 px-3 py-2 text-sm font-bold text-indigo-700 transition hover:bg-indigo-100', '快速查看 Quick View');
+      quickViewBtn.type = 'button';
+      quickViewBtn.addEventListener('click', () => openQuickView(product));
+      actions.append(quickViewBtn);
+
+      const favorite = makeElement('button', 'mb-2 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition', '');
+      favorite.type = 'button';
+      favorite.dataset.action = 'toggle-wishlist';
+      favorite.dataset.productId = productId;
+      updateWishlistButton(favorite, productId);
+      actions.append(favorite);
+
+      const reviewsButton = makeElement('button', 'mb-2 w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm font-bold text-indigo-700 transition hover:bg-indigo-50', '查看評價 / 寫評價');
+      reviewsButton.type = 'button';
+      reviewsButton.dataset.action = 'product-reviews';
+      reviewsButton.dataset.productId = productId;
+      actions.append(reviewsButton);
+
+      if (!soldOut && stock !== 0) {
+        const actionRow = makeElement('div', 'flex items-center justify-between gap-3');
+        const quantity = makeElement('div', 'flex items-center rounded-lg border border-slate-200');
+        const minus = makeElement('button', 'grid h-9 w-9 place-items-center text-lg font-semibold text-slate-600 hover:bg-slate-50', '−');
+        minus.type = 'button';
+        minus.dataset.action = 'card-quantity';
+        minus.dataset.delta = '-1';
+        minus.dataset.productId = productId;
+        minus.setAttribute('aria-label', `減少${getProductName(product)}數量`);
+        const value = makeElement('span', 'min-w-7 text-center text-sm font-bold', '1');
+        value.dataset.quantityFor = productId;
+        const plus = makeElement('button', 'grid h-9 w-9 place-items-center text-lg font-semibold text-slate-600 hover:bg-slate-50', '+');
+        plus.type = 'button';
+        plus.dataset.action = 'card-quantity';
+        plus.dataset.delta = '1';
+        plus.dataset.productId = productId;
+        plus.setAttribute('aria-label', `增加${getProductName(product)}數量`);
+        quantity.append(minus, value, plus);
+        actionRow.append(quantity);
+        const add = makeElement('button', 'flex-1 rounded-lg bg-slate-900 px-3 py-2.5 text-sm font-bold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-100 disabled:cursor-not-allowed disabled:bg-slate-300', '加入購物車');
+        add.type = 'button';
+        add.dataset.action = 'add-to-cart';
+        add.dataset.productId = productId;
+        actionRow.append(add);
+        actions.append(actionRow);
+      } else {
+        const unavailable = makeElement('button', 'w-full cursor-not-allowed rounded-lg bg-slate-100 px-3 py-2.5 text-sm font-bold text-slate-400', '暫未供應');
+        unavailable.type = 'button';
+        unavailable.disabled = true;
+        actions.append(unavailable);
+      }
+      content.append(actions);
+      card.append(imageWrap, content);
+      return card;
+    }
+
+    function createBestBeforeSummary(summary) {
+      const section = makeElement('div', 'mt-3 rounded-lg border border-amber-100 bg-amber-50/70 p-2.5');
+      section.append(makeElement('p', 'text-xs font-extrabold text-amber-900', '📅 收貨批次最佳使用日期'));
+
+      if (!summary || (!Array.isArray(summary.best_before_dates) && !summary.has_undated_batch && !summary.has_legacy_unknown_date)) {
+        section.append(makeElement('p', 'mt-1 text-xs text-slate-500', '效期資料暫未提供'));
+        return section;
+      }
+
+      if (Array.isArray(summary.best_before_dates) && summary.best_before_dates.length > 0) {
+        const datesText = summary.best_before_dates.join('、');
+        section.append(makeElement('p', 'mt-1 text-xs font-semibold text-slate-700', `有效日期：${datesText}`));
+      }
+
+      if (summary.has_undated_batch === true) {
+        section.append(makeElement('p', 'mt-1 text-xs font-semibold text-amber-800', '• 部分批次：無最佳使用日期設定'));
+      }
+
+      if (summary.has_legacy_unknown_date === true) {
+        section.append(makeElement('p', 'mt-1 text-xs font-semibold text-slate-600', '• 舊庫存批次：效期日期未知'));
+      }
+
+      return section;
+    }
+
+    function updateWishlistButton(button, productId) {
+      const saved = wishlistProductIds.has(productId);
+      button.textContent = saved ? '♥ 已收藏' : '♡ 加入收藏';
+      button.className = `mb-2 flex w-full items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-bold transition ${
+        saved
+          ? 'border-rose-200 bg-rose-50 text-rose-600 hover:bg-rose-100'
+          : 'border-slate-200 text-slate-600 hover:border-rose-200 hover:text-rose-600'
+      }`;
+      button.setAttribute('aria-pressed', saved ? 'true' : 'false');
+      button.setAttribute('aria-label', saved ? '從收藏清單移除' : '加入收藏清單');
+    }
+
+    function refreshWishlistButtons() {
+      document.querySelectorAll('[data-action="toggle-wishlist"]').forEach(button => {
+        updateWishlistButton(button, button.dataset.productId);
+      });
+    }
+
+    async function loadMemberWishlist() {
+      memberSessionChecked = false;
+      try {
+        const sessionResponse = await fetch('/api/customer/member/session', {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin',
+          cache: 'no-store'
+        });
+        const sessionResult = await sessionResponse.json();
+        if (!sessionResponse.ok || !sessionResult || sessionResult.success !== true) {
+          throw new Error(sessionResult && sessionResult.message
+            ? sessionResult.message
+            : `會員登入狀態讀取失敗（HTTP ${sessionResponse.status}）。`);
+        }
+        memberAuthenticated = sessionResult.data && sessionResult.data.authenticated === true;
+        if (!memberAuthenticated) {
+          wishlistProductIds.clear();
+          return;
+        }
+
+        wishlistProductIds.clear();
+        let offset = 0;
+        let totalCount = 0;
+        try {
+          do {
+            const response = await fetch(`/api/customer/wishlist?limit=100&offset=${offset}`, {
+              headers: { Accept: 'application/json' },
+              credentials: 'same-origin',
+              cache: 'no-store'
+            });
+            const result = await response.json();
+            if (!response.ok || !result || result.success !== true ||
+                !result.data || !Array.isArray(result.data.wishlist) ||
+                !Number.isSafeInteger(result.data.total_count)) {
+              if (response.status === 401) memberAuthenticated = false;
+              throw new Error(result && result.message
+                ? result.message
+                : `收藏清單載入失敗（HTTP ${response.status}）。`);
+            }
+            result.data.wishlist.forEach(item => wishlistProductIds.add(String(item.product_id)));
+            totalCount = result.data.total_count;
+            offset += result.data.wishlist.length;
+            if (result.data.wishlist.length === 0) break;
+          } while (offset < totalCount);
+        } catch (error) {
+          console.error('載入會員收藏清單失敗：', error);
+          showToast('收藏狀態暫時無法載入，請稍後重試。');
+          if (!memberAuthenticated) wishlistProductIds.clear();
+        }
+      } catch (error) {
+        memberAuthenticated = false;
+        wishlistProductIds.clear();
+        console.error('載入會員收藏狀態失敗：', error);
+      } finally {
+        memberSessionChecked = true;
+        refreshWishlistButtons();
+      }
+    }
+
+    async function toggleWishlist(productId, button) {
+      if (!memberSessionChecked || !memberAuthenticated) {
+        showToast('請先登入會員中心，登入後即可管理收藏。');
+        window.location.assign('/customer.html?wishlist=1');
+        return;
+      }
+      const wasSaved = wishlistProductIds.has(productId);
+      button.disabled = true;
+      try {
+        const response = await fetch(
+          wasSaved
+            ? `/api/customer/wishlist/${encodeURIComponent(productId)}`
+            : '/api/customer/wishlist',
+          {
+            method: wasSaved ? 'DELETE' : 'POST',
+            headers: {
+              Accept: 'application/json',
+              ...(wasSaved ? {} : { 'Content-Type': 'application/json' })
+            },
+            credentials: 'same-origin',
+            ...(wasSaved ? {} : { body: JSON.stringify({ product_id: productId }) })
+          }
+        );
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true) {
+          if (response.status === 401) {
+            memberAuthenticated = false;
+            wishlistProductIds.clear();
+            refreshWishlistButtons();
+          }
+          throw new Error(result && result.message
+            ? result.message
+            : `收藏操作失敗（HTTP ${response.status}）。`);
+        }
+        if (wasSaved) wishlistProductIds.delete(productId);
+        else wishlistProductIds.add(productId);
+        refreshWishlistButtons();
+        showToast(result.message || (wasSaved ? '已移除收藏。' : '已加入收藏。'));
+      } catch (error) {
+        console.error('更新會員收藏失敗：', error);
+        showToast(error.message || '收藏操作失敗，請稍後再試。');
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    let activeReviewProductId = '';
+
+    async function loadProductReviews() {
+      const summary = document.querySelector('#reviewSummary');
+      const status = document.querySelector('#reviewStatus');
+      const list = document.querySelector('#reviewList');
+      summary.textContent = '正在載入評價…';
+      status.textContent = '';
+      list.replaceChildren();
+      try {
+        const response = await fetch(`/api/products/${encodeURIComponent(activeReviewProductId)}/reviews?limit=50&offset=0`, {
+          headers: { Accept: 'application/json' }
+        });
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true || !result.data || !Array.isArray(result.data.reviews)) {
+          throw new Error(result && result.message ? result.message : `評價載入失敗（HTTP ${response.status}）。`);
+        }
+        const rating = Number(result.data.average_rating);
+        const count = Number(result.data.review_count);
+        summary.textContent = `${Number.isFinite(rating) ? rating.toFixed(1) : '0.0'} ★ · ${Number.isSafeInteger(count) ? count : 0} 則評價`;
+        if (result.data.reviews.length === 0) {
+          status.textContent = '暫時未有評價，成為第一位分享使用感受的顧客吧。';
+          return;
+        }
+        result.data.reviews.forEach(review => {
+          const item = makeElement('li', 'rounded-2xl border border-slate-200 bg-slate-50 p-4');
+          item.append(makeElement('p', 'font-bold text-amber-600', `${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}`));
+          item.append(makeElement('p', 'mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700', review.comment));
+          const date = new Date(review.created_at);
+          item.append(makeElement('p', 'mt-2 text-xs text-slate-500', Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('zh-HK')));
+          list.append(item);
+        });
+      } catch (error) {
+        console.error('載入商品評價失敗：', error);
+        summary.textContent = '評價暫時無法載入';
+        status.textContent = error.message || '請稍後重試。';
+      }
+    }
+
+    async function refreshReviewMemberState() {
+      const panel = document.querySelector('#reviewVerifyPanel');
+      const form = document.querySelector('#reviewForm');
+      try {
+        const response = await fetch('/api/customer/member/session', {
+          headers: { Accept: 'application/json' },
+          credentials: 'same-origin'
+        });
+        const result = await response.json();
+        const authenticated = response.ok && result && result.success === true &&
+          result.data && result.data.authenticated === true;
+        panel.hidden = authenticated;
+        form.hidden = !authenticated;
+      } catch (error) {
+        console.error('檢查會員 Session 失敗：', error);
+        panel.hidden = false;
+        form.hidden = true;
+      }
+    }
+
+    async function openProductReviews(productId) {
+      const product = products.find(item => getProductId(item) === productId);
+      if (!product) return;
+      activeReviewProductId = productId;
+      document.querySelector('#reviewDialogTitle').textContent = `${getProductName(product)} · 商品評價`;
+      document.querySelector('#reviewDialog').showModal();
+      document.querySelector('#reviewComment').value = '';
+      await Promise.all([loadProductReviews(), refreshReviewMemberState()]);
+    }
+
+    function renderProducts() {
+      const visible = products.filter(productMatchesCategory);
+
+      productGrid.replaceChildren();
+      document.querySelector('#resultCount').textContent =
+        activeCategory === 'all'
+          ? `共 ${productsTotalCount} 件符合條件的商品`
+          : `本頁 ${visible.length} 件符合快速篩選 · 共 ${productsTotalCount} 件搜尋結果`;
+      if (visible.length === 0) {
+        const empty = makeElement('div', 'col-span-full rounded-3xl border border-slate-200 bg-white px-6 py-14 text-center');
+        empty.append(makeElement('div', 'text-4xl', '🔎'));
+        empty.append(makeElement('h3', 'mt-3 text-lg font-extrabold', '暫時找不到符合的商品'));
+        empty.append(makeElement('p', 'mt-1 text-sm text-slate-500', activeCategory === 'new' ? '目前沒有可確認上架日期的新品，試試其他分類。' : '試試其他關鍵字或切換分類。'));
+        productGrid.append(empty);
+      } else {
+        visible.forEach(product => productGrid.append(makeProductCard(product)));
+      }
+      const pageStatus = document.querySelector('#productPageStatus');
+      const first = productsTotalCount === 0 ? 0 : productsOffset + 1;
+      const last = Math.min(productsOffset + products.length, productsTotalCount);
+      pageStatus.textContent = productsTotalCount > 0
+        ? `顯示第 ${first}–${last} 件，共 ${productsTotalCount} 件`
+        : '沒有符合條件的商品';
+      document.querySelector('#previousProductsButton').disabled = productsOffset === 0;
+      document.querySelector('#nextProductsButton').disabled =
+        productsOffset + products.length >= productsTotalCount;
+    }
+
+    function reconcileCartWithProducts() {
+      cart = cart.map(item => {
+        const latest = products.find(product => getProductId(product) === String(item.product.id ?? item.product.product_id));
+        return latest ? { product: latest, quantity: item.quantity } : item;
+      });
+      persistCart();
+      updateCartCount();
+    }
+
+    async function loadProducts(offset = 0) {
+      if (productRequestController) {
+        productRequestController.abort();
+      }
+      const controller = new AbortController();
+      productRequestController = controller;
+      setLoadingProducts();
+      document.querySelector('#productPageStatus').textContent = '正在搜尋商品…';
+      document.querySelector('#previousProductsButton').disabled = true;
+      document.querySelector('#nextProductsButton').disabled = true;
+      const query = new URLSearchParams({
+        limit: String(PRODUCT_PAGE_SIZE),
+        offset: String(offset),
+        sort: document.querySelector('#sortSelect').value,
+        include_best_before_dates: 'true'
+      });
+      const search = document.querySelector('#searchInput').value.trim();
+      const category = document.querySelector('#categoryFilter').value;
+      if (search) query.set('search', search);
+      if (category) query.set('category', category);
+      try {
+        const response = await fetch(`/api/products?${query}`, {
+          headers: { Accept: 'application/json' },
+          signal: controller.signal
+        });
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true || !result.data ||
+            !Array.isArray(result.data.products) ||
+            !Number.isSafeInteger(result.data.total_count)) {
+          throw new Error(result && result.message ? result.message : '商品服務回應格式無效');
+        }
+        products = result.data.products.filter(product => product && typeof product === 'object' && getProductId(product));
+        productsTotalCount = result.data.total_count;
+        productsOffset = result.data.offset;
+        renderCategoryTabs();
+        reconcileCartWithProducts();
+        renderProducts();
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        console.error('載入商品失敗：', error);
+        showProductLoadError(error.message || '請檢查網絡連線後重試。');
+        document.querySelector('#productPageStatus').textContent = '';
+      } finally {
+        if (productRequestController === controller) {
+          productRequestController = null;
+        }
+      }
+    }
+
+    function changeCardQuantity(productId, delta) {
+      const product = products.find(item => getProductId(item) === productId);
+      const value = document.querySelector(`[data-quantity-for="${CSS.escape(productId)}"]`);
+      if (!product || !value) return;
+      const stock = getProductStock(product);
+      const current = Number(value.textContent) || 1;
+      const next = current + delta;
+      if (next < 1 || (stock !== null && next > stock)) return;
+      value.textContent = String(next);
+    }
+
+    function addToCart(productId) {
+      const product = products.find(item => getProductId(item) === productId);
+      if (!product) return;
+      const stock = getProductStock(product);
+      const price = getProductPrice(product);
+      if (stock === null || stock < 1 || price === null || product.status === '已下架' || product.is_active === false) {
+        showToast('商品目前無法加入購物車。');
+        return;
+      }
+      const quantityElement = document.querySelector(`[data-quantity-for="${CSS.escape(productId)}"]`);
+      const quantity = Number(quantityElement ? quantityElement.textContent : 1);
+      const existing = cart.find(item => String(item.product.id ?? item.product.product_id) === productId);
+      if ((existing ? existing.quantity : 0) + quantity > stock) {
+        showToast('購買數量已達庫存上限。');
+        return;
+      }
+      if (existing) {
+        existing.product = product;
+        existing.quantity += quantity;
+      } else {
+        cart.push({ product, quantity });
+      }
+      updateCartCount();
+      renderProducts();
+      if (!cartDrawer.inert) renderCart();
+      showToast(`已將 ${quantity} 件「${getProductName(product)}」加入購物車。`);
+    }
+
+    function createCartItem(item) {
+      const product = item.product;
+      const productId = getProductId(product);
+      const name = getProductName(product);
+      const price = getProductPrice(product);
+      const stock = getProductStock(product);
+      const row = makeElement('article', 'flex gap-3 border-b border-slate-100 py-4 last:border-0');
+      const thumbnail = makeElement('div', 'grid h-16 w-16 shrink-0 place-items-center overflow-hidden rounded-xl bg-indigo-50 text-2xl', '🪐');
+      if (typeof product.image_url === 'string' && /^https?:\/\//i.test(product.image_url)) {
+        const image = document.createElement('img');
+        image.src = product.image_url;
+        image.alt = '';
+        image.loading = 'lazy';
+        image.className = 'h-full w-full object-cover';
+        image.addEventListener('error', () => image.remove(), { once: true });
+        thumbnail.replaceChildren(image);
+      }
+      const details = makeElement('div', 'min-w-0 flex-1');
+      const top = makeElement('div', 'flex items-start justify-between gap-2');
+      top.append(makeElement('h3', 'line-clamp-2 text-sm font-extrabold leading-5', name));
+      const remove = makeElement('button', 'shrink-0 rounded-md px-2 py-1 text-xs font-bold text-slate-400 transition hover:bg-rose-50 hover:text-rose-600', '移除');
+      remove.type = 'button';
+      remove.dataset.action = 'remove-cart-item';
+      remove.dataset.productId = productId;
+      remove.setAttribute('aria-label', `移除${name}`);
+      top.append(remove);
+      details.append(top);
+      details.append(makeElement('p', 'mt-1 text-xs font-semibold text-slate-500', `${formatPrice(price)} × ${item.quantity}`));
+      if (stock === null || item.quantity > stock) details.append(makeElement('p', 'mt-1 text-xs font-bold text-rose-600', stock === null ? '庫存待確認，暫不能結帳' : '目前庫存不足，請調整數量'));
+
+      const controls = makeElement('div', 'mt-2 flex items-center gap-2');
+      const minus = makeElement('button', 'grid h-7 w-7 place-items-center rounded-md border border-slate-200 text-sm font-bold disabled:opacity-40', '−');
+      minus.type = 'button';
+      minus.dataset.action = 'cart-quantity';
+      minus.dataset.delta = '-1';
+      minus.dataset.productId = productId;
+      minus.disabled = item.quantity <= 1;
+      minus.setAttribute('aria-label', `減少${name}數量`);
+      const count = makeElement('span', 'min-w-5 text-center text-sm font-bold', String(item.quantity));
+      const plus = makeElement('button', 'grid h-7 w-7 place-items-center rounded-md border border-slate-200 text-sm font-bold disabled:opacity-40', '+');
+      plus.type = 'button';
+      plus.dataset.action = 'cart-quantity';
+      plus.dataset.delta = '1';
+      plus.dataset.productId = productId;
+      plus.disabled = stock === null || item.quantity >= stock;
+      plus.setAttribute('aria-label', `增加${name}數量`);
+      controls.append(minus, count, plus);
+      details.append(controls);
+      row.append(thumbnail, details);
+      return row;
+    }
+
+    function canCheckout() {
+      return cart.length > 0 && cart.every(item => {
+        const stock = getProductStock(item.product);
+        return stock !== null && stock > 0 && item.quantity <= stock && getProductPrice(item.product) !== null &&
+          item.product.status !== '已下架' && item.product.is_active !== false;
+      });
+    }
+
+    function renderCart() {
+      cartItemsElement.replaceChildren();
+      if (cart.length === 0) {
+        const empty = makeElement('div', 'flex h-full min-h-48 flex-col items-center justify-center text-center');
+        empty.append(makeElement('div', 'text-5xl', '🛍️'));
+        empty.append(makeElement('p', 'mt-3 font-extrabold', '購物車還未有商品'));
+        empty.append(makeElement('p', 'mt-1 text-sm text-slate-500', '逛逛商品，挑選喜歡的好物吧。'));
+        cartItemsElement.append(empty);
+      } else {
+        cart.forEach(item => cartItemsElement.append(createCartItem(item)));
+      }
+      const subtotal = cart.reduce((total, item) => {
+        const price = getProductPrice(item.product);
+        return total + (price === null ? 0 : price * item.quantity);
+      }, 0);
+      document.querySelector('#cartSubtotal').textContent = currencyFormatter.format(subtotal);
+      document.querySelector('#checkoutButton').disabled = !canCheckout();
+      document.querySelector('#checkoutStatus').textContent = cart.length > 0 && !canCheckout()
+        ? '請移除已下架商品，或調整庫存不足的數量後再結帳。'
+        : '';
+    }
+
+    function openCart() {
+      lastFocusedElement = document.activeElement;
+      renderCart();
+      cartDrawer.inert = false;
+      cartDrawer.setAttribute('aria-hidden', 'false');
+      cartBackdrop.classList.remove('hidden');
+      document.body.classList.add('overflow-hidden');
+      requestAnimationFrame(() => {
+        cartBackdrop.classList.remove('opacity-0');
+        cartBackdrop.classList.add('opacity-100');
+        cartDrawer.classList.remove('translate-x-full');
+        document.querySelector('#closeCartButton').focus();
+      });
+    }
+
+    function closeCart() {
+      cartBackdrop.classList.add('opacity-0');
+      cartBackdrop.classList.remove('opacity-100');
+      cartDrawer.classList.add('translate-x-full');
+      cartDrawer.setAttribute('aria-hidden', 'true');
+      cartDrawer.inert = true;
+      document.body.classList.remove('overflow-hidden');
+      setTimeout(() => cartBackdrop.classList.add('hidden'), 230);
+      if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
+    }
+
+    function removeCartItem(productId) {
+      cart = cart.filter(item => String(item.product.id ?? item.product.product_id) !== productId);
+      updateCartCount();
+      showToast('商品已從購物車移除。');
+    }
+
+    function changeCartQuantity(productId, delta) {
+      const item = cart.find(entry => String(entry.product.id ?? entry.product.product_id) === productId);
+      if (!item) return;
+      const stock = getProductStock(item.product);
+      const next = item.quantity + delta;
+      if (next < 1 || (stock !== null && next > stock)) return;
+      item.quantity = next;
+      updateCartCount();
+    }
+
+    function initializeTheme() {
+      try {
+        const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+        const dark = savedTheme ? savedTheme === 'dark' : true; 
+
+        document.documentElement.classList.toggle('dark', dark);
+        if (dark) {
+          document.body.classList.replace('bg-slate-50', 'bg-slate-950');
+          document.body.classList.replace('text-slate-900', 'text-slate-100');
+          document.querySelector('#themeToggleBtn').textContent = '☀️';
+          document.querySelector('#themeToggleBtn').setAttribute('aria-label', '切換淺色模式');
+        } else {
+          document.body.classList.replace('bg-slate-950', 'bg-slate-50');
+          document.body.classList.replace('text-slate-100', 'text-slate-900');
+          document.querySelector('#themeToggleBtn').textContent = '🌙';
+          document.querySelector('#themeToggleBtn').setAttribute('aria-label', '切換深色模式');
+        }
+      } catch (error) {
+        console.error('讀取主題設定失敗：', error);
+      }
+    }
+
+    document.querySelector('#themeToggleBtn').addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      document.body.classList.toggle('bg-slate-950', dark);
+      document.body.classList.toggle('bg-slate-50', !dark);
+      document.body.classList.toggle('text-slate-100', dark);
+      document.body.classList.toggle('text-slate-900', !dark);
+      document.querySelector('#themeToggleBtn').textContent = dark ? '☀️' : '🌙';
+      document.querySelector('#themeToggleBtn').setAttribute('aria-label', dark ? '切換淺色模式' : '切換深色模式');
+      try {
+        localStorage.setItem(THEME_STORAGE_KEY, dark ? 'dark' : 'light');
+      } catch (error) {
+        console.error('儲存主題設定失敗：', error);
+      }
+    });
+
+    document.querySelector('#searchInput').addEventListener('input', () => {
+      clearTimeout(productSearchTimer);
+      productSearchTimer = setTimeout(() => loadProducts(0), 250);
+    });
+    document.querySelector('#categoryFilter').addEventListener('change', () => {
+      activeCategory = 'all';
+      updateCategoryTabStyles();
+      loadProducts(0);
+    });
+    document.querySelector('#sortSelect').addEventListener('change', () => loadProducts(0));
+    document.querySelector('#previousProductsButton').addEventListener('click', () => {
+      loadProducts(Math.max(0, productsOffset - PRODUCT_PAGE_SIZE));
+    });
+    document.querySelector('#nextProductsButton').addEventListener('click', () => {
+      loadProducts(productsOffset + PRODUCT_PAGE_SIZE);
+    });
+    document.querySelector('#categoryTabs').addEventListener('click', event => {
+      const button = event.target.closest('[data-category]');
+      if (!button) return;
+      activeCategory = button.dataset.category;
+      if (activeCategory.startsWith('category:')) {
+        document.querySelector('#categoryFilter').value = activeCategory.slice(9);
+        activeCategory = 'all';
+        loadProducts(0);
+      } else if (activeCategory === 'all') {
+        document.querySelector('#categoryFilter').value = '';
+        loadProducts(0);
+      } else {
+        renderProducts();
+      }
+      updateCategoryTabStyles();
+    });
+
+    document.querySelector('#quickViewCloseBtn').addEventListener('click', closeQuickView);
+    document.querySelector('#quickViewModal').addEventListener('click', (e) => {
+      if (e.target.id === 'quickViewModal') closeQuickView();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeQuickView();
+    });
+
+    document.querySelector('#quickViewQuantityMinus').addEventListener('click', () => {
+      if (currentQuickViewQuantity > 1) {
+        currentQuickViewQuantity--;
+        document.querySelector('#quickViewQuantityValue').textContent = currentQuickViewQuantity;
+      }
+    });
+
+    document.querySelector('#quickViewQuantityPlus').addEventListener('click', () => {
+      if (!currentQuickViewProduct) return;
+      const stock = getProductStock(currentQuickViewProduct);
+      if (stock === null || currentQuickViewQuantity < stock) {
+        currentQuickViewQuantity++;
+        document.querySelector('#quickViewQuantityValue').textContent = currentQuickViewQuantity;
+      } else {
+        showToast('已達庫存上限。');
+      }
+    });
+
+    document.querySelector('#quickViewAddToCartBtn').addEventListener('click', () => {
+      if (!currentQuickViewProduct) return;
+      const productId = getProductId(currentQuickViewProduct);
+      const stock = getProductStock(currentQuickViewProduct);
+      const price = getProductPrice(currentQuickViewProduct);
+      if (stock === null || stock < 1 || price === null || currentQuickViewProduct.status === '已下架' || currentQuickViewProduct.is_active === false) {
+        showToast('商品目前無法加入購物車。');
+        return;
+      }
+      const existing = cart.find(item => String(item.product.id ?? item.product.product_id) === productId);
+      if ((existing ? existing.quantity : 0) + currentQuickViewQuantity > stock) {
+        showToast('購買數量已達庫存上限。');
+        return;
+      }
+      if (existing) {
+        existing.product = currentQuickViewProduct;
+        existing.quantity += currentQuickViewQuantity;
+      } else {
+        cart.push({ product: currentQuickViewProduct, quantity: currentQuickViewQuantity });
+      }
+      updateCartCount();
+      renderProducts();
+      if (!cartDrawer.inert) renderCart();
+      closeQuickView();
+      showToast(`已將 ${currentQuickViewQuantity} 件「${getProductName(currentQuickViewProduct)}」加入購物車。`);
+    });
+
+    productGrid.addEventListener('click', event => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      if (button.dataset.action === 'add-to-cart') addToCart(button.dataset.productId);
+      if (button.dataset.action === 'card-quantity') changeCardQuantity(button.dataset.productId, Number(button.dataset.delta));
+      if (button.dataset.action === 'product-reviews') openProductReviews(button.dataset.productId);
+      if (button.dataset.action === 'toggle-wishlist') toggleWishlist(button.dataset.productId, button);
+    });
+
+    document.querySelector('#closeReviewDialog').addEventListener('click', () => {
+      document.querySelector('#reviewDialog').close();
+    });
+
+    document.querySelector('#reviewVerifyButton').addEventListener('click', async event => {
+      const button = event.currentTarget;
+      const status = document.querySelector('#reviewStatus');
+      const phone = document.querySelector('#reviewCustomerPhone').value.trim();
+      const orderId = document.querySelector('#reviewOrderId').value.trim();
+      
+      const isValidPhone = /^\+?\d{8,15}$/.test(phone);
+      const isValidOrderId = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderId);
+
+      if (!isValidPhone || !isValidOrderId) {
+        status.textContent = '請輸入有效電話號碼及訂單 UUID。';
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = '正在驗證會員身份…';
+      try {
+        const response = await fetch('/api/customer/member/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ customer_phone: phone, order_id: orderId })
+        });
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true) {
+          throw new Error(result && result.message ? result.message : `會員驗證失敗（HTTP ${response.status}）。`);
+        }
+        status.textContent = '會員驗證成功，現在可以提交評價。';
+        await refreshReviewMemberState();
+      } catch (error) {
+        status.textContent = error.message || '會員驗證失敗，請稍後再試。';
+      } finally {
+        button.disabled = false;
+      }
+    });
+
+    document.querySelector('#reviewForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const button = document.querySelector('#submitReviewButton');
+      const status = document.querySelector('#reviewStatus');
+      const comment = document.querySelector('#reviewComment').value.trim();
+      const rating = Number(document.querySelector('#reviewRating').value);
+      if (!Number.isInteger(rating) || rating < 1 || rating > 5 || comment.length < 1 || comment.length > 1000) {
+        status.textContent = '請選擇 1 至 5 分，並輸入 1 至 1000 字的評價。';
+        return;
+      }
+      button.disabled = true;
+      button.textContent = '正在提交…';
+      status.textContent = '正在提交評價…';
+      try {
+        const response = await fetch(`/api/products/${encodeURIComponent(activeReviewProductId)}/reviews`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({ rating, comment })
+        });
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true) {
+          throw new Error(result && result.message ? result.message : `評價提交失敗（HTTP ${response.status}）。`);
+        }
+        document.querySelector('#reviewComment').value = '';
+        status.textContent = result.message || '評價已提交。';
+        await loadProductReviews();
+      } catch (error) {
+        status.textContent = error.message || '評價提交失敗，請稍後再試。';
+      } finally {
+        button.disabled = false;
+        button.textContent = '提交評價';
+      }
+    });
+
+    cartItemsElement.addEventListener('click', event => {
+      const button = event.target.closest('[data-action]');
+      if (!button) return;
+      if (button.dataset.action === 'remove-cart-item') removeCartItem(button.dataset.productId);
+      if (button.dataset.action === 'cart-quantity') changeCartQuantity(button.dataset.productId, Number(button.dataset.delta));
+    });
+
+    document.querySelector('#cartButton').addEventListener('click', openCart);
+    document.querySelector('#mobileCartBtn').addEventListener('click', openCart);
+    document.querySelector('#closeCartButton').addEventListener('click', closeCart);
+    cartBackdrop.addEventListener('click', closeCart);
+    document.addEventListener('keydown', event => {
+      if (event.key === 'Escape' && !cartDrawer.inert) closeCart();
+    });
+
+    document.querySelector('#clearCartButton').addEventListener('click', () => {
+      if (cart.length === 0) return;
+      if (!window.confirm('確定清空購物車？')) return;
+      cart = [];
+      updateCartCount();
+      showToast('已清空購物車。');
+    });
+
+    document.querySelector('#checkoutButton').addEventListener('click', async event => {
+      const button = event.currentTarget;
+      const status = document.querySelector('#checkoutStatus');
+      const phone = document.querySelector('#customerPhone').value.trim();
+      if (cart.length === 0) {
+        status.textContent = '購物車目前沒有商品。';
+        return;
+      }
+      if (!/^\+?\d{8,15}$/.test(phone)) {
+        status.textContent = '請輸入有效的 WhatsApp 電話號碼。';
+        document.querySelector('#customerPhone').focus();
+        return;
+      }
+      if (!canCheckout()) {
+        status.textContent = '商品庫存或價格資料已變更，請更新購物車後再試。';
+        return;
+      }
+
+      button.disabled = true;
+      button.textContent = '正在建立訂單…';
+      status.textContent = '正在安全地提交訂單，請稍候…';
+      try {
+        const response = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            customer_phone: phone,
+            items: cart.map(item => ({
+              product_id: getProductId(item.product),
+              quantity: item.quantity
+            }))
+          })
+        });
+        let result;
+        try {
+          result = await response.json();
+        } catch {
+          // 伺服器回傳非 JSON（例如代理錯誤頁），當作伺服器錯誤處理
+          result = { success: false, message: '伺服器回應異常，請稍後再試。', code: 'SERVER_ERROR' };
+        }
+
+        if (!response.ok || !result || result.success !== true || !result.data) {
+          const code = result && result.code;
+          if (code === 'PRODUCT_UNAVAILABLE') {
+            clearCart();
+            updateCartCount();
+            closeCart();
+            status.textContent = '';
+            showToast('購物車包含已失效商品，已自動為您清空');
+            return;
+          }
+          if (code === 'STOCK_UNAVAILABLE') {
+            // 移除庫存不足的商品項目，保留其他有效商品
+            const stockDetails = result && result.data ? result.data : null;
+            if (stockDetails && stockDetails.product_id) {
+              const staleId = String(stockDetails.product_id);
+              cart = cart.filter(item => String(getProductId(item.product)) !== staleId);
+              updateCartCount();
+            }
+            status.textContent = stockDetails && stockDetails.product_name
+              ? `商品「${stockDetails.product_name}」庫存不足（需 ${stockDetails.requested}，剩 ${stockDetails.available}），請調整數量後重試。`
+              : '部分商品庫存不足，請更新購物車後重試。';
+            showToast('部分商品庫存不足，已為您移除，請重新選購或調整數量。');
+            return;
+          }
+          throw new Error((result && result.message) || '建立訂單失敗，請稍後再試。');
+        }
+
+        const orderData = result.data;
+        const orderNo = orderData.order_number || orderData.orderNo || '';
+        if (!orderNo || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderNo)) {
+          throw new Error('訂單已建立，但未收到正式訂單編號，請聯絡管理員。');
+        }
+
+        // 結帳成功：清空購物車（LocalStorage 與頁面狀態）
+        clearCart();
+        updateCartCount();
+        closeCart();
+
+        window.location.assign(`/track.html?phone=${encodeURIComponent(phone)}&order_no=${encodeURIComponent(orderNo)}`);
+      } catch (error) {
+        console.error('結帳失敗：', error);
+        const isNetworkError = error instanceof TypeError || /^Failed to fetch/i.test(error.message);
+        if (isNetworkError) {
+          // 網路錯誤：清空購物車，提示重試
+          clearCart();
+          updateCartCount();
+          closeCart();
+          status.textContent = '';
+          showToast('無法連線伺服器，購物車已自動清空，請重新加入商品後重試。');
+        } else {
+          // 其他伺服器錯誤（500 等）：保留購物車，僅顯示錯誤訊息，不誤判為過期商品
+          status.textContent = error.message || '結帳發生錯誤，請稍後再試。';
+          showToast(error.message || '結帳發生錯誤，請稍後再試。');
+        }
+      } finally {
+        button.disabled = !canCheckout();
+        button.innerHTML = '前往結帳 <span aria-hidden="true">→</span>';
+      }
+    });
+
+    initializeTheme();
+    updateCartCount();
+    loadProducts();
+    loadMemberWishlist();
+  </script>
+</body>
+</html>

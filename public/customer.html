@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>會員中心 | LittlePlanet 小行星</title>
+  <!-- 引入 Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 引入 Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased flex flex-col min-h-screen">
+
+  <!-- 導航欄 -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🪐</span>
+        <span class="font-bold text-lg tracking-wide text-slate-900">LittlePlanet 小行星</span>
+      </div>
+      <div class="flex items-center gap-4 text-sm font-medium">
+        <a href="/" class="text-slate-600 hover:text-slate-900 transition">返回商店</a>
+        <a href="/track.html" class="text-slate-600 hover:text-slate-900 transition">單筆查詢</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- 主要內容區 -->
+  <main class="flex-grow flex items-center justify-center px-4 py-12">
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl border border-slate-100 p-8">
+      
+      <!-- 標題 -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 mb-4 text-xl">
+          ✨
+        </div>
+        <h1 class="text-2xl font-bold text-slate-900">會員中心</h1>
+        <p class="text-sm text-slate-500 mt-1">登入以查看您的歷史訂單與收藏清單</p>
+      </div>
+
+      <!-- 未登入表單區 -->
+      <div id="loginSection">
+        
+        <!-- Google OAuth 登入按鈕 -->
+        <button id="googleLoginBtn" disabled class="w-full bg-white border border-slate-300 text-slate-400 font-semibold py-3 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-2 mb-6 cursor-not-allowed opacity-60">
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.17 21.36 7.26 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.19C.43 8.15 0 9.89 0 11.75s.43 3.6 1.19 5.14l4.08-2.65z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.17 2.64 1.19 6.61l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"/>
+          </svg>
+          使用 Google 帳號快速登入（系統初始化中...）
+        </button>
+
+        <div class="relative flex py-2 items-center mb-6">
+          <div class="flex-grow border-t border-slate-200"></div>
+          <span class="flex-shrink mx-4 text-xs text-slate-400 uppercase tracking-wider">或者使用手機快速驗證</span>
+          <div class="flex-grow border-t border-slate-200"></div>
+        </div>
+
+        <!-- 傳統手機 + 訂單號碼登入表單 -->
+        <form id="phoneLoginForm" class="space-y-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">手提電話號碼</label>
+            <input type="text" id="customerPhone" placeholder="例如：91234567 或 +85291234567" required
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase tracking-wider mb-1.5">訂單編號 / 流水號</label>
+            <input type="text" id="orderId" placeholder="例如：LP-20261017-0001" required
+              class="w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm transition">
+          </div>
+          <button type="submit" id="loginBtn"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-3 px-4 rounded-xl shadow-md hover:shadow-lg transition flex items-center justify-center gap-2">
+            驗證並查看我的訂單
+          </button>
+        </form>
+        <p id="loginError" class="mt-3 text-center text-xs text-rose-500 hidden"></p>
+      </div>
+
+      <!-- 已登入會員資料區（初始隱藏） -->
+      <div id="memberDashboard" class="hidden space-y-6">
+        <div class="bg-indigo-50 border border-indigo-100 p-4 rounded-xl flex items-center justify-between">
+          <div>
+            <p class="text-xs text-indigo-500 font-semibold uppercase tracking-wider">目前登入身份</p>
+            <p id="memberIdentity" class="text-slate-900 font-bold mt-0.5 text-sm"></p>
+          </div>
+          <button id="logoutBtn" class="text-xs bg-white border border-indigo-200 text-indigo-600 hover:bg-indigo-100 font-semibold px-3 py-1.5 rounded-lg transition">
+            登出
+          </button>
+        </div>
+
+        <div class="border-t border-slate-100 pt-4">
+          <h2 class="text-base font-bold text-slate-900 mb-3">我的歷史訂單</h2>
+          <div id="ordersContainer" class="space-y-3 max-h-96 overflow-y-auto pr-1">
+            <!-- 訂單列表將會動態載入此處 -->
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- JavaScript 邏輯：加入 credentials: 'include' 確保 Cookie 正常傳遞 -->
+  <script>
+    let supabaseClient = null;
+
+    const loginSection = document.getElementById('loginSection');
+    const memberDashboard = document.getElementById('memberDashboard');
+    const memberIdentity = document.getElementById('memberIdentity');
+    const phoneLoginForm = document.getElementById('phoneLoginForm');
+    const loginError = document.getElementById('loginError');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const ordersContainer = document.getElementById('ordersContainer');
+    const googleLoginBtn = document.getElementById('googleLoginBtn');
+
+    // 1. 初始化應用程式
+    async function initApp() {
+      try {
+        const configRes = await fetch('/api/customer/config');
+        const configResult = await configRes.json();
+
+        if (!configResult.success || !configResult.data.supabaseAnonKey) {
+          showError('無法載入系統安全配置。');
+          return;
+        }
+
+        supabaseClient = window.supabase.createClient(
+          configResult.data.supabaseUrl,
+          configResult.data.supabaseAnonKey
+        );
+
+        googleLoginBtn.disabled = false;
+        googleLoginBtn.className = "w-full bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-3 px-4 rounded-xl shadow-sm transition flex items-center justify-center gap-3 mb-6";
+        googleLoginBtn.innerHTML = `
+          <svg class="w-5 h-5" viewBox="0 0 24 24">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.66-5.17 3.66-9.17z"/>
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.13 0-5.78-2.11-6.73-4.96H1.19v3.15C3.17 21.36 7.26 24 12 24z"/>
+            <path fill="#FBBC05" d="M5.27 14.24c-.25-.72-.38-1.49-.38-2.24s.13-1.52.38-2.24V6.61H1.19C.43 8.15 0 9.89 0 11.75s.43 3.6 1.19 5.14l4.08-2.65z"/>
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.26 0 3.17 2.64 1.19 6.61l4.08 3.15c.95-2.85 3.6-4.96 6.73-4.96z"/>
+          </svg>
+          使用 Google 帳號快速登入
+        `;
+
+        checkSession();
+      } catch (err) {
+        console.error('初始化失敗：', err);
+        showError('系統初始化失敗，請重新整理頁面。');
+      }
+    }
+
+    // 2. 檢查 Session 狀態 (全部加上 credentials: 'include')
+    async function checkSession() {
+      try {
+        if (!supabaseClient) return;
+
+        const { data: { session: googleSession } } = await supabaseClient.auth.getSession();
+        if (googleSession && googleSession.access_token) {
+          const res = await fetch('/api/customer/member/google-session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer ' + googleSession.access_token
+            },
+            credentials: 'include', // 關鍵修正
+            body: JSON.stringify({})
+          });
+          const result = await res.json();
+          if (result.success) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+            showDashboard(result.data.email || 'Google 會員');
+            loadOrders();
+            return;
+          }
+        }
+
+        const res = await fetch('/api/customer/member/session', {
+          credentials: 'include' // 關鍵修正
+        });
+        const result = await res.json();
+        if (result.success && result.data.authenticated) {
+          showDashboard(result.data.display_info || result.data.email || '已驗證會員');
+          loadOrders();
+        }
+      } catch (err) {
+        console.error('檢查登入狀態失敗：', err);
+      }
+    }
+
+    // 3. Google 登入按鈕點擊事件
+    googleLoginBtn.addEventListener('click', async () => {
+      if (!supabaseClient) {
+        showError('系統尚未初始化完成，請稍候。');
+        return;
+      }
+      const { error } = await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/customer.html'
+        }
+      });
+      if (error) {
+        showError('Google 登入失敗：' + error.message);
+      }
+    });
+
+    // 4. 手機登入表單提交
+    phoneLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      loginError.classList.add('hidden');
+      const phone = document.getElementById('customerPhone').value.trim();
+      const orderId = document.getElementById('orderId').value.trim();
+
+      try {
+        const res = await fetch('/api/customer/member/session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // 關鍵修正
+          body: JSON.stringify({ customer_phone: phone, order_id: orderId })
+        });
+        const result = await res.json();
+        if (!result.success) {
+          showError(result.message || '登入失敗，請檢查資料。');
+          return;
+        }
+        showDashboard('••••' + phone.slice(-4));
+        loadOrders();
+      } catch (err) {
+        showError('網絡連線錯誤，請稍後再試。');
+      }
+    });
+
+    // 5. 登出按鈕
+    logoutBtn.addEventListener('click', async () => {
+      if (supabaseClient) {
+        await supabaseClient.auth.signOut();
+      }
+      await fetch('/api/customer/member/logout', { 
+        method: 'POST',
+        credentials: 'include' // 關鍵修正
+      });
+      loginSection.classList.remove('hidden');
+      memberDashboard.classList.add('hidden');
+      phoneLoginForm.reset();
+    });
+
+    function showError(msg) {
+      loginError.textContent = msg;
+      loginError.classList.remove('hidden');
+    }
+
+    function showDashboard(identityText) {
+      loginSection.classList.add('hidden');
+      memberDashboard.classList.remove('hidden');
+      memberIdentity.textContent = identityText;
+    }
+
+    // 6. 載入歷史訂單與智能認領介面
+    async function loadOrders() {
+      ordersContainer.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">正在載入您的歷史訂單...</p>';
+      try {
+        const res = await fetch('/api/customer/orders', {
+          credentials: 'include' // 關鍵修正：確保帶上 Cookie
+        });
+        const result = await res.json();
+        
+        if (!result.success) {
+          ordersContainer.innerHTML = `<p class="text-xs text-rose-500 text-center py-4">${result.message || '載入訂單失敗。'}</p>`;
+          return;
+        }
+
+        const orders = result.data.orders || [];
+        const needLinkPhone = result.data.need_link_phone;
+
+        let html = '';
+
+        if (needLinkPhone || orders.length === 0) {
+          html += `
+            <div id="linkPhoneCard" class="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-3 mb-4">
+              <div class="flex items-start gap-2">
+                <span class="text-amber-500 text-base">💡</span>
+                <div>
+                  <h3 class="text-xs font-bold text-amber-900">認領歷史手機訂單</h3>
+                  <p class="text-xs text-amber-700 mt-0.5">如果您過往曾以手提電話號碼下單，請輸入該電話號碼與任意一張歷史訂單編號進行一次性認領與綁定。</p>
+                </div>
+              </div>
+              <form id="linkPhoneForm" class="space-y-2 pt-1">
+                <input type="tel" id="linkPhone" placeholder="過往下單手機號碼 (如 91234567)" required
+                  class="w-full px-3 py-2 text-xs rounded-lg border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+                <input type="text" id="linkOrderNumber" placeholder="其中一張歷史訂單編號 (UUID 或 短碼)" required
+                  class="w-full px-3 py-2 text-xs rounded-lg border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white">
+                <button type="submit" id="linkPhoneBtn"
+                  class="w-full bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs py-2 px-3 rounded-lg shadow-sm transition">
+                  核對並一鍵認領歷史訂單
+                </button>
+              </form>
+              <p id="linkPhoneMsg" class="text-xs font-medium hidden text-center"></p>
+            </div>
+          `;
+        }
+
+        if (orders.length === 0) {
+          html += '<p class="text-xs text-slate-400 text-center py-4">目前暫無已綁定的歷史訂單記錄。</p>';
+          ordersContainer.innerHTML = html;
+        } else {
+          html += orders.map(order => `
+            <div class="border border-slate-200 rounded-xl p-4 bg-white shadow-sm space-y-2">
+              <div class="flex justify-between items-center text-xs">
+                <span class="font-bold text-slate-700">訂單編號: ${order.order_number || order.order_id}</span>
+                <span class="px-2 py-0.5 rounded-full font-medium ${order.status === 'completed' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'}">${order.status || '處理中'}</span>
+              </div>
+              <div class="text-xs text-slate-500">
+                日期：${new Date(order.order_date).toLocaleDateString()} | 金額：$${order.total_amount}
+              </div>
+              <div class="border-t border-slate-100 pt-2 text-xs space-y-1">
+                ${(order.items || []).map(item => `
+                  <div class="flex justify-between text-slate-600">
+                    <span>${item.product_name} x ${item.quantity}</span> <span>$${item.unit_price * item.quantity}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `).join('');
+          ordersContainer.innerHTML = html;
+        }
+
+        const linkPhoneForm = document.getElementById('linkPhoneForm');
+        if (linkPhoneForm) {
+          linkPhoneForm.addEventListener('submit', handleLinkPhoneSubmit);
+        }
+
+      } catch (err) {
+        ordersContainer.innerHTML = '<p class="text-xs text-rose-500 text-center py-4">載入訂單失敗，請稍後再試。</p>';
+      }
+    }
+
+    // 7. 處理認領表單提交
+    async function handleLinkPhoneSubmit(e) {
+      e.preventDefault();
+      const phoneInput = document.getElementById('linkPhone').value.trim();
+      const orderNumberInput = document.getElementById('linkOrderNumber').value.trim();
+      const btn = document.getElementById('linkPhoneBtn');
+      const msg = document.getElementById('linkPhoneMsg');
+
+      msg.classList.add('hidden');
+      btn.disabled = true;
+      btn.textContent = '核對中...';
+
+      try {
+        const res = await fetch('/api/customer/member/link-phone', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include', // 關鍵修正
+          body: JSON.stringify({ customer_phone: phoneInput, order_number: orderNumberInput })
+        });
+        const result = await res.json();
+
+        if (result.success) {
+          msg.textContent = result.message;
+          msg.className = 'text-xs font-semibold text-emerald-600 text-center block';
+          setTimeout(() => loadOrders(), 1500);
+        } else {
+          msg.textContent = result.message || '核對失敗，請確認資料是否正確。';
+          msg.className = 'text-xs font-semibold text-rose-500 text-center block';
+          btn.disabled = false;
+          btn.textContent = '核對並一鍵認領歷史訂單';
+        }
+      } catch (err) {
+        msg.textContent = '網絡錯誤，請稍後再試。';
+        msg.className = 'text-xs font-semibold text-rose-500 text-center block';
+        btn.disabled = false;
+        btn.textContent = '核對並一鍵認領歷史訂單';
+      }
+    }
+
+    initApp();
+  </script>
+</body>
+</html>

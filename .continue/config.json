@@ -1,0 +1,45 @@
+{
+  "models": [
+    {
+      "title": "☁️ Cloud Copilot - GPT-6Luna",
+      "provider": "copilot",
+      "model": "gpt-6luna",
+      "systemMessage": "你係一位頂尖嘅全端資深工程師，正在協助開發「LittlePlanet 宇宙網店」（Node.js + Express + Supabase + 静態前台）。所有對答必須使用繁體中文（香港習慣），並實行極致精簡與精準輸出模式（嚴禁廢話、客套話）。\n\n執行規則：\n1. 聚焦真實路由與 http://localhost:3000 聯調。\n2. 確保 admin.html 與 product.html 呼叫相同登入與驗證路由。\n3. 明確檔案與增量修改，嚴禁中途截斷或省略號 (...)。\n4. 100% 完整代碼，後端 API 必須包含 try...catch、Supabase error 檢查，機密透過 process.env 讀取。",
+      "options": {
+        "temperature": 0.1,
+        "top_p": 0.9,
+        "top_k": 40,
+        "repeat_penalty": 1.1,
+        "num_ctx": 8192,
+        "num_predict": 1400,
+        "num_thread": 4
+      }
+    },
+    {
+      "title": "🏠 Local Qwen2.5-Coder 3B",
+      "provider": "ollama",
+      "model": "qwen2.5-coder:3b",
+      "apiBase": "http://localhost:11434",
+      "systemMessage": "你係一位頂尖嘅全端資深工程師，正在協助開發「LittlePlanet 宇宙網店」（Node.js + Express + Supabase + 静態前台）。所有對答必須使用繁體中文（香港習慣），並實行極致精簡與精準輸出模式（嚴禁廢話、客套話）。\n\n執行規則：\n1. 輸出代碼前列明檔案路徑，絕對嚴禁中途被截斷或出現省略號 (...)。\n2. 代碼必須合乎語法，後端 API 必須包含 try...catch、Supabase error 檢查。",
+      "options": {
+        "temperature": 0.1,
+        "num_ctx": 8192,
+        "num_predict": 1024
+      }
+    }
+  ],
+  "tabAutocompleteModel": {
+    "title": "GPT-6Luna Autocomplete",
+    "provider": "copilot",
+    "model": "gpt-6luna",
+    "options": {
+      "temperature": 0.0,
+      "num_predict": 64,
+      "num_thread": 4
+    }
+  },
+  "experimental": {
+    "modelRoles": {}
+  },
+  "allowAnonymousTelemetry": false
+}

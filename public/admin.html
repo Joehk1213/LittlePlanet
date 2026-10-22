@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LittlePlanet 小行星 — 營運管理後台</title>
+    <style>
+        :root { --primary: #2563eb; --bg: #f8fafc; --card: #ffffff; --text: #1e293b; --border: #e2e8f0; }
+        body { font-family: system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        h1 { margin: 0; font-size: 1.5rem; color: var(--primary); }
+        .auth-bar { background: var(--card); padding: 12px 16px; border-radius: 8px; border: 1px solid var(--border); display: flex; gap: 10px; align-items: center; margin-bottom: 20px; }
+        input, select { padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.95rem; }
+        [hidden] { display: none !important; }
+        button { background: var(--primary); color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-weight: 500; transition: opacity 0.2s; }
+        button:hover { opacity: 0.9; }
+        button.secondary { background: #e2e8f0; color: #1e293b; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 24px; }
+        .card { background: var(--card); padding: 20px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .card h3 { margin: 0 0 8px 0; font-size: 0.85rem; color: #64748b; text-transform: uppercase; }
+        .card .value { font-size: 1.75rem; font-weight: 700; color: var(--text); }
+        .section { background: var(--card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); margin-bottom: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.02); }
+        table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+        th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9rem; vertical-align: top; }
+        th { background: #f1f5f9; font-weight: 600; color: #475569; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600; }
+        .badge.success { background: #dcfce7; color: #166534; }
+        .badge.warning { background: #fef9c3; color: #854d0e; }
+        .badge.low-stock { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .badge.stock-ok { background: #dcfce7; color: #166534; }
+        .stock-input { width: 100px; }
+        .stock-input:focus { outline: 2px solid #93c5fd; outline-offset: 1px; }
+        .stock-save:disabled { opacity: 0.6; cursor: wait; }
+        .stock-feedback { display: block; min-height: 1.2em; margin-top: 4px; }
+        .stock-feedback.error { color: #b91c1c; }
+        .stock-feedback.success { color: #166534; }
+        .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .section-heading h2 { margin: 0; }
+        .product-actions { min-width: 220px; }
+        .product-actions button { margin: 0 6px 6px 0; }
+        dialog { width: min(440px, calc(100% - 40px)); padding: 0; border: 0; border-radius: 12px; color: var(--text); box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25); }
+        dialog::backdrop { background: rgba(15, 23, 42, 0.48); }
+        .product-modal { padding: 24px; }
+        .product-modal h2 { margin: 0 0 20px; }
+        .product-form-field { display: grid; gap: 6px; margin-bottom: 16px; }
+        .product-form-field input { width: 100%; box-sizing: border-box; }
+        .category-create-controls { display: flex; gap: 8px; }
+        .category-create-controls input { min-width: 0; flex: 1; }
+        #category-form-message { min-height: 1.2em; margin: 6px 0 16px; color: #64748b; }
+        #category-form-message.error { color: #b91c1c; }
+        #category-form-message.success { color: #166534; }
+        .product-form-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px; }
+        #product-form-message { min-height: 1.3em; color: #b91c1c; }
+        .charts-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+        .chart-card { min-width: 0; padding: 16px; border: 1px solid var(--border); border-radius: 8px; }
+        .chart-container { position: relative; height: 280px; }
+        .chart-status { min-height: 1.4em; color: #64748b; }
+        .chart-status.error { color: #b91c1c; }
+        .order-status-select { min-width: 150px; }
+        .order-items-list { margin: 0; padding-left: 16px; color: #334155; }
+        .order-items-list li { margin-bottom: 3px; }
+        .order-feedback.error { color: #b91c1c; }
+        .order-feedback.success { color: #166534; }
+        .orders-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; }
+        .orders-pagination button:disabled { cursor: not-allowed; opacity: .5; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; }
+        .summary-card { background: var(--card); padding: 20px; border-radius: 10px; border: 1px solid var(--border); }
+        .summary-card h3 { margin: 0 0 8px; font-size: .85rem; color: #64748b; }
+        .summary-card .value { font-size: 1.6rem; font-weight: 700; }
+        .summary-tables { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+        .summary-table-wrap { min-width: 0; overflow-x: auto; }
+        .summary-table-wrap h3 { margin-bottom: 8px; }
+        .inbound-controls { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+        .inbound-controls label { display: grid; gap: 6px; }
+        .inbound-controls select { min-width: 220px; }
+        .inbound-warning { padding: 12px; border-radius: 8px; background: #fffbeb; color: #92400e; }
+        
+        /* 骨架屏動畫 */
+        .skeleton {
+            background: linear-gradient(100deg, #e2e8f0 20%, #f8fafc 38%, #e2e8f0 58%);
+            background-size: 200% 100%;
+            animation: shimmer 1.3s linear infinite;
+            border-radius: 4px;
+            color: transparent !important;
+        }
+        @keyframes shimmer { to { background-position-x: -200%; } }
+
+        /* 訂單 Tabs 樣式 */
+        .order-tabs { display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap; }
+        .order-tab { background: #f1f5f9; color: #475569; border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .order-tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+
+        /* Toast 浮動提示 */
+        #toast-notification {
+            position: fixed; bottom: 24px; right: 24px; z-index: 1000;
+            background: #0f172a; color: white; padding: 12px 20px; border-radius: 12px;
+            font-size: 0.9rem; font-weight: 600; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+            transform: translateY(100px); opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        #toast-notification.show { transform: translateY(0); opacity: 1; }
+
+        @media (max-width: 600px) {
+            body { padding: 12px; }
+            .chart-container { height: 240px; }
+            .section-heading { align-items: flex-start; flex-direction: column; }
+            .orders-pagination { justify-content: space-between; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🪐 LittlePlanet 後台營運系統</h1>
+            <span id="status-badge" class="badge warning">未授權</span>
+        </header>
+
+        <form class="auth-bar" id="login-form">
+            <label for="admin-password">管理員密鑰：</label>
+            <input type="password" id="admin-password" name="password" autocomplete="current-password" required style="flex: 1; max-width: 400px;">
+            <button id="login-button" type="submit">登入</button>
+            <button id="logout-button" type="button" hidden>登出</button>
+            <span id="login-message" role="status" aria-live="polite"></span>
+        </form>
+
+        <!-- 營收儀表板 -->
+        <div class="grid" id="metrics-grid" hidden>
+            <div class="card"><h3>總營業額 (Revenue)</h3><div class="value" id="m-revenue">—</div></div>
+            <div class="card"><h3>總訂單數 (Orders)</h3><div class="value" id="m-orders">—</div></div>
+            <div class="card"><h3>已付款比例</h3><div class="value" id="m-paid">—</div></div>
+            <div class="card"><h3>已出貨比例</h3><div class="value" id="m-shipped">—</div></div>
+        </div>
+
+        <div class="section" id="analytics-summary-section" hidden>
+            <div class="section-heading">
+                <div>
+                    <h2>📊 營運數據分析</h2>
+                    <p style="margin: 6px 0 0; color: #64748b;">全期營運概況及最近 7 日訂單趨勢</p>
+                </div>
+                <button id="refresh-analytics-summary-button" type="button">重新載入</button>
+            </div>
+            <p id="analytics-summary-status" class="chart-status" role="status" aria-live="polite">登入後載入分析資料</p>
+            <div class="summary-grid">
+                <div class="summary-card"><h3>總營收</h3><div class="value" id="summary-total-revenue">—</div></div>
+                <div class="summary-card"><h3>總訂單數</h3><div class="value" id="summary-total-orders">—</div></div>
+            </div>
+            <div class="summary-tables" style="margin-top: 20px;">
+                <div class="summary-table-wrap">
+                    <h3>🏆 熱銷商品排行</h3>
+                    <table>
+                        <thead><tr><th>排名</th><th>商品</th><th>售出件數</th><th>銷售額</th></tr></thead>
+                        <tbody id="summary-top-products">
+                            <tr><td colspan="4" style="text-align: center; color: #64748b;">登入後載入熱銷商品</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="summary-table-wrap">
+                    <h3>📅 最近 7 日訂單趨勢</h3>
+                    <table>
+                        <thead><tr><th>日期</th><th>訂單數</th><th>營收</th></tr></thead>
+                        <tbody id="summary-order-trend">
+                            <tr><td colspan="3" style="text-align: center; color: #64748b;">登入後載入訂單趨勢</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="sales-section" hidden>
+            <h2>📈 銷售趨勢</h2>
+            <p id="sales-chart-status" class="chart-status" role="status" aria-live="polite">登入後載入圖表資料</p>
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3>每日營業額</h3>
+                    <div class="chart-container"><canvas id="revenue-chart" aria-label="每日營業額趨勢圖"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3>每日訂單數</h3>
+                    <div class="chart-container"><canvas id="orders-chart" aria-label="每日訂單數趨勢圖"></canvas></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="section" id="products-section" hidden>
+            <div class="section-heading">
+                <h2>📦 商品與庫存管理</h2>
+                <button id="add-product-button" type="button" disabled>新增商品</button>
+            </div>
+            <p>商品名稱及價格可於編輯視窗修改；庫存更新會設定目前數量，實際到貨請使用入庫流程以同步分配待出貨訂單。</p>
+            <p id="products-status" class="chart-status" role="status" aria-live="polite">登入後載入商品</p>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>商品</th>
+                            <th>價格</th>
+                            <th>庫存量</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="products-tbody">
+                        <tr><td colspan="4" style="text-align: center; color: #64748b;">尚未載入商品</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section" id="inbound-section" hidden>
+            <div class="section-heading">
+                <h2>📥 收貨與最佳使用日期批次</h2>
+                <button id="refresh-inbound-batches-button" type="button">重新載入批次</button>
+            </div>
+            <p>每次收貨會建立獨立批次；日期可留空，代表該批商品沒有最佳使用期限。</p>
+            <form id="inbound-form" class="inbound-controls">
+                <label for="inbound-product">
+                    商品
+                    <select id="inbound-product" name="product_id" required>
+                        <option value="">載入商品中…</option>
+                    </select>
+                </label>
+                <label for="inbound-quantity">
+                    本次收貨數量
+                    <input id="inbound-quantity" name="quantity" type="number" min="1" max="100000" step="1" required>
+                </label>
+                <label for="inbound-best-before-date">
+                    最佳使用日期（選填）
+                    <input id="inbound-best-before-date" name="best_before_date" type="date">
+                </label>
+                <button id="inbound-submit-button" type="submit">記錄收貨</button>
+            </form>
+            <p id="inbound-form-message" class="chart-status" role="status" aria-live="polite"></p>
+            <p class="inbound-warning">
+                批次餘量目前是收貨／開倉登記數量；既有結帳、出貨及直接調整庫存流程只更新商品總庫存，沒有指定扣減哪一批，因此這裡不代表銷售後的實際批次餘量。請以商品總庫存為準。舊庫存只以「日期未知／未分批」開倉快照顯示，不會推測效期。
+            </p>
+            <p id="inbound-batches-status" class="chart-status" role="status" aria-live="polite">選擇商品後載入批次</p>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>批次</th>
+                            <th>最佳使用日期</th>
+                            <th>收貨登記數量</th>
+                            <th>帳面餘量</th>
+                            <th>記錄時間</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inbound-batches-tbody">
+                        <tr><td colspan="5" style="text-align: center; color: #64748b;">選擇商品後載入批次</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="section" id="orders-section" hidden>
+            <div class="section-heading">
+                <h2>🧾 訂單管理</h2>
+                <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <input type="search" id="orders-search-input" placeholder="🔍 搜尋單號、客戶名稱或電話..." style="padding: 8px 12px; font-size: 0.9rem; width: 260px;">
+                    <button id="refresh-orders-button" type="button">重新載入</button>
+                </div>
+            </div>
+            <!-- 訂單狀態快速篩選 Tabs -->
+            <div class="order-tabs" id="order-tabs" style="margin-top: 14px;">
+                <button type="button" class="order-tab active" data-status="all">全部訂單</button>
+                <button type="button" class="order-tab" data-status="pending">⏳ 待處理</button>
+                <button type="button" class="order-tab" data-status="shipping">🚚 已出貨</button>
+                <button type="button" class="order-tab" data-status="completed">✅ 已完成</button>
+            </div>
+            <p id="orders-status" class="chart-status" role="status" aria-live="polite">登入後載入訂單</p>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>訂單編號</th>
+                            <th>客戶名稱</th>
+                            <th>聯絡電話</th>
+                            <th>購買品項</th>
+                            <th>總金額</th>
+                            <th>下單時間</th>
+                            <th>目前狀態</th>
+                            <th>更新提示</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-tbody">
+                        <tr><td colspan="8" style="text-align: center; color: #64748b;">尚未載入訂單</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="orders-pagination">
+                <button id="orders-previous-button" type="button" disabled>上一頁</button>
+                <span id="orders-page-label" aria-live="polite">第 0–0 筆</span>
+                <button id="orders-next-button" type="button" disabled>下一頁</button>
+            </div>
+        </div>
+
+        <div class="section" id="reviews-section" hidden>
+            <div class="section-heading">
+                <h2>⭐ 評價管理</h2>
+                <button id="refresh-reviews-button" type="button">重新載入</button>
+            </div>
+            <p id="reviews-status" class="chart-status" role="status" aria-live="polite">登入後載入顧客評價</p>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>商品 ID</th>
+                            <th>顧客電話</th>
+                            <th>評分</th>
+                            <th>評價內容</th>
+                            <th>提交時間</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reviews-tbody">
+                        <tr><td colspan="6" style="text-align: center; color: #64748b;">尚未載入評價</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="orders-pagination">
+                <button id="reviews-previous-button" type="button" disabled>上一頁</button>
+                <span id="reviews-page-label" aria-live="polite">第 0–0 筆</span>
+                <button id="reviews-next-button" type="button" disabled>下一頁</button>
+            </div>
+        </div>
+
+        <dialog id="product-dialog">
+            <form id="product-form" class="product-modal">
+                <h2 id="product-dialog-title">新增商品</h2>
+                <p>新增商品的初始庫存為 0；編輯庫存請使用列表中的庫存更新功能。</p>
+                <input type="hidden" id="product-id">
+                <label class="product-form-field" for="product-name">
+                    <span>商品名稱</span>
+                    <input id="product-name" name="name" type="text" maxlength="255" autocomplete="off" required>
+                </label>
+                <label class="product-form-field" for="product-price">
+                    <span>價格</span>
+                    <input id="product-price" name="price" type="number" min="0" max="99999999.99" step="0.01" inputmode="decimal" required>
+                </label>
+                <label class="product-form-field" for="product-category">
+                    <span>分類</span>
+                    <select id="product-category" name="category" required>
+                        <option value="">-- 選擇分類 --</option>
+                    </select>
+                </label>
+                <label class="product-form-field" for="new-product-category">
+                    <span>新增分類</span>
+                    <div class="category-create-controls">
+                        <input id="new-product-category" type="text" maxlength="100" autocomplete="off" placeholder="輸入分類名稱">
+                        <button id="add-category-button" type="button">新增分類</button>
+                    </div>
+                </label>
+                <p id="category-form-message" role="status" aria-live="polite"></p>
+                <p id="product-form-message" role="status" aria-live="polite"></p>
+                <div class="product-form-actions">
+                    <button class="secondary" id="product-cancel-button" type="button">取消</button>
+                    <button id="product-save-button" type="submit">儲存商品</button>
+                </div>
+            </form>
+        </dialog>
+
+        <!-- 刪除確認專用 Modal -->
+        <dialog id="confirm-dialog">
+            <div style="padding: 24px;">
+                <h2 style="margin: 0 0 10px; font-size: 1.2rem;">⚠️ 安全確認</h2>
+                <p id="confirm-message" style="margin: 0 0 20px; color: #475569; font-size: 0.95rem;">你確定要執行此操作嗎？</p>
+                <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                    <button id="confirm-cancel-btn" type="button" class="secondary">取消</button>
+                    <button id="confirm-ok-btn" type="button" style="background: #b91c1c;">確定刪除</button>
+                </div>
+            </div>
+        </dialog>
+
+        <!-- 執貨清單 -->
+        <div class="section" id="shipping-section" hidden>
+            <h2>📦 待出貨執貨清單 (Pick List)</h2>
+            <div style="margin-bottom: 12px;">
+                <label>檢視分組：</label>
+                <select id="groupby-select" onchange="loadPickList()">
+                    <option value="order">按訂單分組</option>
+                    <option value="product">按貨品分組</option>
+                </select>
+            </div>
+            <div style="overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>訂單 ID / 貨品</th>
+                            <th>買家電話</th>
+                            <th>出貨方式</th>
+                            <th>明細狀態</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="picklist-tbody">
+                        <tr><td colspan="5" style="text-align: center; color: #64748b;">尚未載入執貨清單</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 提示容器 -->
+    <div id="toast-notification" role="status" aria-live="polite"></div>
+
+    <script src="/vendor/chart.umd.min.js"></script>
+    <script>
+        let revenueChart = null;
+        let ordersChart = null;
+        let adminScopes = [];
+        let productCategories = [];
+        let allCachedOrders = []; 
+        let currentOrderTab = 'all';
+        const ORDER_PAGE_SIZE = 50;
+        const REVIEW_PAGE_SIZE = 50;
+        let orderOffset = 0;
+        let orderTotalCount = 0;
+        let reviewOffset = 0;
+        let reviewTotalCount = 0;
+        const HKD_FORMATTER = new Intl.NumberFormat('zh-HK', {
+            style: 'currency',
+            currency: 'HKD'
+        });
+
+        function showToast(message) {
+            const toast = document.getElementById('toast-notification');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 2500);
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showToast(`已成功複製：${text}`);
+            }).catch(() => {
+                showToast('複製失敗，請手動選取複製');
+            });
+        }
+
+        function adminFetch(url, options = {}) {
+            return fetch(url, {
+                ...options,
+                credentials: 'same-origin'
+            }).then(response => {
+                if (response.status === 401 && !url.startsWith('/api/admin-auth/session')) {
+                    setAdminAuthenticated(false);
+                }
+                return response;
+            });
+        }
+
+        function clearDashboardData() {
+            for (const id of ['m-revenue', 'm-orders', 'm-paid', 'm-shipped']) {
+                document.getElementById(id).textContent = '—';
+            }
+            if (revenueChart) {
+                revenueChart.destroy();
+                revenueChart = null;
+            }
+            if (ordersChart) {
+                ordersChart.destroy();
+                ordersChart = null;
+            }
+            document.getElementById('products-tbody').textContent = '登入後載入商品';
+            document.getElementById('picklist-tbody').textContent = '登入後載入執貨清單';
+            document.getElementById('orders-tbody').textContent = '登入後載入訂單';
+            document.getElementById('orders-status').textContent = '登入後載入訂單';
+            document.getElementById('orders-page-label').textContent = '第 0–0 筆';
+            document.getElementById('orders-previous-button').disabled = true;
+            document.getElementById('orders-next-button').disabled = true;
+            document.getElementById('analytics-summary-status').textContent =
+                '登入後載入分析資料';
+            document.getElementById('analytics-summary-status').className = 'chart-status';
+            document.getElementById('summary-total-revenue').textContent = '—';
+            document.getElementById('summary-total-orders').textContent = '—';
+            document.getElementById('summary-top-products').textContent = '登入後載入熱銷商品';
+            document.getElementById('summary-order-trend').textContent = '登入後載入訂單趨勢';
+            document.getElementById('reviews-status').textContent = '登入後載入顧客評價';
+            document.getElementById('reviews-tbody').textContent = '尚未載入評價';
+            document.getElementById('reviews-page-label').textContent = '第 0–0 筆';
+            document.getElementById('inbound-form-message').textContent = '';
+            document.getElementById('inbound-batches-status').textContent = '登入後載入收貨批次';
+            document.getElementById('inbound-batches-tbody').textContent = '登入後載入收貨批次';
+            setSalesChartStatus('登入後載入圖表資料', false);
+            const productDialog = document.getElementById('product-dialog');
+            if (productDialog.open) {
+                productDialog.close();
+            }
+        }
+
+        function setAdminAuthenticated(authenticated, scopes = []) {
+            adminScopes = authenticated ? [...new Set(scopes)] : [];
+            document.getElementById('admin-password').hidden = authenticated;
+            document.querySelector('#login-form label').hidden = authenticated;
+            document.getElementById('login-button').hidden = authenticated;
+            document.getElementById('logout-button').hidden = !authenticated;
+            document.getElementById('add-product-button').disabled =
+                !adminScopes.includes('products');
+            document.getElementById('metrics-grid').hidden =
+                !adminScopes.includes('analytics');
+            document.getElementById('sales-section').hidden =
+                !adminScopes.includes('analytics');
+            document.getElementById('analytics-summary-section').hidden =
+                !adminScopes.includes('analytics');
+            document.getElementById('products-section').hidden =
+                !adminScopes.includes('products');
+            document.getElementById('shipping-section').hidden =
+                !adminScopes.includes('shipping');
+            document.getElementById('orders-section').hidden =
+                !adminScopes.includes('orders');
+            document.getElementById('reviews-section').hidden =
+                !adminScopes.includes('reviews');
+            document.getElementById('inbound-section').hidden =
+                !adminScopes.includes('inbound');
+            document.getElementById('login-message').textContent = authenticated
+                ? '已使用安全工作階段登入。'
+                : '';
+            if (!authenticated) {
+                clearDashboardData();
+                document.getElementById('status-badge').className = 'badge warning';
+                document.getElementById('status-badge').textContent = '未授權';
+            }
+        }
+
+        async function loginAdmin(event) {
+            event.preventDefault();
+            const input = document.getElementById('admin-password');
+            const button = document.getElementById('login-button');
+            const message = document.getElementById('login-message');
+            const token = input.value;
+            if (!token) return;
+
+            button.disabled = true;
+            message.textContent = '正在驗證…';
+            try {
+                const response = await adminFetch('/api/admin-auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `登入失敗（HTTP ${response.status}）。`);
+                }
+
+                input.value = '';
+                setAdminAuthenticated(true, result.data.scopes);
+                await loadDashboard();
+                showToast('管理員登入成功！');
+            } catch (error) {
+                console.error('管理員登入失敗：', error);
+                setAdminAuthenticated(false);
+                message.textContent = error.message || '登入失敗，請稍後再試。';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function logoutAdmin() {
+            const message = document.getElementById('login-message');
+            try {
+                const response = await adminFetch('/api/admin-auth/logout', { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `登出失敗（HTTP ${response.status}）。`);
+                }
+                setAdminAuthenticated(false);
+                document.getElementById('status-badge').className = 'badge warning';
+                document.getElementById('status-badge').textContent = '未授權';
+                message.textContent = result.message;
+                showToast('已安全登出。');
+            } catch (error) {
+                console.error('管理員登出失敗：', error);
+                message.textContent = error.message || '登出失敗，請稍後再試。';
+            }
+        }
+
+        async function checkAdminSession() {
+            try {
+                const response = await adminFetch('/api/admin-auth/session');
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `登入狀態檢查失敗（HTTP ${response.status}）。`);
+                }
+                setAdminAuthenticated(
+                    result.data.authenticated === true,
+                    result.data.scopes
+                );
+                if (result.data.authenticated === true) {
+                    await loadDashboard();
+                }
+            } catch (error) {
+                console.error('檢查管理員登入狀態失敗：', error);
+                document.getElementById('login-message').textContent =
+                    error.message || '無法確認登入狀態。';
+            }
+        }
+
+        document.getElementById('login-form').addEventListener('submit', loginAdmin);
+        document.getElementById('logout-button').addEventListener('click', logoutAdmin);
+        document.getElementById('add-product-button').addEventListener('click', () => {
+            openProductDialog();
+        });
+        document.getElementById('product-form').addEventListener('submit', saveProduct);
+        document.getElementById('add-category-button').addEventListener('click', addProductCategory);
+        document.getElementById('refresh-orders-button').addEventListener('click', () => loadAdminOrders(orderOffset));
+        document.getElementById('orders-search-input').addEventListener('input', () => renderFilteredOrders());
+        
+        document.getElementById('order-tabs').addEventListener('click', (e) => {
+            const btn = e.target.closest('.order-tab');
+            if (!btn) return;
+            document.querySelectorAll('.order-tab').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentOrderTab = btn.dataset.status;
+            renderFilteredOrders();
+        });
+
+        document.getElementById('orders-previous-button').addEventListener('click', () => {
+            loadAdminOrders(Math.max(0, orderOffset - ORDER_PAGE_SIZE));
+        });
+        document.getElementById('orders-next-button').addEventListener('click', () => {
+            loadAdminOrders(orderOffset + ORDER_PAGE_SIZE);
+        });
+        document.getElementById('orders-tbody').addEventListener('change', updateAdminOrderStatus);
+        document.getElementById('refresh-reviews-button').addEventListener('click', () => loadAdminReviews(reviewOffset));
+        document.getElementById('reviews-previous-button').addEventListener('click', () => {
+            loadAdminReviews(Math.max(0, reviewOffset - REVIEW_PAGE_SIZE));
+        });
+        document.getElementById('reviews-next-button').addEventListener('click', () => {
+            loadAdminReviews(reviewOffset + REVIEW_PAGE_SIZE);
+        });
+        document.getElementById('reviews-tbody').addEventListener('click', deleteAdminReview);
+        document.getElementById('refresh-analytics-summary-button').addEventListener('click', loadAnalyticsSummary);
+        document.getElementById('inbound-form').addEventListener('submit', recordInboundReceipt);
+        document.getElementById('inbound-product').addEventListener('change', loadInboundBatches);
+        document.getElementById('refresh-inbound-batches-button').addEventListener('click', loadInboundBatches);
+        document.getElementById('product-cancel-button').addEventListener('click', () => {
+            document.getElementById('product-dialog').close();
+        });
+        document.addEventListener('DOMContentLoaded', checkAdminSession);
+
+        function openProductDialog(product = null) {
+            const form = document.getElementById('product-form');
+            form.reset();
+            populateProductCategoryOptions(product ? product.category : '');
+            document.getElementById('product-id').value = product ? String(product.id) : '';
+            document.getElementById('product-name').value = product
+                ? (product.product_name || product.name || '')
+                : '';
+            document.getElementById('product-price').value = product
+                ? String(product.price ?? product.retail_price ?? '')
+                : '';
+            document.getElementById('product-dialog-title').textContent = product
+                ? '編輯商品'
+                : '新增商品';
+            document.getElementById('product-form-message').textContent = '';
+            document.getElementById('category-form-message').textContent = '';
+            document.getElementById('product-save-button').textContent = product
+                ? '儲存修改'
+                : '新增商品';
+            document.getElementById('product-dialog').showModal();
+            document.getElementById('product-name').focus();
+        }
+
+        function populateProductCategoryOptions(selectedCategory = '') {
+            const select = document.getElementById('product-category');
+            const options = [new Option('-- 選擇分類 --', '')];
+            for (const category of productCategories) {
+                options.push(new Option(category.label, category.name));
+            }
+            if (selectedCategory && !productCategories.some(category => category.name === selectedCategory)) {
+                options.push(new Option(selectedCategory, selectedCategory));
+            }
+            select.replaceChildren(...options);
+            select.value = selectedCategory;
+        }
+
+        async function loadProductCategories(selectedCategory = '') {
+            const response = await adminFetch('/api/products/categories');
+            const result = await response.json();
+            if (!response.ok || !result || result.success !== true || !result.data ||
+                !Array.isArray(result.data.categories)) {
+                throw new Error(result && result.message
+                    ? result.message
+                    : `產品分類載入失敗（HTTP ${response.status}）。`);
+            }
+            productCategories = result.data.categories.filter(category =>
+                category && typeof category.name === 'string' &&
+                typeof category.label === 'string'
+            );
+            populateProductCategoryOptions(selectedCategory);
+        }
+
+        async function addProductCategory() {
+            const input = document.getElementById('new-product-category');
+            const button = document.getElementById('add-category-button');
+            const message = document.getElementById('category-form-message');
+            const name = input.value.trim();
+            if (!name) {
+                message.className = 'error';
+                message.textContent = '請輸入分類名稱。';
+                input.focus();
+                return;
+            }
+            if (name.length > 100) {
+                message.className = 'error';
+                message.textContent = '分類名稱不可超過 100 個字元。';
+                input.focus();
+                return;
+            }
+            const existing = productCategories.find(category =>
+                category.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase()
+            );
+            if (existing) {
+                populateProductCategoryOptions(existing.name);
+                message.className = 'success';
+                message.textContent = '此分類已存在，已選用現有分類。';
+                input.value = '';
+                return;
+            }
+
+            button.disabled = true;
+            message.className = '';
+            message.textContent = '正在儲存分類…';
+            try {
+                const response = await adminFetch('/api/products/categories', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data ||
+                    !result.data.category) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `分類新增失敗（HTTP ${response.status}）。`);
+                }
+                await loadProductCategories(result.data.category.name);
+                input.value = '';
+                message.className = 'success';
+                message.textContent = result.message || '分類已儲存並可使用。';
+                showToast('新品分類新增成功！');
+            } catch (error) {
+                console.error('新增產品分類失敗：', error);
+                message.className = 'error';
+                message.textContent = error.message || '分類新增失敗，請稍後再試。';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function saveProduct(event) {
+            event.preventDefault();
+            const id = document.getElementById('product-id').value;
+            const name = document.getElementById('product-name').value.trim();
+            const price = document.getElementById('product-price').valueAsNumber;
+            const category = document.getElementById('product-category').value.trim();
+            const message = document.getElementById('product-form-message');
+            const button = document.getElementById('product-save-button');
+            if (!category) {
+                message.textContent = '請選擇產品分類；如未有合適分類，請先新增分類。';
+                return;
+            }
+            if (
+                name.length < 1 ||
+                name.length > 255 ||
+                !Number.isFinite(price) ||
+                price < 0 ||
+                price > 99999999.99 ||
+                Math.abs(price * 100 - Math.round(price * 100)) > 1e-8
+            ) {
+                message.textContent = '請輸入有效商品名稱及最多兩位小數的非負價格。';
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = id ? '正在儲存…' : '正在新增…';
+            message.textContent = id ? '正在更新商品資料…' : '正在建立商品…';
+            message.style.color = '#64748b';
+            try {
+                const response = await adminFetch(
+                    id ? `/api/products/${encodeURIComponent(id)}` : '/api/products',
+                    {
+                        method: id ? 'PATCH' : 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, price, category })
+                    }
+                );
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `商品儲存失敗（HTTP ${response.status}）。`);
+                }
+
+                document.getElementById('product-dialog').close();
+                const status = document.getElementById('products-status');
+                status.textContent = result.message || '商品已儲存，正在重新載入列表…';
+                showToast('商品儲存成功！');
+                try {
+                    await loadProducts();
+                } catch (refreshError) {
+                    status.textContent = `商品已儲存，但重新載入列表失敗：${refreshError.message}`;
+                    status.className = 'chart-status error';
+                }
+            } catch (error) {
+                console.error('儲存商品失敗：', error);
+                message.style.color = '#b91c1c';
+                message.textContent = error.message || '商品儲存失敗，請稍後再試。';
+            } finally {
+                button.disabled = false;
+                button.textContent = id ? '儲存修改' : '新增商品';
+            }
+        }
+
+        async function loadDashboard() {
+            document.getElementById('status-badge').className = 'badge warning';
+            document.getElementById('status-badge').textContent = '載入中';
+            clearDashboardData();
+
+            try {
+                if (adminScopes.includes('products')) {
+                    await Promise.all([loadProductCategories(), loadProducts()]);
+                }
+                if (adminScopes.includes('inbound')) {
+                    await loadInboundProducts();
+                }
+                const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+                    timeZone: 'Asia/Hong_Kong',
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit'
+                });
+                const today = dateFormatter.format(new Date());
+                const pastDate = dateFormatter.format(new Date(Date.now() - 30 * 86400000));
+                const query = `start_date=${encodeURIComponent(pastDate)}&end_date=${encodeURIComponent(today)}`;
+                if (adminScopes.includes('analytics')) {
+                    await loadAnalyticsSummary();
+                    const resOverview = await adminFetch(`/api/analytics/overview?${query}`);
+                    const jsonOverview = await resOverview.json();
+                    if (!resOverview.ok || !jsonOverview || jsonOverview.success !== true || !jsonOverview.data) {
+                        throw new Error(jsonOverview && jsonOverview.message
+                            ? jsonOverview.message
+                            : `營收報表載入失敗（HTTP ${resOverview.status}）。`);
+                    }
+
+                    const data = jsonOverview.data;
+                    document.getElementById('m-revenue').textContent =
+                        `$${Number(data.total_revenue || 0).toFixed(2)}`;
+                    document.getElementById('m-orders').textContent =
+                        String(data.total_orders || 0);
+                    document.getElementById('m-paid').textContent =
+                        `${Number(data.paid_order_percentage || 0)}%`;
+                    const shippedPercentage = data.shipped_order_percentage === undefined
+                        ? 100 - Number(data.unshipped_order_percentage || 0)
+                        : Number(data.shipped_order_percentage || 0);
+                    document.getElementById('m-shipped').textContent =
+                        `${shippedPercentage}%`;
+
+                    await loadSalesCharts(query);
+                }
+                if (adminScopes.includes('shipping')) {
+                    await loadPickList();
+                }
+                if (adminScopes.includes('orders')) {
+                    await loadAdminOrders(0);
+                }
+                if (adminScopes.includes('reviews')) {
+                    await loadAdminReviews(0);
+                }
+                document.getElementById('status-badge').className = 'badge success';
+                document.getElementById('status-badge').textContent = '已登入';
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status-badge').className = 'badge warning';
+                document.getElementById('status-badge').textContent = '載入失敗';
+                setSalesChartStatus(`圖表未載入：${err.message || '營收報表讀取失敗。'}`, true);
+                showToast(err.message || '連接伺服器失敗');
+            }
+        }
+
+        function setSalesChartStatus(message, isError) {
+            const status = document.getElementById('sales-chart-status');
+            status.textContent = message;
+            status.className = isError ? 'chart-status error' : 'chart-status';
+        }
+
+        function renderSalesCharts(data) {
+            if (
+                !window.Chart ||
+                !Array.isArray(data.labels) ||
+                !Array.isArray(data.revenue) ||
+                !Array.isArray(data.order_count) ||
+                data.labels.length !== data.revenue.length ||
+                data.labels.length !== data.order_count.length ||
+                !data.revenue.every(Number.isFinite) ||
+                !data.order_count.every(Number.isFinite)
+            ) {
+                throw new Error('圖表程式或趨勢資料格式無效。');
+            }
+
+            if (revenueChart) revenueChart.destroy();
+            if (ordersChart) ordersChart.destroy();
+
+            revenueChart = new Chart(document.getElementById('revenue-chart'), {
+                type: 'line',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: '營業額 ($)',
+                        data: data.revenue,
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.14)',
+                        fill: true,
+                        tension: 0.25
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: '金額 ($)' } },
+                        x: { ticks: { maxTicksLimit: 10 } }
+                    }
+                }
+            });
+
+            ordersChart = new Chart(document.getElementById('orders-chart'), {
+                type: 'bar',
+                data: {
+                    labels: data.labels,
+                    datasets: [{
+                        label: '訂單數',
+                        data: data.order_count,
+                        backgroundColor: 'rgba(16, 185, 129, 0.75)',
+                        borderColor: '#059669',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: { beginAtZero: true, ticks: { precision: 0 }, title: { display: true, text: '訂單數' } },
+                        x: { ticks: { maxTicksLimit: 10 } }
+                    }
+                }
+            });
+        }
+
+        async function loadSalesCharts(query) {
+            setSalesChartStatus('正在載入最近 30 日銷售趨勢…', false);
+            try {
+                if (!window.Chart) {
+                    throw new Error('Chart.js 未能載入，請檢查本機 vendor 檔案。');
+                }
+
+                const response = await adminFetch(`/api/analytics/sales-trend?${query}`);
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `銷售趨勢載入失敗（HTTP ${response.status}）。`);
+                }
+
+                renderSalesCharts(result.data);
+                setSalesChartStatus(
+                    `已載入 ${result.data.start_date} 至 ${result.data.end_date}：$${Number(result.data.total_revenue).toFixed(2)}，${result.data.total_orders} 張訂單。`,
+                    false
+                );
+            } catch (error) {
+                console.error('載入銷售趨勢圖表失敗：', error);
+                if (revenueChart) {
+                    revenueChart.destroy();
+                    revenueChart = null;
+                }
+                if (ordersChart) {
+                    ordersChart.destroy();
+                    ordersChart = null;
+                }
+                setSalesChartStatus(error.message || '銷售趨勢載入失敗。', true);
+            }
+        }
+
+        async function loadProducts() {
+            const statusMessage = document.getElementById('products-status');
+            const tbody = document.getElementById('products-tbody');
+            
+            tbody.replaceChildren();
+            for(let i=0; i<4; i++){
+                const skRow = document.createElement('tr');
+                for(let j=0; j<4; j++){
+                    const skCell = document.createElement('td');
+                    skCell.innerHTML = '<div class="skeleton" style="height: 20px; width: 80%;"></div>';
+                    skRow.appendChild(skCell);
+                }
+                tbody.appendChild(skRow);
+            }
+
+            statusMessage.textContent = '正在載入商品…';
+            statusMessage.className = 'chart-status';
+            try {
+                const allProducts = [];
+                let totalCount = 0;
+                let offset = 0;
+                do {
+                    const query = new URLSearchParams({
+                        limit: '100',
+                        offset: String(offset),
+                        sort: 'newest'
+                    });
+                    const response = await adminFetch(`/api/products?${query}`);
+                    const result = await response.json();
+                    if (!response.ok || !result || result.success !== true || !result.data ||
+                        !Array.isArray(result.data.products) ||
+                        !Number.isSafeInteger(result.data.total_count)) {
+                        throw new Error(result && result.message
+                            ? result.message
+                            : `商品列表載入失敗（HTTP ${response.status}）。`);
+                    }
+                    allProducts.push(...result.data.products);
+                    totalCount = result.data.total_count;
+                    offset = result.data.offset + result.data.products.length;
+                    if (result.data.products.length === 0) break;
+                } while (offset < totalCount);
+
+                const rowsData = allProducts;
+                if (rowsData.length !== totalCount) {
+                    throw new Error('商品列表分頁讀取不完整，請重新載入。');
+                }
+
+                if (rowsData.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 4;
+                    cell.style.textAlign = 'center';
+                    cell.textContent = '目前沒有商品';
+                    row.appendChild(cell);
+                    tbody.replaceChildren(row);
+                    statusMessage.textContent = '目前沒有商品。';
+                    return true;
+                }
+
+                const rows = rowsData.map(product => {
+                    const row = document.createElement('tr');
+                    const name = document.createElement('td');
+                    name.textContent = product.product_name || product.name || `商品 #${product.id}`;
+                    const price = document.createElement('td');
+                    const productPrice = Number(product.price ?? product.retail_price);
+                    price.textContent = Number.isFinite(productPrice)
+                        ? `$${productPrice.toFixed(2)}`
+                        : '—';
+                    const stock = document.createElement('td');
+                    const hasValidStock = Number.isSafeInteger(product.stock) &&
+                        product.stock >= 0 &&
+                        product.stock <= 2147483647;
+                    if (hasValidStock) {
+                        const stockCount = document.createElement('strong');
+                        stockCount.textContent = `${product.stock} 件`;
+                        const stockBadge = document.createElement('span');
+                        stockBadge.className = `badge ${product.stock <= 5 ? 'low-stock' : 'stock-ok'}`;
+                        stockBadge.textContent = product.stock <= 5 ? '低庫存' : '庫存正常';
+                        stockBadge.setAttribute('aria-label', product.stock <= 5 ? '低庫存警示' : '庫存正常');
+                        stock.append(stockCount, document.createElement('br'), stockBadge);
+                    } else {
+                        stock.textContent = '庫存資料無效，請檢查資料庫';
+                    }
+                    const update = document.createElement('td');
+                    update.className = 'product-actions';
+                    const editButton = document.createElement('button');
+                    editButton.type = 'button';
+                    editButton.className = 'secondary';
+                    editButton.textContent = '編輯商品';
+                    editButton.addEventListener('click', () => openProductDialog(product));
+                    update.appendChild(editButton);
+                    const input = document.createElement('input');
+                    input.className = 'stock-input';
+                    input.type = 'number';
+                    input.min = '0';
+                    input.max = '2147483647';
+                    input.step = '1';
+                    input.inputMode = 'numeric';
+                    input.value = hasValidStock ? String(product.stock) : '';
+                    input.placeholder = hasValidStock ? '新庫存' : '不可更新';
+                    input.disabled = !hasValidStock;
+                    input.setAttribute('aria-label', `設定${name.textContent}庫存`);
+                    const button = document.createElement('button');
+                    button.className = 'stock-save';
+                    button.type = 'button';
+                    button.textContent = '更新';
+                    button.disabled = !hasValidStock;
+                    button.addEventListener('click', () => updateProductStock(product.id, input, button, stock));
+                    const feedback = document.createElement('small');
+                    feedback.className = 'stock-feedback';
+                    feedback.setAttribute('role', 'status');
+                    feedback.setAttribute('aria-live', 'polite');
+                    update.append(input, button, feedback);
+                    row.append(name, price, stock, update);
+                    return row;
+                });
+                tbody.replaceChildren(...rows);
+                statusMessage.textContent = `已載入 ${rowsData.length} 件商品。`;
+                return true;
+            } catch (error) {
+                console.error(error);
+                statusMessage.textContent = error.message || '商品列表載入失敗。';
+                statusMessage.className = 'chart-status error';
+                const tbody = document.getElementById('products-tbody');
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 4;
+                cell.style.textAlign = 'center';
+                cell.style.color = '#b91c1c';
+                cell.textContent = error.message || '商品列表載入失敗。';
+                row.appendChild(cell);
+                tbody.replaceChildren(row);
+                throw error;
+            }
+        }
+
+        async function loadInboundProducts() {
+            const select = document.getElementById('inbound-product');
+            const previousValue = select.value;
+            const status = document.getElementById('inbound-form-message');
+            status.className = 'chart-status';
+            status.textContent = '正在載入商品…';
+            try {
+                const products = [];
+                let offset = 0;
+                let totalCount = 0;
+                do {
+                    const query = new URLSearchParams({
+                        limit: '100',
+                        offset: String(offset),
+                        sort: 'newest'
+                    });
+                    const response = await adminFetch(`/api/products?${query}`);
+                    const result = await response.json();
+                    if (!response.ok || !result || result.success !== true || !result.data ||
+                        !Array.isArray(result.data.products) ||
+                        !Number.isSafeInteger(result.data.total_count)) {
+                        throw new Error(result && result.message
+                            ? result.message
+                            : `入庫商品載入失敗（HTTP ${response.status}）。`);
+                    }
+                    products.push(...result.data.products);
+                    totalCount = result.data.total_count;
+                    offset = result.data.offset + result.data.products.length;
+                    if (result.data.products.length === 0) break;
+                } while (offset < totalCount);
+
+                const options = [new Option('-- 選擇商品 --', '')];
+                for (const product of products) {
+                    const name = product.product_name || product.name || `商品 #${product.id}`;
+                    options.push(new Option(name, String(product.id)));
+                }
+                select.replaceChildren(...options);
+                if (products.some(product => String(product.id) === previousValue)) {
+                    select.value = previousValue;
+                } else if (products.length > 0) {
+                    select.value = String(products[0].id);
+                }
+                status.textContent = products.length
+                    ? `已載入 ${products.length} 件商品。`
+                    : '目前沒有可收貨商品。';
+                if (select.value) {
+                    await loadInboundBatches();
+                } else {
+                    renderInboundEmptyState('目前沒有商品');
+                }
+            } catch (error) {
+                console.error('載入入庫商品失敗：', error);
+                status.className = 'chart-status error';
+                status.textContent = error.message || '入庫商品載入失敗。';
+                renderInboundEmptyState(status.textContent);
+            }
+        }
+
+        function renderInboundEmptyState(message) {
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.colSpan = 5;
+            cell.style.textAlign = 'center';
+            cell.textContent = message;
+            row.appendChild(cell);
+            document.getElementById('inbound-batches-tbody').replaceChildren(row);
+        }
+
+        async function loadInboundBatches() {
+            const productId = document.getElementById('inbound-product').value;
+            const status = document.getElementById('inbound-batches-status');
+            const tbody = document.getElementById('inbound-batches-tbody');
+            if (!productId) {
+                status.textContent = '選擇商品後載入批次';
+                renderInboundEmptyState('選擇商品後載入批次');
+                return;
+            }
+
+            status.className = 'chart-status';
+            status.textContent = '正在載入批次…';
+            try {
+                const query = new URLSearchParams({ product_id: productId });
+                const response = await adminFetch(`/api/inbound/batches?${query}`);
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data ||
+                    !Array.isArray(result.data.batches)) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `收貨批次載入失敗（HTTP ${response.status}）。`);
+                }
+
+                if (result.data.batches.length === 0) {
+                    renderInboundEmptyState('沒有批次紀錄；目前庫存可能是 migration 前的舊庫存。');
+                } else {
+                    const rows = result.data.batches.map(batch => {
+                        const row = document.createElement('tr');
+                        const id = document.createElement('td');
+                        id.textContent = batch.is_legacy_stock
+                            ? '舊庫存（未分批）'
+                            : `#${batch.batch_id}`;
+                        const bestBefore = document.createElement('td');
+                        const bestBeforeLabel = document.createElement('span');
+                        bestBeforeLabel.textContent = batch.is_legacy_stock
+                            ? '未知（舊庫存）'
+                            : batch.best_before_date || '無最佳使用期限';
+                        bestBefore.appendChild(bestBeforeLabel);
+                        if (batch.is_legacy_stock) {
+                            const legacyNote = document.createElement('small');
+                            legacyNote.className = 'stock-feedback';
+                            legacyNote.textContent = '舊庫存為日期未知的開倉快照，不可直接指定日期。';
+                            bestBefore.appendChild(legacyNote);
+                        } else {
+                            const editDateButton = document.createElement('button');
+                            editDateButton.type = 'button';
+                            editDateButton.className = 'secondary batch-date-edit-button';
+                            editDateButton.textContent = '編輯日期';
+                            editDateButton.setAttribute(
+                                'aria-label',
+                                `編輯批次 ${batch.batch_id} 最佳使用日期`
+                            );
+                            editDateButton.addEventListener('click', () => {
+                                openBatchDateEditor(batch, bestBefore, bestBeforeLabel);
+                            });
+                            bestBefore.appendChild(editDateButton);
+                        }
+                        const received = document.createElement('td');
+                        received.textContent = `${batch.quantity_received} 件`;
+                        const remaining = document.createElement('td');
+                        remaining.textContent = `${batch.quantity_remaining} 件`;
+                        const receivedAt = document.createElement('td');
+                        receivedAt.textContent = batch.received_at
+                            ? new Date(batch.received_at).toLocaleString('zh-HK')
+                            : '未知（既有庫存）';
+                        row.append(id, bestBefore, received, remaining, receivedAt);
+                        return row;
+                    });
+                    tbody.replaceChildren(...rows);
+                }
+                status.textContent = `目前商品總庫存：${result.data.current_stock} 件；登記批次：${result.data.batches.length} 批。`;
+            } catch (error) {
+                console.error('載入收貨批次失敗：', error);
+                status.className = 'chart-status error';
+                status.textContent = error.message || '收貨批次載入失敗。';
+                renderInboundEmptyState(status.textContent);
+            }
+        }
+
+        function openBatchDateEditor(batch, cell, label) {
+            const editor = document.createElement('div');
+            editor.className = 'inbound-controls';
+            const input = document.createElement('input');
+            input.type = 'date';
+            input.value = batch.best_before_date || '';
+            input.setAttribute(
+                'aria-label',
+                `批次 ${batch.batch_id} 最佳使用日期`
+            );
+
+            const saveButton = document.createElement('button');
+            saveButton.type = 'button';
+            saveButton.textContent = '儲存';
+            saveButton.addEventListener('click', () => {
+                saveBatchBestBeforeDate(batch.batch_id, input.value || null, saveButton);
+            });
+
+            const clearButton = document.createElement('button');
+            clearButton.type = 'button';
+            clearButton.className = 'secondary';
+            clearButton.textContent = '清除日期';
+            clearButton.addEventListener('click', () => {
+                saveBatchBestBeforeDate(batch.batch_id, null, clearButton);
+            });
+
+            const cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = 'secondary';
+            cancelButton.textContent = '取消';
+            cancelButton.addEventListener('click', () => {
+                editor.remove();
+                label.hidden = false;
+                cell.querySelector('.batch-date-edit-button').hidden = false;
+            });
+
+            editor.append(input, saveButton, clearButton, cancelButton);
+            label.hidden = true;
+            cell.querySelector('.batch-date-edit-button').hidden = true;
+            cell.appendChild(editor);
+            input.focus();
+        }
+
+        async function saveBatchBestBeforeDate(batchId, bestBeforeDate, button) {
+            const status = document.getElementById('inbound-batches-status');
+            button.disabled = true;
+            status.className = 'chart-status';
+            status.textContent = '正在更新批次最佳使用日期…';
+            try {
+                const response = await adminFetch(
+                    `/api/inbound/batches/${encodeURIComponent(String(batchId))}`,
+                    {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ best_before_date: bestBeforeDate })
+                    }
+                );
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `更新批次日期失敗（HTTP ${response.status}）。`);
+                }
+
+                await loadInboundBatches();
+                status.className = 'chart-status';
+                status.textContent = result.message || '批次最佳使用日期更新成功。';
+                showToast('批次效期更新成功！');
+            } catch (error) {
+                console.error('更新批次最佳使用日期失敗：', error);
+                status.className = 'chart-status error';
+                status.textContent = error.message || '更新批次最佳使用日期失敗，請稍後再試。';
+                button.disabled = false;
+            }
+        }
+
+        async function recordInboundReceipt(event) {
+            event.preventDefault();
+            const productId = document.getElementById('inbound-product').value;
+            const quantity = document.getElementById('inbound-quantity').valueAsNumber;
+            const bestBeforeDate = document.getElementById('inbound-best-before-date').value || null;
+            const button = document.getElementById('inbound-submit-button');
+            const message = document.getElementById('inbound-form-message');
+            if (!productId || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100000) {
+                message.className = 'chart-status error';
+                message.textContent = '請選擇商品，並輸入 1 至 100000 的整數收貨數量。';
+                return;
+            }
+
+            button.disabled = true;
+            message.className = 'chart-status';
+            message.textContent = '正在記錄收貨…';
+            try {
+                const response = await adminFetch('/api/inbound/receipt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        product_id: productId,
+                        quantity,
+                        best_before_date: bestBeforeDate
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `收貨記錄失敗（HTTP ${response.status}）。`);
+                }
+                document.getElementById('inbound-quantity').value = '';
+                document.getElementById('inbound-best-before-date').value = '';
+                message.className = 'chart-status';
+                showToast('收貨入庫登記成功！');
+                try {
+                    await Promise.all([
+                        adminScopes.includes('products') ? loadProducts() : Promise.resolve(),
+                        loadInboundProducts()
+                    ]);
+                    message.textContent = result.message || '收貨批次已記錄，商品總庫存已更新。';
+                } catch (refreshError) {
+                    message.className = 'chart-status error';
+                    message.textContent =
+                        `收貨已記錄，但重新載入庫存清單失敗：${refreshError.message}`;
+                }
+            } catch (error) {
+                console.error('記錄收貨失敗：', error);
+                message.className = 'chart-status error';
+                message.textContent = error.message || '收貨記錄失敗，請稍後再試。';
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function updateProductStock(productId, input, button, stockCell) {
+            const stock = input.valueAsNumber;
+            const feedback = button.parentElement.querySelector('.stock-feedback');
+            if (!Number.isSafeInteger(stock) || stock < 0 || stock > 2147483647) {
+                feedback.className = 'stock-feedback error';
+                feedback.textContent = '請輸入 0 至 2147483647 的整數庫存。';
+                input.focus();
+                return;
+            }
+
+            button.disabled = true;
+            button.textContent = '更新中…';
+            feedback.className = 'stock-feedback';
+            feedback.textContent = '正在儲存庫存…';
+            try {
+                const response = await adminFetch(`/api/products/${encodeURIComponent(productId)}/stock`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ stock })
+                });
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `庫存更新失敗（HTTP ${response.status}）。`);
+                }
+                input.value = String(result.data.stock);
+                const stockCount = document.createElement('strong');
+                stockCount.textContent = `${result.data.stock} 件`;
+                const stockBadge = document.createElement('span');
+                stockBadge.className = `badge ${result.data.stock <= 5 ? 'low-stock' : 'stock-ok'}`;
+                stockBadge.textContent = result.data.stock <= 5 ? '低庫存' : '庫存正常';
+                stockBadge.setAttribute('aria-label', result.data.stock <= 5 ? '低庫存警示' : '庫存正常');
+                stockCell.replaceChildren(stockCount, document.createElement('br'), stockBadge);
+                feedback.className = 'stock-feedback success';
+                feedback.textContent = `已更新至 ${result.data.stock} 件。`;
+                showToast(`商品庫存已更新為 ${result.data.stock} 件`);
+            } catch (error) {
+                console.error(error);
+                feedback.className = 'stock-feedback error';
+                feedback.textContent = error.message || '庫存更新失敗，原庫存資料未作變更。';
+            } finally {
+                button.disabled = false;
+                button.textContent = '更新';
+            }
+        }
+
+        async function loadAnalyticsSummary() {
+            const status = document.getElementById('analytics-summary-status');
+            const topProducts = document.getElementById('summary-top-products');
+            const orderTrend = document.getElementById('summary-order-trend');
+            status.className = 'chart-status';
+            status.textContent = '正在載入營運分析…';
+            document.getElementById('summary-total-revenue').textContent = '載入中…';
+            document.getElementById('summary-total-orders').textContent = '載入中…';
+            topProducts.textContent = '載入中…';
+            orderTrend.textContent = '載入中…';
+            try {
+                const response = await adminFetch('/api/admin/analytics/summary');
+                const result = await response.json();
+                const data = result && result.data;
+                if (
+                    !response.ok ||
+                    !result ||
+                    result.success !== true ||
+                    !data ||
+                    !Number.isFinite(data.total_revenue) ||
+                    !Number.isSafeInteger(data.total_orders) ||
+                    !Array.isArray(data.top_products) ||
+                    !Array.isArray(data.order_trend)
+                ) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `營運分析載入失敗（HTTP ${response.status}）。`);
+                }
+
+                document.getElementById('summary-total-revenue').textContent =
+                    HKD_FORMATTER.format(data.total_revenue);
+                document.getElementById('summary-total-orders').textContent =
+                    String(data.total_orders);
+
+                const productRows = data.top_products.map((product, index) => {
+                    const row = document.createElement('tr');
+                    for (const value of [
+                        Number.isSafeInteger(product.rank) ? product.rank : index + 1,
+                        product.product_name || '未命名商品',
+                        Number.isSafeInteger(product.quantity_sold) ? product.quantity_sold : 0,
+                        Number.isFinite(product.sales_amount)
+                            ? HKD_FORMATTER.format(product.sales_amount)
+                            : '—'
+                    ]) {
+                        const cell = document.createElement('td');
+                        cell.textContent = String(value);
+                        row.append(cell);
+                    }
+                    return row;
+                });
+                if (productRows.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 4;
+                    cell.style.textAlign = 'center';
+                    cell.textContent = '目前沒有銷售資料。';
+                    row.append(cell);
+                    productRows.push(row);
+                }
+                topProducts.replaceChildren(...productRows);
+
+                const trendRows = data.order_trend.map(day => {
+                    const row = document.createElement('tr');
+                    const date = document.createElement('td');
+                    date.textContent = typeof day.date === 'string' ? day.date : '—';
+                    const count = document.createElement('td');
+                    count.textContent = Number.isSafeInteger(day.order_count)
+                        ? String(day.order_count)
+                        : '—';
+                    const revenue = document.createElement('td');
+                    revenue.textContent = Number.isFinite(day.revenue)
+                        ? HKD_FORMATTER.format(day.revenue)
+                        : '—';
+                    row.append(date, count, revenue);
+                    return row;
+                });
+                if (trendRows.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 3;
+                    cell.style.textAlign = 'center';
+                    cell.textContent = '目前沒有趨勢資料。';
+                    row.append(cell);
+                    trendRows.push(row);
+                }
+                orderTrend.replaceChildren(...trendRows);
+                const generatedAt = data.generated_at
+                    ? new Date(data.generated_at)
+                    : null;
+                status.textContent = generatedAt && !Number.isNaN(generatedAt.getTime())
+                    ? `已更新（${generatedAt.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })}）`
+                    : '分析資料已更新。';
+            } catch (error) {
+                console.error('載入營運分析摘要失敗：', error);
+                status.className = 'chart-status error';
+                status.textContent = error.message || '營運分析載入失敗，請稍後重試。';
+                document.getElementById('summary-total-revenue').textContent = '—';
+                document.getElementById('summary-total-orders').textContent = '—';
+                const productError = document.createElement('tr');
+                const productMessage = document.createElement('td');
+                productMessage.colSpan = 4;
+                productMessage.style.textAlign = 'center';
+                productMessage.textContent = error.message || '熱銷商品載入失敗。';
+                productError.append(productMessage);
+                topProducts.replaceChildren(productError);
+                const trendError = document.createElement('tr');
+                const trendMessage = document.createElement('td');
+                trendMessage.colSpan = 3;
+                trendMessage.style.textAlign = 'center';
+                trendMessage.textContent = error.message || '訂單趨勢載入失敗。';
+                trendError.append(trendMessage);
+                orderTrend.replaceChildren(trendError);
+            }
+        }
+
+        async function loadAdminReviews(offset = 0) {
+            const status = document.getElementById('reviews-status');
+            const tbody = document.getElementById('reviews-tbody');
+            const previous = document.getElementById('reviews-previous-button');
+            const next = document.getElementById('reviews-next-button');
+            status.className = 'chart-status';
+            status.textContent = '正在載入顧客評價…';
+            previous.disabled = true;
+            next.disabled = true;
+            const loadingRow = document.createElement('tr');
+            const loadingCell = document.createElement('td');
+            loadingCell.colSpan = 6;
+            loadingCell.textContent = '正在載入評價…';
+            loadingRow.append(loadingCell);
+            tbody.replaceChildren(loadingRow);
+
+            try {
+                const response = await adminFetch(
+                    `/api/admin/reviews?limit=${REVIEW_PAGE_SIZE}&offset=${offset}`
+                );
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data ||
+                    !Array.isArray(result.data.reviews)) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `評價清單載入失敗（HTTP ${response.status}）。`);
+                }
+                reviewOffset = offset;
+                reviewTotalCount = Number.isSafeInteger(result.data.total_count)
+                    ? result.data.total_count
+                    : result.data.reviews.length;
+                tbody.replaceChildren();
+                if (result.data.reviews.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    const emptyCell = document.createElement('td');
+                    emptyCell.colSpan = 6;
+                    emptyCell.textContent = '目前沒有顧客評價。';
+                    emptyRow.append(emptyCell);
+                    tbody.append(emptyRow);
+                }
+                result.data.reviews.forEach(review => {
+                    const row = document.createElement('tr');
+                    const values = [
+                        review.product_id,
+                        review.customer_phone,
+                        `${review.rating} / 5`,
+                        review.comment,
+                        review.created_at ? new Date(review.created_at).toLocaleString('zh-HK') : ''
+                    ];
+                    values.forEach(value => {
+                        const cell = document.createElement('td');
+                        cell.textContent = String(value ?? '');
+                        row.append(cell);
+                    });
+                    const actionCell = document.createElement('td');
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.textContent = '刪除';
+                    deleteButton.style.background = '#b91c1c';
+                    deleteButton.dataset.reviewId = String(review.review_id);
+                    deleteButton.setAttribute('aria-label', `刪除評價 ${review.review_id}`);
+                    actionCell.append(deleteButton);
+                    row.append(actionCell);
+                    tbody.append(row);
+                });
+                const first = result.data.reviews.length ? offset + 1 : 0;
+                const last = offset + result.data.reviews.length;
+                document.getElementById('reviews-page-label').textContent =
+                    `第 ${first}–${last} 筆，共 ${reviewTotalCount} 筆`;
+                previous.disabled = offset === 0;
+                next.disabled = offset + result.data.reviews.length >= reviewTotalCount;
+                status.textContent = `已載入 ${result.data.reviews.length} 則評價。`;
+            } catch (error) {
+                console.error('載入評價清單失敗：', error);
+                status.className = 'chart-status error';
+                status.textContent = error.message || '評價清單載入失敗，請稍後再試。';
+                tbody.replaceChildren();
+                const errorRow = document.createElement('tr');
+                const errorCell = document.createElement('td');
+                errorCell.colSpan = 6;
+                errorCell.textContent = '評價清單暫時無法載入。';
+                errorRow.append(errorCell);
+                tbody.append(errorRow);
+                document.getElementById('reviews-page-label').textContent = '無法載入評價';
+            }
+        }
+
+        async function deleteAdminReview(event) {
+            const button = event.target.closest('button[data-review-id]');
+            if (!button) return;
+            const reviewId = button.dataset.reviewId;
+            if (!reviewId) return;
+
+            const confirmDialog = document.getElementById('confirm-dialog');
+            document.getElementById('confirm-message').textContent = '確定刪除此顧客評價？此操作無法復原。';
+            confirmDialog.showModal();
+
+            const okBtn = document.getElementById('confirm-ok-btn');
+            const cancelBtn = document.getElementById('confirm-cancel-btn');
+
+            const cleanup = () => {
+                confirmDialog.close();
+                okBtn.replaceWith(okBtn.cloneNode(true));
+                cancelBtn.replaceWith(cancelBtn.cloneNode(true));
+            };
+
+            document.getElementById('confirm-cancel-btn').addEventListener('click', cleanup, { once: true });
+            document.getElementById('confirm-ok-btn').addEventListener('click', async () => {
+                cleanup();
+                button.disabled = true;
+                try {
+                    const response = await adminFetch(
+                        `/api/admin/reviews/${encodeURIComponent(reviewId)}`,
+                        { method: 'DELETE' }
+                    );
+                    const result = await response.json();
+                    if (!response.ok || !result || result.success !== true) {
+                        throw new Error(result && result.message
+                            ? result.message
+                            : `刪除評價失敗（HTTP ${response.status}）。`);
+                    }
+                    document.getElementById('reviews-status').textContent =
+                        result.message || '評價已刪除。';
+                    showToast('評價已成功刪除');
+                    await loadAdminReviews(reviewOffset);
+                } catch (error) {
+                    console.error('刪除商品評價失敗：', error);
+                    document.getElementById('reviews-status').className = 'chart-status error';
+                    document.getElementById('reviews-status').textContent =
+                        error.message || '刪除評價失敗，請稍後再試。';
+                    button.disabled = false;
+                }
+            }, { once: true });
+        }
+
+        async function loadAdminOrders(offset = 0) {
+            const status = document.getElementById('orders-status');
+            status.className = 'chart-status';
+            status.textContent = '正在載入訂單…';
+            try {
+                const query = new URLSearchParams({
+                    limit: String(ORDER_PAGE_SIZE),
+                    offset: String(offset)
+                });
+                const response = await adminFetch(`/api/orders/admin/orders?${query}`);
+                const result = await response.json();
+                if (
+                    !response.ok ||
+                    !result ||
+                    result.success !== true ||
+                    !result.data ||
+                    !Array.isArray(result.data.orders) ||
+                    !Number.isSafeInteger(result.data.total_count)
+                ) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `訂單列表載入失敗（HTTP ${response.status}）。`);
+                }
+
+                orderOffset = result.data.offset;
+                orderTotalCount = result.data.total_count;
+                allCachedOrders = result.data.orders; 
+                
+                renderFilteredOrders();
+                status.textContent = '訂單已載入。';
+            } catch (error) {
+                console.error('載入管理員訂單失敗：', error);
+                status.className = 'chart-status error';
+                status.textContent = error.message || '訂單列表載入失敗。';
+                const tbody = document.getElementById('orders-tbody');
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 8;
+                cell.style.textAlign = 'center';
+                cell.textContent = error.message || '訂單列表載入失敗。';
+                row.replaceChildren(cell);
+                tbody.replaceChildren(row);
+                throw error;
+            }
+        }
+
+        // 渲染過濾後的訂單（支援短單號、客戶名稱、全能搜尋）
+        function renderFilteredOrders() {
+            const tbody = document.getElementById('orders-tbody');
+            const searchKeyword = document.getElementById('orders-search-input').value.trim().toLowerCase();
+
+            const filtered = allCachedOrders.filter(order => {
+                const matchesTab = (currentOrderTab === 'all') || (order.status === currentOrderTab);
+                const displayOrderNo = (order.order_number || order.order_no || order.order_id || '').toLowerCase();
+                const customerName = (order.customer_name || order.name || '').toLowerCase();
+                const customerPhone = (order.customer_phone || order.phone || '').toLowerCase();
+
+                const matchesSearch = !searchKeyword ||
+                    displayOrderNo.includes(searchKeyword) ||
+                    customerName.includes(searchKeyword) ||
+                    customerPhone.includes(searchKeyword);
+
+                return matchesTab && matchesSearch;
+            });
+
+            const rows = filtered.map(order => {
+                const row = document.createElement('tr');
+                
+                // 1. 訂單編號（優先顯示易讀單號，滑鼠移上去看完整 ID）
+                const idCell = document.createElement('td');
+                const rawOrderNo = order.order_number || order.order_no || order.order_id || '—';
+                const displayText = rawOrderNo.length > 20 ? rawOrderNo.substring(0, 10) + '...' : rawOrderNo;
+                
+                const idText = document.createElement('span');
+                idText.textContent = displayText;
+                idText.title = rawOrderNo; 
+                
+                const copyBtn = document.createElement('button');
+                copyBtn.type = 'button';
+                copyBtn.className = 'secondary';
+                copyBtn.style.cssText = 'padding: 2px 6px; font-size: 0.75rem; margin-left: 6px;';
+                copyBtn.textContent = '複製';
+                copyBtn.addEventListener('click', () => copyToClipboard(rawOrderNo));
+                idCell.append(idText, copyBtn);
+                idCell.style.overflowWrap = 'anywhere';
+
+                // 2. 客戶名稱欄位
+                const nameCell = document.createElement('td');
+                nameCell.textContent = order.customer_name || order.name || '訪客 / 未填寫';
+                nameCell.style.fontWeight = '600';
+                nameCell.style.color = order.customer_name ? '#0f172a' : '#94a3b8';
+
+                // 3. 聯絡電話
+                const phoneCell = document.createElement('td');
+                const phoneVal = order.customer_phone || order.phone || '—';
+                const phoneText = document.createElement('span');
+                phoneText.textContent = phoneVal;
+                if(phoneVal !== '—') {
+                    const phoneCopyBtn = document.createElement('button');
+                    phoneCopyBtn.type = 'button';
+                    phoneCopyBtn.className = 'secondary';
+                    phoneCopyBtn.style.cssText = 'padding: 2px 6px; font-size: 0.75rem; margin-left: 6px;';
+                    phoneCopyBtn.textContent = '複製';
+                    phoneCopyBtn.addEventListener('click', () => copyToClipboard(phoneVal));
+                    phoneCell.append(phoneText, phoneCopyBtn);
+                } else {
+                    phoneCell.append(phoneText);
+                }
+
+                // 4. 購買品項
+                const itemsCell = document.createElement('td');
+                const itemList = document.createElement('ul');
+                itemList.className = 'order-items-list';
+                for (const item of Array.isArray(order.items) ? order.items : []) {
+                    const line = document.createElement('li');
+                    const quantity = Number.isSafeInteger(Number(item.quantity))
+                        ? Number(item.quantity)
+                        : 0;
+                    const unitPrice = Number.isFinite(Number(item.unit_price))
+                        ? `（$${Number(item.unit_price).toFixed(2)}）`
+                        : '';
+                    line.textContent = `${item.product_name || item.name || '未命名商品'} × ${quantity} ${unitPrice}`;
+                    itemList.append(line);
+                }
+                if (itemList.childElementCount === 0) {
+                    const line = document.createElement('li');
+                    line.textContent = '沒有商品明細';
+                    itemList.append(line);
+                }
+                itemsCell.append(itemList);
+                
+                // 5. 總金額
+                const amountCell = document.createElement('td');
+                amountCell.style.fontWeight = 'bold';
+                amountCell.style.color = '#2563eb';
+                amountCell.textContent = Number.isFinite(Number(order.total_amount))
+                    ? `$${Number(order.total_amount).toFixed(2)}`
+                    : '—';
+                
+                // 6. 下單時間
+                const dateCell = document.createElement('td');
+                const parsedDate = new Date(order.order_date || order.created_at);
+                dateCell.textContent = Number.isNaN(parsedDate.getTime())
+                    ? '—'
+                    : parsedDate.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' });
+                
+                // 7. 目前狀態
+                const stateCell = document.createElement('td');
+                const select = document.createElement('select');
+                select.className = 'order-status-select';
+                select.dataset.orderId = rawOrderNo;
+                select.dataset.savedStatus = order.status;
+                select.setAttribute('aria-label', `訂單狀態`);
+                for (const [value, label] of [
+                    ['pending', '⏳ 待處理'],
+                    ['shipping', '🚚 已出貨'],
+                    ['completed', '✅ 已完成']
+                ]) {
+                    const option = document.createElement('option');
+                    option.value = value;
+                    option.textContent = label;
+                    select.append(option);
+                }
+                select.value = ['pending', 'shipping', 'completed'].includes(order.status)
+                    ? order.status
+                    : 'pending';
+                select.dataset.savedStatus = select.value;
+                stateCell.append(select);
+
+                // 8. 更新提示
+                const feedbackCell = document.createElement('td');
+                feedbackCell.className = 'order-feedback';
+                feedbackCell.setAttribute('role', 'status');
+                feedbackCell.setAttribute('aria-live', 'polite');
+
+                row.append(idCell, nameCell, phoneCell, itemsCell, amountCell, dateCell, stateCell, feedbackCell);
+                return row;
+            });
+
+            if (rows.length === 0) {
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 8;
+                cell.style.textAlign = 'center';
+                cell.style.padding = '30px';
+                cell.style.color = '#64748b';
+                cell.textContent = '沒有符合條件的訂單紀錄。';
+                row.append(cell);
+                rows.push(row);
+            }
+            tbody.replaceChildren(...rows);
+
+            const first = orderTotalCount === 0 ? 0 : orderOffset + 1;
+            const last = Math.min(orderOffset + allCachedOrders.length, orderTotalCount);
+            document.getElementById('orders-page-label').textContent =
+                `第 ${first}–${last} 筆，共 ${orderTotalCount} 筆`;
+            document.getElementById('orders-previous-button').disabled = orderOffset === 0;
+            document.getElementById('orders-next-button').disabled =
+                orderOffset + allCachedOrders.length >= orderTotalCount;
+        }
+
+        async function updateAdminOrderStatus(event) {
+            const select = event.target.closest('.order-status-select');
+            if (!select) return;
+            const previousStatus = select.dataset.savedStatus;
+            const feedback = select.closest('tr').querySelector('.order-feedback');
+            if (!['pending', 'shipping', 'completed'].includes(select.value)) {
+                select.value = previousStatus;
+                return;
+            }
+            if (select.value === previousStatus) return;
+
+            select.disabled = true;
+            feedback.className = 'order-feedback';
+            feedback.textContent = '正在更新…';
+            try {
+                const response = await adminFetch(
+                    `/api/orders/admin/orders/${encodeURIComponent(select.dataset.orderId)}/status`,
+                    {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: select.value })
+                    }
+                );
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true || !result.data) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `訂單狀態更新失敗（HTTP ${response.status}）。`);
+                }
+                select.dataset.savedStatus = result.data.status;
+                
+                const cached = allCachedOrders.find(o => (o.order_number || o.order_no || o.order_id) === select.dataset.orderId);
+                if (cached) cached.status = result.data.status;
+
+                feedback.className = 'order-feedback success';
+                feedback.textContent = result.message || '狀態已更新。';
+                showToast('訂單狀態更新成功！');
+            } catch (error) {
+                console.error('更新管理員訂單狀態失敗：', error);
+                select.value = previousStatus;
+                feedback.className = 'order-feedback error';
+                feedback.textContent = error.message || '訂單狀態更新失敗。';
+            } finally {
+                select.disabled = false;
+            }
+        }
+
+        async function loadPickList() {
+            const groupBy = document.getElementById('groupby-select').value;
+
+            try {
+                const res = await adminFetch(`/api/shipping/pick-list?group_by=${groupBy}`);
+                const json = await res.json();
+                const tbody = document.getElementById('picklist-tbody');
+                if (!res.ok || !json || json.success !== true || !Array.isArray(json.data)) {
+                    throw new Error(json && json.message
+                        ? json.message
+                        : `執貨清單載入失敗（HTTP ${res.status}）。`);
+                }
+
+                if (json.data.length === 0) {
+                    const row = document.createElement('tr');
+                    const cell = document.createElement('td');
+                    cell.colSpan = 5;
+                    cell.style.textAlign = 'center';
+                    cell.style.color = '#64748b';
+                    cell.textContent = '目前沒有可出貨的項目';
+                    row.appendChild(cell);
+                    tbody.replaceChildren(row);
+                    return true;
+                }
+
+                const rows = json.data.map(item => {
+                    const tr = document.createElement('tr');
+                    const identity = document.createElement('td');
+                    const title = document.createElement('strong');
+                    const details = document.createElement('small');
+                    if (groupBy === 'product') {
+                        title.textContent = `貨品 #${item.product_id}`;
+                        details.textContent = `${item.product_name || '未命名商品'} × ${item.total_quantity} 件`;
+                    } else {
+                        title.textContent = `訂單 #${item.order_id}`;
+                        details.textContent = (Array.isArray(item.items) ? item.items : [])
+                            .map(orderItem => `${orderItem.product_name || '未命名商品'} × ${orderItem.quantity}`)
+                            .join('、');
+                    }
+                    identity.append(title, document.createElement('br'), details);
+
+                    const phone = document.createElement('td');
+                    phone.textContent = groupBy === 'order'
+                        ? (item.customer_phone || '無電話')
+                        : `${Array.isArray(item.orders) ? item.orders.length : 0} 張訂單`;
+                    const shipping = document.createElement('td');
+                    shipping.textContent = groupBy === 'order'
+                        ? (item.shipping_method || '未安排')
+                        : '按訂單分別出貨';
+
+                    const statusCell = document.createElement('td');
+                    const badge = document.createElement('span');
+                    badge.className = 'badge success';
+                    badge.textContent = groupBy === 'order'
+                        ? (item.shipping_status || '可出貨')
+                        : '已齊貨';
+                    statusCell.appendChild(badge);
+
+                    const action = document.createElement('td');
+                    const orderIds = groupBy === 'order'
+                        ? [item.order_id]
+                        : [...new Set((Array.isArray(item.orders) ? item.orders : [])
+                            .map(order => order.order_id))];
+                    if (orderIds.length === 0) {
+                        action.textContent = '無可出貨訂單';
+                    } else {
+                        for (const orderId of orderIds) {
+                            const button = document.createElement('button');
+                            button.type = 'button';
+                            button.textContent = groupBy === 'order' ? '快速出貨' : `出貨 #${orderId}`;
+                            button.addEventListener('click', () => shipOrder(orderId));
+                            action.appendChild(button);
+                        }
+                    }
+                    tr.append(identity, phone, shipping, statusCell, action);
+                    return tr;
+                });
+                tbody.replaceChildren(...rows);
+                return true;
+            } catch (err) {
+                console.error(err);
+                const tbody = document.getElementById('picklist-tbody');
+                const row = document.createElement('tr');
+                const cell = document.createElement('td');
+                cell.colSpan = 5;
+                cell.style.textAlign = 'center';
+                cell.style.color = '#b91c1c';
+                cell.textContent = err.message || '執貨清單載入失敗。';
+                row.appendChild(cell);
+                tbody.replaceChildren(row);
+                throw err;
+            }
+        }
+
+        async function shipOrder(orderId) {
+            const trackingNumber = prompt('請輸入順豐/京東運單號碼 (Tracking Number):', 'SF' + Date.now().toString().slice(-8));
+            if (!trackingNumber) return;
+
+            try {
+                const res = await adminFetch(`/api/shipping/${encodeURIComponent(orderId)}/ship`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ shipping_method: '順豐', tracking_number: trackingNumber })
+                });
+                const json = await res.json();
+                if (!res.ok || !json || json.success !== true) {
+                    throw new Error(json && json.message
+                        ? json.message
+                        : `出貨失敗（HTTP ${res.status}）。`);
+                }
+                const notification = json.data && json.data.notification;
+                const notificationStatus = notification && notification.status
+                    ? notification.status
+                    : 'unknown';
+                const notificationMessage = notification && notification.message
+                    ? notification.message
+                    : '通知狀態未能確認。';
+                showToast('訂單出貨成功，已發送 WhatsApp 通知！');
+                try {
+                    await Promise.all([loadPickList(), loadProducts()]);
+                } catch (refreshError) {
+                    showToast(`訂單已出貨，但清單重新讀取失敗：${refreshError.message}`);
+                }
+                if (
+                    notification &&
+                    notification.success !== true &&
+                    ['failed', 'pending'].includes(notificationStatus) &&
+                    confirm('要立即重試 WhatsApp 出貨通知嗎？')
+                ) {
+                    await retryShipmentNotification(orderId);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast(err.message || '網路錯誤');
+            }
+        }
+
+        async function retryShipmentNotification(orderId) {
+            try {
+                const response = await adminFetch(
+                    `/api/shipping/${encodeURIComponent(orderId)}/notification/retry`,
+                    {
+                        method: 'POST',
+                    }
+                );
+                const result = await response.json();
+                if (!response.ok || !result || result.success !== true) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `通知重試失敗（HTTP ${response.status}）。`);
+                }
+                showToast(result.message || 'WhatsApp 出貨通知已重試發送。');
+            } catch (error) {
+                console.error('重試 WhatsApp 出貨通知失敗：', error);
+                showToast(error.message || 'WhatsApp 通知重試失敗，請稍後再試。');
+            }
+        }
+    </script>
+</body>
+</html>

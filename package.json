@@ -1,0 +1,28 @@
+{
+  "name": "littleplanet",
+  "version": "1.0.0",
+  "description": "LittlePlanet local backend project with Express and Supabase",
+  "main": "index.js",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon --exec \"node --dns-result-order=ipv4first\" index.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.43.0",
+    "chart.js": "^4.5.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-async-errors": "^3.1.1",
+    "express-rate-limit": "^8.7.0",
+    "helmet": "^8.3.0",
+    "node-cache": "^5.1.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

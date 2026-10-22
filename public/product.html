@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#f8fafc">
+  <title>LittlePlanet 小行星｜產品管理後台</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    html { scroll-behavior: smooth; }
+    body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .dark body { background-color: #030712; color: #f8fafc; }
+    .dark .bg-white { background-color: #111827; }
+    .dark .bg-slate-50 { background-color: #030712; }
+    .dark .bg-slate-100 { background-color: #1f2937; }
+    .dark .text-slate-900, .dark .text-slate-800 { color: #f8fafc; }
+    .dark .text-slate-700, .dark .text-slate-600 { color: #cbd5e1; }
+    .dark .text-slate-500, .dark .text-slate-400 { color: #94a3b8; }
+    .dark .border-slate-200, .dark .border-slate-300 { border-color: #334155; }
+    .dark input, .dark select, .dark textarea { background-color: #1f2937; color: #f8fafc; border-color: #334155; }
+  </style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased flex flex-col justify-between">
+  <div>
+    <!-- 頂部宣傳 Banner -->
+    <div class="bg-gradient-to-r from-indigo-600 via-violet-600 to-fuchsia-600 px-4 py-2 text-center text-sm font-semibold text-white">
+      ✨ 管理員後台工作階段 · 產品管理與庫存系統
+    </div>
+
+    <!-- 導覽列 -->
+    <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl dark:bg-slate-900/90 dark:border-slate-800">
+      <div class="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <a href="/" class="flex min-w-0 items-center gap-2.5 text-slate-900 no-underline dark:text-white" aria-label="LittlePlanet 小行星首頁">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-indigo-600 text-xl text-white shadow-lg shadow-indigo-200">🪐</span>
+          <span>
+            <span class="block text-lg font-black leading-tight tracking-tight sm:text-xl">LittlePlanet 小行星</span>
+            <span class="hidden text-xs font-medium text-slate-500 sm:block dark:text-slate-400">把喜歡的生活好物帶回家</span>
+          </span>
+        </a>
+        <nav class="flex shrink-0 items-center gap-2 sm:gap-3" aria-label="主要導覽">
+          <a href="/" class="rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-indigo-700 dark:text-slate-300 dark:hover:bg-slate-800">返回前台</a>
+          <button id="themeToggleBtn" type="button" class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-lg transition hover:bg-slate-100 dark:border-slate-700 dark:hover:bg-slate-800" aria-label="切換深色模式">🌙</button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- 主要內容區 -->
+    <main class="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <div class="mb-8 flex items-center justify-between">
+        <h1 class="text-2xl font-black tracking-tight text-indigo-600 dark:text-indigo-400 sm:text-3xl">LittlePlanet 產品管理</h1>
+      </div>
+
+      <!-- 登入驗證列 -->
+      <form class="mb-8 flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900" id="adminLoginForm">
+        <label for="adminToken" class="text-sm font-bold text-slate-700 dark:text-slate-300">管理員密鑰：</label>
+        <input type="password" id="adminToken" autocomplete="current-password" required placeholder="請輸入管理員 Token" class="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+        <button id="loginButton" type="submit" class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow hover:bg-indigo-700 transition">登入</button>
+        <button id="logoutButton" type="button" class="rounded-xl bg-rose-500 px-5 py-2.5 text-sm font-bold text-white shadow hover:bg-rose-600 transition" hidden>登出</button>
+        <div id="authStatus" class="w-full text-xs font-semibold text-slate-500 dark:text-slate-400" role="status" aria-live="polite">正在檢查登入狀態…</div>
+      </form>
+
+      <!-- 新增/編輯商品表單 -->
+      <div class="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 id="formTitle" class="mb-4 text-lg font-extrabold text-slate-900 dark:text-white">新增商品</h2>
+        <form id="productForm" class="space-y-4">
+          <div>
+            <label for="name" class="block mb-1 text-sm font-bold text-slate-700 dark:text-slate-300">產品名稱 <span class="text-rose-500">*</span></label>
+            <input type="text" id="name" required placeholder="例如：太空宇宙杯" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+          </div>
+
+          <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label for="price" class="block mb-1 text-sm font-bold text-slate-700 dark:text-slate-300">價格 (HKD) <span class="text-rose-500">*</span></label>
+              <input type="number" id="price" min="0" step="0.5" oninput="if (this.value < 0) this.value = 0;" required placeholder="100" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+            </div>
+            <div>
+              <label for="stock" class="block mb-1 text-sm font-bold text-slate-700 dark:text-slate-300">存貨數量 <span class="text-rose-500">*</span></label>
+              <input type="number" id="stock" min="0" oninput="if (this.value < 0) this.value = 0;" required placeholder="0" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+            </div>
+          </div>
+
+          <!-- 分類選擇與手動新增/管理 -->
+          <div>
+            <label for="category" class="block mb-1 text-sm font-bold text-slate-700 dark:text-slate-300">分類 <span class="text-rose-500">*</span></label>
+            <div class="flex gap-2">
+              <select id="category" required class="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+                <option value="">-- 請選擇分類 --</option>
+              </select>
+              <button type="button" id="addCategoryBtn" class="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-bold text-indigo-600 hover:bg-indigo-50 dark:border-slate-700 dark:text-indigo-400 dark:hover:bg-slate-800 transition" title="手動新增分類">+ 新增分類</button>
+            </div>
+            <div id="categoryList" class="mt-2 flex flex-wrap gap-1.5"></div>
+          </div>
+
+          <!-- 狀態欄位 -->
+          <div>
+            <label for="status" class="block mb-1 text-sm font-bold text-slate-700 dark:text-slate-300">商品狀態</label>
+            <select id="status" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+               <option value="預購中">預購中</option>
+               <option value="正常上架">正常上架</option>
+               <option value="暫停供應">暫停供應</option>
+               <option value="已下架">已下架</option>
+               <option value="旅購中">旅購中</option>
+              <option value="已到貨">已到貨</option>
+            </select>
+          </div>
+
+          <!-- 產品有效期限 / 批次日期欄位 -->
+          <div>
+            <label for="bestBeforeDate" class="block mb-1 text-sm font-bold text-slate-700 dark:text-slate-300">產品有效期限 / 批次日期 (選填)</label>
+            <input type="date" id="bestBeforeDate" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+          </div>
+
+          <!-- 圖片網址 -->
+          <div>
+            <label for="imageUrl" class="block mb-1 text-sm font-bold text-slate-700 dark:text-slate-300">圖片網址 (選填)</label>
+            <input type="url" id="imageUrl" placeholder="https://... 留空將自動生成隨機預設圖片" class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+          </div>
+
+          <!-- 商品描述 -->
+          <div>
+            <label for="description" class="block mb-1 text-sm font-bold text-slate-700 dark:text-slate-300">商品詳細描述 (選填)</label>
+            <textarea id="description" rows="3" placeholder="輸入商品的特色、規格或注意事項..." class="w-full rounded-xl border border-slate-300 px-4 py-2.5 text-sm outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"></textarea>
+          </div>
+
+          <div class="flex gap-3 pt-2">
+            <button type="submit" id="productSubmitButton" class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-bold text-white shadow hover:bg-indigo-700 transition disabled:opacity-50" disabled>確認新增</button>
+            <button type="button" id="cancelEditButton" class="rounded-xl border border-slate-300 px-5 py-2.5 text-sm font-bold text-slate-700 hover:bg-slate-100 transition dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800" hidden>取消編輯</button>
+          </div>
+          <div id="message" class="text-sm font-semibold"></div>
+        </form>
+      </div>
+
+      <!-- 商品列表 -->
+      <div class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <h2 class="mb-6 text-lg font-extrabold text-slate-900 dark:text-white">商品列表</h2>
+        <div id="productGrid" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <!-- 動態載入商品 -->
+        </div>
+        
+        <!-- 分頁控制 -->
+        <div class="mt-8 flex items-center justify-between border-t border-slate-100 pt-4 dark:border-slate-800">
+          <button id="prevBtn" onclick="changePage(-1)" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">上一頁</button>
+          <span id="pageIndicator" class="text-sm font-bold text-slate-600 dark:text-slate-400">第 1 頁</span>
+          <button id="nextBtn" onclick="changePage(1)" class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300">下一頁</button>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 頁尾 -->
+  <footer class="border-t border-slate-200 bg-white px-4 py-6 text-center text-xs font-medium text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+    <p>© 2026 LittlePlanet 小行星 · 產品管理後台</p>
+  </footer>
+
+  <script>
+    'use strict';
+    const THEME_STORAGE_KEY = 'littleplanet_theme';
+    let adminScopes = [];
+    let editingProductId = null;
+    let currentPage = 1;
+    const limit = 10;
+    let totalCount = 0;
+    let allCategories = new Set(['熱賣推薦', '新品上市', '日用品', '零食茶飲', '美妝保養', '旅購限定']);
+
+    // 深色模式初始化
+    function initializeTheme() {
+      try {
+        const dark = localStorage.getItem(THEME_STORAGE_KEY) === 'dark';
+        document.documentElement.classList.toggle('dark', dark);
+        document.querySelector('#themeToggleBtn').textContent = dark ? '☀️' : '🌙';
+      } catch (e) {}
+    }
+
+    document.querySelector('#themeToggleBtn').addEventListener('click', () => {
+      const dark = document.documentElement.classList.toggle('dark');
+      document.querySelector('#themeToggleBtn').textContent = dark ? '☀️' : '🌙';
+      try { localStorage.setItem(THEME_STORAGE_KEY, dark ? 'dark' : 'light'); } catch (e) {}
+    });
+
+    function setAdminScopes(authenticated, scopes = []) {
+      adminScopes = authenticated && Array.isArray(scopes) ? [...new Set(scopes)] : [];
+      const canManageProducts = adminScopes.includes('products');
+      document.getElementById('adminToken').hidden = authenticated;
+      const authLabel = document.querySelector('#adminLoginForm label');
+      if (authLabel) authLabel.hidden = authenticated;
+      document.getElementById('loginButton').hidden = authenticated;
+      document.getElementById('logoutButton').hidden = !authenticated;
+      document.getElementById('productSubmitButton').disabled = !canManageProducts;
+      
+      const status = document.getElementById('authStatus');
+      status.className = authenticated
+        ? canManageProducts ? 'w-full text-xs font-semibold text-emerald-600' : 'w-full text-xs font-semibold text-rose-600'
+        : 'w-full text-xs font-semibold text-slate-500';
+      status.textContent = canManageProducts
+        ? '已登入產品管理工作階段。'
+        : authenticated
+          ? '已登入管理員工作階段，但此 Session 沒有產品管理權限。'
+          : '請登入管理員以執行新增、編輯與刪除商品。';
+      
+      fetchProducts();
+    }
+
+    function adminFetch(url, options = {}) {
+      return fetch(url, { ...options, credentials: 'same-origin' }).then((response) => {
+        if (response.status === 401 && !url.startsWith('/api/admin-auth/session')) {
+          setAdminScopes(false);
+        }
+        return response;
+      }).catch((error) => {
+        console.error('API 請求失敗：', error);
+        throw error;
+      });
+    }
+
+    async function readApiResponse(response, operation) {
+      const body = await response.text();
+      const result = body.trim() ? JSON.parse(body) : null;
+      if (!response.ok || !result || typeof result !== 'object') {
+        throw new Error(result?.message || `${operation}失敗（HTTP ${response.status}）。`);
+      }
+      return result;
+    }
+
+    async function checkAdminSession() {
+      try {
+        const response = await adminFetch('/api/admin-auth/session');
+        const result = await readApiResponse(response, '登入狀態檢查');
+        if (result.success === true && result.data) {
+          setAdminScopes(result.data.authenticated === true, result.data.scopes);
+          return;
+        }
+      } catch (err) {
+        console.error('檢查 Session 失敗：', err);
+      }
+      setAdminScopes(false);
+    }
+
+    async function loginAdmin(event) {
+      event.preventDefault();
+      const token = document.getElementById('adminToken').value.trim();
+      const status = document.getElementById('authStatus');
+      try {
+        const response = await adminFetch('/api/admin-auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        });
+        const result = await readApiResponse(response, '管理員登入');
+        if (result.success === true && result.data) {
+          document.getElementById('adminToken').value = '';
+          setAdminScopes(true, result.data.scopes);
+        }
+      } catch (err) {
+        status.className = 'w-full text-xs font-semibold text-rose-600';
+        status.textContent = err.message || '登入失敗';
+      }
+    }
+
+    async function logoutAdmin() {
+      try {
+        await adminFetch('/api/admin-auth/logout', { method: 'POST' });
+        setAdminScopes(false);
+      } catch (err) {
+        console.error('登出失敗：', err);
+      }
+    }
+
+    // 更新分類選單與快速標籤
+    function updateCategoryDropdowns(products) {
+      products.forEach(p => {
+        const cat = p.category || p.product_category;
+        if (cat && typeof cat === 'string' && cat.trim()) {
+          allCategories.add(cat.trim());
+        }
+      });
+
+      const selectEl = document.getElementById('category');
+      const currentSelected = selectEl.value;
+      
+      selectEl.innerHTML = '<option value="">-- 請選擇分類 --</option>';
+      Array.from(allCategories).sort().forEach(cat => {
+        const opt = document.createElement('option');
+        opt.value = cat;
+        opt.textContent = cat;
+        selectEl.appendChild(opt);
+      });
+      if (allCategories.has(currentSelected)) {
+        selectEl.value = currentSelected;
+      }
+
+      // 渲染分類標籤捷徑
+      const listEl = document.getElementById('categoryList');
+      listEl.innerHTML = Array.from(allCategories).map(cat => `
+        <span onclick="document.getElementById('category').value='${cat}'" class="cursor-pointer rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-indigo-100 hover:text-indigo-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 transition">📁 ${cat}</span>
+      `).join('');
+    }
+
+    // 手動新增分類按鈕事件
+    document.getElementById('addCategoryBtn').addEventListener('click', () => {
+      const newCat = prompt('請輸入新的商品分類名稱：');
+      if (newCat && newCat.trim()) {
+        const trimmed = newCat.trim();
+        allCategories.add(trimmed);
+        updateCategoryDropdowns([]);
+        document.getElementById('category').value = trimmed;
+      }
+    });
+
+    async function fetchProducts() {
+      const offset = (currentPage - 1) * limit;
+      const grid = document.getElementById('productGrid');
+      grid.innerHTML = '<p class="col-span-full text-center text-slate-500">正在載入產品...</p>';
+      
+      try {
+        const res = await fetch(`/api/products?limit=${limit}&offset=${offset}&include_best_before_dates=true`);
+        if (!res.ok) {
+          throw new Error(`網路請求失敗：狀態碼 ${res.status}`);
+        }
+        const result = await res.json();
+        if (!result.success) throw new Error(result.message || '讀取失敗');
+
+        const rawData = result.data;
+        const products = Array.isArray(rawData) ? rawData : (rawData.products || []);
+        totalCount = rawData.total_count || products.length;
+
+        updateCategoryDropdowns(products);
+        renderProducts(products);
+        updatePaginationControls();
+      } catch (err) {
+        console.error('取得產品失敗：', err);
+        grid.innerHTML = '<p class="col-span-full text-center text-rose-500">無法載入產品清單</p>';
+      }
+    }
+
+    function renderProducts(products) {
+      const grid = document.getElementById('productGrid');
+      if (products.length === 0) {
+        grid.innerHTML = '<p class="col-span-full text-center text-slate-500">暫無商品記錄</p>';
+        return;
+      }
+
+      grid.innerHTML = products.map(p => {
+        const pId = p.id ?? p.product_id;
+        const pCategory = p.category || p.product_category || '-';
+        const pStock = p.stock ?? p.stock_quantity ?? 0;
+        const fallbackImg = `https://picsum.photos/seed/product_${pId || Math.random()}/300/200`;
+        const imgSrc = (p.image_url && p.image_url.trim() !== '') ? p.image_url : fallbackImg;
+        const pName = p.name || p.product_name || '未命名';
+        const pPrice = p.price ?? p.retail_price ?? 0;
+        const pStatus = p.status || '上架';
+        const pDesc = p.description || '';
+
+        let actionsHtml = '';
+        if (adminScopes.includes('products')) {
+          actionsHtml = `
+            <div class="mt-4 flex gap-2">
+              <button type="button" class="flex-1 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-bold text-white hover:bg-indigo-700 transition" onclick='editProduct(${JSON.stringify(p)})'>編輯</button>
+              <button type="button" class="flex-1 rounded-lg bg-rose-500 px-3 py-2 text-xs font-bold text-white hover:bg-rose-600 transition" onclick='deleteProduct(${JSON.stringify(p)})'>刪除</button>
+            </div>
+          `;
+        }
+
+        return `
+          <div class="flex flex-col overflow-hidden rounded-xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900 shadow-sm">
+            <div class="relative h-40 w-full bg-slate-100 dark:bg-slate-800">
+              <img src="${imgSrc}" alt="${pName}" class="h-full w-full object-cover" onerror="this.src='${fallbackImg}'">
+              <span class="absolute top-2 right-2 rounded-full px-2 py-0.5 text-[10px] font-bold ${pStatus === '上架' ? 'bg-emerald-500 text-white' : 'bg-slate-500 text-white'}">${pStatus}</span>
+            </div>
+            <div class="flex flex-1 flex-col justify-between p-4">
+              <div>
+                <h3 class="font-bold text-slate-900 dark:text-white">${pName}</h3>
+                <div class="mt-1 flex flex-wrap items-center gap-1.5">
+                  <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">分類：${pCategory}</span>
+                  <span class="rounded-md bg-slate-100 px-2 py-0.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">存貨：${pStock}</span>
+                </div>
+                <p class="mt-2 font-black text-indigo-600 dark:text-indigo-400">HK$ ${pPrice}</p>
+                ${pDesc ? `<p class="mt-1.5 text-xs text-slate-500 dark:text-slate-400 line-clamp-2">${pDesc}</p>` : ''}
+                <div class="mt-2">
+                  ${renderBatchSummary(p.best_before_summary)}
+                </div>
+              </div>
+              ${actionsHtml}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function updatePaginationControls() {
+      const maxPage = Math.ceil(totalCount / limit) || 1;
+      document.getElementById('pageIndicator').textContent = `第 ${currentPage} 頁 / 共 ${maxPage} 頁`;
+      document.getElementById('prevBtn').disabled = currentPage <= 1;
+      document.getElementById('nextBtn').disabled = currentPage >= maxPage;
+    }
+
+    function changePage(direction) {
+      currentPage += direction;
+      fetchProducts();
+    }
+
+    function editProduct(product) {
+      editingProductId = product.id ?? product.product_id;
+      document.getElementById('name').value = product.name || product.product_name || '';
+      document.getElementById('price').value = product.price ?? product.retail_price ?? '';
+      
+      const cat = product.category || product.product_category || '';
+      if (cat) {
+        allCategories.add(cat);
+        updateCategoryDropdowns([]);
+      }
+      document.getElementById('category').value = cat;
+      document.getElementById('stock').value = product.stock ?? product.stock_quantity ?? 0;
+      document.getElementById('status').value = product.status || '上架';
+      document.getElementById('imageUrl').value = product.image_url || '';
+      document.getElementById('description').value = product.description || '';
+      
+      // 自動填入有效期限（若有資料）
+      const bestBeforeInput = document.getElementById('bestBeforeDate');
+      if (product.best_before_summary && product.best_before_summary.best_before_dates && product.best_before_summary.best_before_dates.length > 0) {
+        bestBeforeInput.value = product.best_before_summary.best_before_dates[0];
+      } else {
+        bestBeforeInput.value = '';
+      }
+
+      document.getElementById('formTitle').textContent = '編輯商品';
+      document.getElementById('productSubmitButton').textContent = '儲存修改';
+      document.getElementById('cancelEditButton').hidden = false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function resetProductForm() {
+      editingProductId = null;
+      document.getElementById('productForm').reset();
+      document.getElementById('formTitle').textContent = '新增商品';
+      document.getElementById('productSubmitButton').textContent = '確認新增';
+      document.getElementById('cancelEditButton').hidden = true;
+      document.getElementById('message').textContent = '';
+    }
+
+    function renderBatchSummary(summary) {
+      if (!summary || typeof summary !== 'object') {
+        return '<span class="text-xs text-slate-400">暫無效期資料</span>';
+      }
+      if (summary.has_legacy_unknown_date) {
+        return '<span class="text-xs text-slate-500">舊庫存（日期未知）</span>';
+      }
+      if (summary.has_undated_batch) {
+        return '<span class="text-xs text-slate-500">無最佳使用期限</span>';
+      }
+      if (summary.best_before_dates && Array.isArray(summary.best_before_dates) && summary.best_before_dates.length > 0) {
+        const dates = [...summary.best_before_dates].sort();
+        return `<span class="text-xs text-indigo-600">有效期限：${dates.join('、')}</span>`;
+      }
+      return '<span class="text-xs text-slate-400">暫無效期資料</span>';
+    }
+
+    async function deleteProduct(product) {
+      const pId = product.id ?? product.product_id;
+      const pName = product.name || product.product_name || '此商品';
+      if (!confirm(`確定刪除「${pName}」嗎？`)) return;
+
+      try {
+        const res = await adminFetch(`/api/products/${encodeURIComponent(pId)}`, { method: 'DELETE' });
+        const result = await readApiResponse(res, '刪除產品');
+        if (result.success) {
+          document.getElementById('message').className = 'text-sm font-semibold text-emerald-600';
+          document.getElementById('message').textContent = '產品刪除成功';
+          fetchProducts();
+        }
+      } catch (err) {
+        document.getElementById('message').className = 'text-sm font-semibold text-rose-600';
+        document.getElementById('message').textContent = '刪除失敗：' + err.message;
+      }
+    }
+
+    document.getElementById('productForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const price = parseFloat(document.getElementById('price').value);
+      const stock = parseInt(document.getElementById('stock').value, 10);
+      const category = document.getElementById('category').value;
+      const status = document.getElementById('status').value;
+      const image_url = document.getElementById('imageUrl').value.trim();
+      const description = document.getElementById('description').value.trim();
+      const best_before_date = document.getElementById('bestBeforeDate').value;
+      const msgEl = document.getElementById('message');
+
+      if (!category) {
+        msgEl.className = 'text-sm font-semibold text-rose-600';
+        msgEl.textContent = '請選擇或新增商品分類';
+        return;
+      }
+
+      try {
+        const isEditing = editingProductId !== null;
+        const url = isEditing ? `/api/products/${encodeURIComponent(editingProductId)}` : '/api/products';
+        const method = isEditing ? 'PATCH' : 'POST';
+        
+        const payload = { name, price, stock, category, status, image_url, description };
+        if (best_before_date) {
+          payload.best_before_date = best_before_date;
+        }
+
+        const res = await adminFetch(url, {
+          method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const result = await readApiResponse(res, isEditing ? '更新產品' : '新增產品');
+
+        if (!result.success) throw new Error(result.message);
+
+        msgEl.className = 'text-sm font-semibold text-emerald-600';
+        msgEl.textContent = isEditing ? '產品修改成功！' : '產品新增成功！';
+        resetProductForm();
+        fetchProducts();
+      } catch (err) {
+        msgEl.className = 'text-sm font-semibold text-rose-600';
+        msgEl.textContent = err.message || '操作失敗';
+      }
+    });
+
+    document.getElementById('cancelEditButton').addEventListener('click', resetProductForm);
+    document.getElementById('adminLoginForm').addEventListener('submit', loginAdmin);
+    document.getElementById('logoutButton').addEventListener('click', logoutAdmin);
+
+    initializeTheme();
+    checkAdminSession();
+  </script>
+</body>
+</html>
