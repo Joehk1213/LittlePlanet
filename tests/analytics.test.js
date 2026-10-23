@@ -146,6 +146,63 @@ test('analytics summary selects product names from the existing products.name co
   });
 });
 
+test('profit analytics reports revenue, per-product profit, margin and cost coverage', async () => {
+  const router = createRouter(createTableClient({
+    orders: [
+      { order_id: 'profit-1', order_date: '2026-09-10T10:00:00+08:00', total_amount: 100 },
+      { order_id: 'profit-2', order_date: '2026-09-11T10:00:00+08:00', total_amount: 50 }
+    ],
+    order_items: [
+      { order_id: 'profit-1', product_id: 'p1', quantity: 2, unit_price: 50 },
+      { order_id: 'profit-2', product_id: 'p2', quantity: 1, unit_price: 50 }
+    ],
+    products: [
+      { id: 'p1', name: '星球手帳', cost_price: 20 },
+      { id: 'p2', name: '月球貼紙', cost_price: 10 }
+    ]
+  }));
+  await withServer(router, async baseUrl => {
+    const response = await request(
+      baseUrl,
+      '/api/analytics/profit?start_date=2026-09-01&end_date=2026-09-30&limit=5'
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.data.total_revenue, 150);
+    assert.equal(response.body.data.total_cost, 50);
+    assert.equal(response.body.data.gross_profit, 100);
+    assert.equal(response.body.data.gross_margin_percentage, 66.67);
+    assert.equal(response.body.data.cost_coverage_percentage, 100);
+    assert.equal(response.body.data.top_products[0].product_id, 'p1');
+    assert.equal(response.body.data.top_products[0].net_profit, 60);
+  });
+});
+
+test('profit analytics withholds gross margin when a product cost is unknown', async () => {
+  const router = createRouter(createTableClient({
+    orders: [
+      { order_id: 'unknown-cost-1', order_date: '2026-09-10T10:00:00+08:00', total_amount: 80 }
+    ],
+    order_items: [
+      { order_id: 'unknown-cost-1', product_id: 'p1', quantity: 2, unit_price: 40 }
+    ],
+    products: [{ id: 'p1', name: '尚未入成本商品', cost_price: null }]
+  }));
+  await withServer(router, async baseUrl => {
+    const response = await request(
+      baseUrl,
+      '/api/analytics/profit?start_date=2026-09-01&end_date=2026-09-30'
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.body.data.total_cost, 0);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.equal(response.body.data.gross_margin_percentage, null);
+    assert.equal(response.body.data.cost_data_complete, false);
+    assert.equal(response.body.data.cost_coverage_percentage, 0);
+    assert.equal(response.body.data.top_products[0].net_profit, null);
+  });
+});
+
 test('table fallback reports live orders and UUID-keyed product totals', async () => {
   const router = createRouter(createTableClient({
     orders: [

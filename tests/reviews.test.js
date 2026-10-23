@@ -40,7 +40,12 @@ async function withServer(supabase, run, options = {}) {
 
 function createSupabase(options = {}) {
   const tables = {
-    orders: [{ order_id: ORDER_ID, customer_phone: PHONE, order_date: '2026-10-04T00:00:00Z' }],
+    orders: [{
+      order_id: ORDER_ID,
+      order_number: 'LP-20261004-A1B2C3D4',
+      customer_phone: PHONE,
+      order_date: '2026-10-04T00:00:00Z'
+    }],
     order_items: [{ item_id: 1, order_id: ORDER_ID, product_id: Number(PRODUCT_ID) }],
     product_reviews: [{
       review_id: REVIEW_ID,
@@ -58,6 +63,7 @@ function createSupabase(options = {}) {
       this.filters = [];
       this.operation = 'select';
       this.insertValues = null;
+      this.updateValues = null;
     }
 
     select(fields, selectionOptions) {
@@ -95,6 +101,12 @@ function createSupabase(options = {}) {
       return this;
     }
 
+    update(value) {
+      this.operation = 'update';
+      this.updateValues = value;
+      return this;
+    }
+
     delete() {
       this.operation = 'delete';
       return this;
@@ -129,6 +141,10 @@ function createSupabase(options = {}) {
         return { data: [inserted], count: null, error: null };
       }
       const matched = rows.filter(row => this.filters.every(filter => filter(row)));
+      if (this.operation === 'update') {
+        matched.forEach(row => Object.assign(row, this.updateValues));
+        return { data: matched, count: null, error: null };
+      }
       if (this.operation === 'delete') {
         tables[this.table] = rows.filter(row => !matched.includes(row));
       }
@@ -151,6 +167,16 @@ function createSupabase(options = {}) {
         return { data: options.purchased !== false, error: options.purchaseError || null };
       }
       if (options.rpcError) return { data: null, error: options.rpcError };
+      if (name === 'get_product_review_summaries') {
+        return {
+          data: [{
+            product_id: args.p_product_ids[0],
+            average_rating: 4.5,
+            review_count: 2
+          }],
+          error: null
+        };
+      }
       assert.equal(name, 'get_product_reviews');
       assert.equal(args.p_product_id, PRODUCT_ID);
       return {
@@ -190,6 +216,57 @@ test('public product review endpoint returns rating summary without customer pho
     assert.equal(body.data.review_count, 1);
     assert.equal(body.data.reviews[0].comment, '很喜歡！');
     assert.equal(Object.hasOwn(body.data.reviews[0], 'customer_phone'), false);
+  });
+});
+
+test('public rating summary endpoint validates IDs and returns grouped approved-review data', async () => {
+  await withServer(createSupabase(), async baseUrl => {
+    const response = await fetch(`${baseUrl}/api/reviews/summary?product_ids=17`);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.deepEqual(body.data.summaries['17'], {
+      average_rating: 4.5,
+      review_count: 2
+    });
+    const invalid = await fetch(`${baseUrl}/api/reviews/summary?product_ids=bad`);
+    assert.equal(invalid.status, 400);
+  });
+});
+
+test('order tracking review requires matching phone, official order number and purchased product', async () => {
+  const supabase = createSupabase();
+  await withServer(supabase, async baseUrl => {
+    const headers = { Origin: baseUrl, 'Content-Type': 'application/json' };
+    const response = await fetch(`${baseUrl}/api/reviews`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        product_id: PRODUCT_ID,
+        customer_phone: PHONE,
+        order_number: 'LP-20261004-A1B2C3D4',
+        customer_name: 'Joe',
+        rating: 5,
+        comment: '非常喜歡'
+      })
+    });
+    const body = await response.json();
+    assert.equal(response.status, 201);
+    assert.equal(body.data.review.status, 'pending');
+    assert.equal(body.data.review.customer_name, 'Joe');
+    assert.equal(supabase.tables.product_reviews.at(-1).order_id, ORDER_ID);
+    assert.equal(supabase.tables.product_reviews.at(-1).customer_phone, PHONE);
+
+    for (const invalidBody of [
+      { product_id: PRODUCT_ID, customer_phone: '85200000000', order_number: 'LP-20261004-A1B2C3D4', rating: 5, comment: '好用' },
+      { product_id: PRODUCT_ID, customer_phone: PHONE, order_number: 'LP-WRONG', rating: 5, comment: '好用' }
+    ]) {
+      const invalid = await fetch(`${baseUrl}/api/reviews`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(invalidBody)
+      });
+      assert.equal(invalid.status, 404);
+    }
   });
 });
 
@@ -256,7 +333,8 @@ test('review submission requires proof the member purchased that product', async
 });
 
 test('admin review list and delete require reviews scope authorization', async () => {
-  await withServer(createSupabase(), async baseUrl => {
+  const supabase = createSupabase();
+  await withServer(supabase, async baseUrl => {
     const unauthorized = await fetch(`${baseUrl}/api/admin/reviews`);
     assert.equal(unauthorized.status, 401);
 
@@ -267,6 +345,19 @@ test('admin review list and delete require reviews scope authorization', async (
     assert.equal(listed.status, 200);
     assert.equal(listBody.data.reviews.length, 1);
     assert.equal(listBody.data.reviews[0].customer_phone, PHONE);
+
+    const moderated = await fetch(`${baseUrl}/api/admin/reviews/${REVIEW_ID}/status`, {
+      method: 'PATCH',
+      headers: {
+        Origin: baseUrl,
+        'x-reviews-session': 'valid',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'approved' })
+    });
+    assert.equal(moderated.status, 200);
+    assert.equal((await moderated.json()).data.status, 'approved');
+    assert.equal(supabase.tables.product_reviews[0].status, 'approved');
 
     const deleted = await fetch(`${baseUrl}/api/admin/reviews/${REVIEW_ID}`, {
       method: 'DELETE',

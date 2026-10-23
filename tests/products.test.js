@@ -59,6 +59,10 @@ function createProductsQuery(rows) {
       filters.push(row => row[column] === value);
       return query;
     },
+    in(column, values) {
+      filters.push(row => values.map(String).includes(String(row[column])));
+      return query;
+    },
     or(expression) {
       const match = expression.match(/^name\.ilike\.\*(.*)\*,description\.ilike\.\*(.*)\*$/);
       assert.ok(match);
@@ -101,7 +105,7 @@ function createProductsQuery(rows) {
 
 test('products endpoint reads stock and retains category and status filtering', async () => {
   const rows = [
-    { id: '4c260c94-2cb3-4de4-a71e-5b0f5cf53d87', name: '星球筆記本', category: '文具', status: '已到貨', stock: 12, created_at: '2026-06-01T00:00:00.000Z' },
+    { id: '4c260c94-2cb3-4de4-a71e-5b0f5cf53d87', name: '星球筆記本', category: '文具', status: '已到貨', stock: 12, cost_price: 8.5, created_at: '2026-06-01T00:00:00.000Z' },
     { id: '4c260c94-2cb3-4de4-a71e-5b0f5cf53d88', name: '星球公仔', category: '公仔', status: '已到貨', stock: 4 }
   ];
   const router = createRouter({
@@ -115,6 +119,7 @@ test('products endpoint reads stock and retains category and status filtering', 
     const all = await request(baseUrl, '/api/products');
     assert.equal(all.status, 200);
     assert.equal(all.body.data.products[0].stock, 12);
+    assert.equal(Object.hasOwn(all.body.data.products[0], 'cost_price'), false);
     assert.equal(all.body.data.products[0].created_at, '2026-06-01T00:00:00.000Z');
     assert.equal(all.body.data.total_count, 2);
 
@@ -122,6 +127,118 @@ test('products endpoint reads stock and retains category and status filtering', 
     assert.equal(filtered.status, 200);
     assert.equal(filtered.body.data.products.length, 1);
     assert.equal(filtered.body.data.products[0].stock, 12);
+
+    const adminList = await request(baseUrl, '/api/products', { token: ADMIN_TOKEN });
+    assert.equal(adminList.status, 200);
+    assert.equal(adminList.body.data.products[0].cost_price, 8.5);
+  });
+});
+
+test('products endpoint returns requested product IDs and public tier pricing fields', async () => {
+  const rows = [
+    {
+      id: 51,
+      name: '團購商品',
+      price: 90,
+      stock: 20,
+      tier_prices: [{ min_qty: 3, price: 78 }],
+      preorder_deadline: '2026-11-01T12:00:00.000Z'
+    },
+    { id: 52, name: '其他商品', price: 20, stock: 3 }
+  ];
+  const router = createRouter({
+    from: () => createProductsQuery(rows)
+  });
+  await withServer(router, async baseUrl => {
+    const response = await request(baseUrl, '/api/products?ids=51');
+    assert.equal(response.status, 200);
+    assert.deepEqual(response.body.data.products, [rows[0]]);
+    const invalid = await request(baseUrl, '/api/products?ids=51,999&search=invalid');
+    assert.equal(invalid.status, 400);
+  });
+});
+
+test('product administration rejects invalid cost prices', async () => {
+  const router = createRouter({
+    from() {
+      assert.fail('invalid cost input must be rejected before accessing Supabase');
+    }
+  });
+  await withServer(router, async baseUrl => {
+    for (const costPrice of [-0.01, 10.123, '10.00']) {
+      const response = await request(baseUrl, '/api/products', {
+        method: 'POST',
+        token: ADMIN_TOKEN,
+        body: {
+          name: '成本驗證商品',
+          price: 20,
+          cost_price: costPrice
+        }
+      });
+      assert.equal(response.status, 400);
+      assert.equal(response.body.success, false);
+      assert.match(response.body.message, /成本價/);
+    }
+  });
+});
+
+test('product image upload requires admin access and validates bytes before Storage upload', async () => {
+  const uploads = [];
+  const supabase = {
+    storage: {
+      from(bucket) {
+        assert.equal(bucket, 'product-images');
+        return {
+          async upload(path, bytes, options) {
+            uploads.push({ path, bytes, options });
+            return { error: null };
+          },
+          getPublicUrl(path) {
+            return { data: { publicUrl: `https://storage.example/product-images/${path}` } };
+          }
+        };
+      }
+    }
+  };
+  const router = createRouter(supabase);
+  await withServer(router, async baseUrl => {
+    const png = Buffer.from([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x00
+    ]);
+    const unauthorized = await fetch(`${baseUrl}/api/products/images`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'image/png' },
+      body: png
+    });
+    assert.equal(unauthorized.status, 401);
+
+    const invalid = await fetch(`${baseUrl}/api/products/images`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
+        'Content-Type': 'image/png'
+      },
+      body: Buffer.from('not a png')
+    });
+    assert.equal(invalid.status, 400);
+    assert.equal(uploads.length, 0);
+
+    const uploaded = await fetch(`${baseUrl}/api/products/images`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
+        'Content-Type': 'image/png'
+      },
+      body: png
+    });
+    const result = await uploaded.json();
+    assert.equal(uploaded.status, 201);
+    assert.equal(result.success, true);
+    assert.match(result.data.image_url, /^https:\/\/storage\.example\/product-images\//);
+    assert.equal(uploads.length, 1);
+    assert.match(uploads[0].path, /^[0-9a-f-]+\.png$/);
+    assert.equal(uploads[0].options.contentType, 'image/png');
   });
 });
 
@@ -338,6 +455,110 @@ test('products endpoint rejects invalid search, sort, and pagination parameters 
   assert.equal(calls, 0);
 });
 
+test('inventory alerts require admin access and use validated restock thresholds', async () => {
+  const calls = [];
+  const router = createRouter({
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      return {
+        data: [{
+          product_id: '12',
+          product_name: '星球手帳',
+          stock: 2,
+          safety_stock: 3,
+          suggested_restock_quantity: 8,
+          last_order_date: null,
+          days_since_last_order: 45,
+          is_restock_needed: true,
+          is_slow_moving: true
+        }],
+        error: null
+      };
+    }
+  });
+
+  await withServer(router, async baseUrl => {
+    const denied = await request(baseUrl, '/api/products/inventory-alerts');
+    assert.equal(denied.status, 401);
+
+    const invalid = await request(baseUrl, '/api/products/inventory-alerts?safety_stock=4&target_stock=3', {
+      token: ADMIN_TOKEN
+    });
+    assert.equal(invalid.status, 400);
+
+    const response = await request(baseUrl, '/api/products/inventory-alerts', {
+      token: ADMIN_TOKEN
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.data.alerts[0].suggested_restock_quantity, 8);
+    assert.deepEqual(calls, [{
+      name: 'get_product_inventory_alerts',
+      args: {
+        p_safety_stock: 3,
+        p_target_stock: 10,
+        p_slow_days: 30
+      }
+    }]);
+  });
+});
+
+test('inventory adjustments validate reasons and persist a transactional audit RPC', async () => {
+  const calls = [];
+  const router = createRouter({
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      return {
+        data: {
+          adjustment_id: 42,
+          product_id: 12,
+          quantity_before: 4,
+          quantity_delta: -1,
+          quantity_after: 3,
+          reason: '損毀',
+          note: '包裝破損',
+          created_at: '2026-10-22T10:00:00.000Z'
+        },
+        error: null
+      };
+    }
+  });
+
+  await withServer(router, async baseUrl => {
+    const unauthorized = await request(baseUrl, '/api/products/12/adjustments', {
+      method: 'POST',
+      body: { quantity_delta: -1, reason: '損毀' }
+    });
+    assert.equal(unauthorized.status, 401);
+
+    const invalid = await request(baseUrl, '/api/products/12/adjustments', {
+      method: 'POST',
+      token: ADMIN_TOKEN,
+      body: { quantity_delta: -1, reason: '原因不明' }
+    });
+    assert.equal(invalid.status, 400);
+
+    const saved = await request(baseUrl, '/api/products/12/adjustments', {
+      method: 'POST',
+      token: ADMIN_TOKEN,
+      body: { quantity_delta: -1, reason: '損毀', note: '包裝破損' }
+    });
+    assert.equal(saved.status, 200);
+    assert.equal(saved.body.success, true);
+    assert.equal(saved.body.data.quantity_after, 3);
+    assert.deepEqual(calls, [{
+      name: 'adjust_product_inventory',
+      args: {
+        p_product_id: 12,
+        p_quantity_delta: -1,
+        p_reason: '損毀',
+        p_note: '包裝破損',
+        p_actor: 'admin'
+      }
+    }]);
+  });
+});
+
 test('product create and edit endpoints require admin access and persist validated fields', async () => {
   const operations = [];
   const savedProduct = {
@@ -392,16 +613,31 @@ test('product create and edit endpoints require admin access and persist validat
     const created = await request(baseUrl, '/api/products', {
       method: 'POST',
       token: ADMIN_TOKEN,
-      body: { name: '星球筆記本', price: 89.5 }
+      body: {
+        name: '星球筆記本',
+        price: 89.5,
+        tier_prices: [{ min_qty: 6, price: 82 }, { min_qty: 3, price: 85 }],
+        preorder_deadline: '2026-11-01T12:00:00.000Z'
+      }
     });
     assert.equal(created.status, 201);
     assert.equal(created.body.success, true);
     assert.equal(created.body.data.stock, 0);
+    assert.deepEqual(operations[0].values.tier_prices, [
+      { min_qty: 3, price: 85 },
+      { min_qty: 6, price: 82 }
+    ]);
+    assert.equal(operations[0].values.preorder_deadline, '2026-11-01T12:00:00.000Z');
 
     const updated = await request(baseUrl, `/api/products/${savedProduct.id}`, {
       method: 'PATCH',
       token: ADMIN_TOKEN,
-      body: { name: '星球筆記本（新版）', price: 99 }
+      body: {
+        name: '星球筆記本（新版）',
+        price: 99,
+        tier_prices: [{ min_qty: 3, price: 88 }],
+        preorder_deadline: null
+      }
     });
     assert.equal(updated.status, 200);
     assert.equal(updated.body.success, true);
@@ -414,13 +650,23 @@ test('product create and edit endpoints require admin access and persist validat
       values: {
         name: '星球筆記本',
         price: 89.5,
+        tier_prices: [
+          { min_qty: 3, price: 85 },
+          { min_qty: 6, price: 82 }
+        ],
+        preorder_deadline: '2026-11-01T12:00:00.000Z',
         stock: 0,
         status: '預購中'
       }
     },
     {
       operation: 'update',
-      values: { name: '星球筆記本（新版）', price: 99 },
+      values: {
+        name: '星球筆記本（新版）',
+        price: 99,
+        tier_prices: [{ min_qty: 3, price: 88 }],
+        preorder_deadline: null
+      },
       filter: { column: 'id', value: savedProduct.id }
     }
   ]);
@@ -440,7 +686,11 @@ test('product create and edit validate input and report database errors', async 
       { name: 'Bad price', price: -1 },
       { name: 'Fractional price', price: 1.234 },
       { name: 'String price', price: '10' },
-      { name: 'Boolean price', price: true }
+      { name: 'Boolean price', price: true },
+      { name: 'Tier above base price', price: 10, tier_prices: [{ min_qty: 3, price: 11 }] },
+      { name: 'Duplicate tier quantity', price: 10, tier_prices: [{ min_qty: 3, price: 9 }, { min_qty: 3, price: 8 }] },
+      { name: 'Higher tier price rises', price: 10, tier_prices: [{ min_qty: 3, price: 8 }, { min_qty: 6, price: 9 }] },
+      { name: 'Malformed deadline', price: 10, preorder_deadline: 'not a date' }
     ]) {
       const response = await request(baseUrl, '/api/products', {
         method: 'POST',
@@ -537,73 +787,65 @@ test('product deletion requires admin authorization and returns the deleted prod
 test('stock update requires admin authorization and service role, then returns persisted stock', async () => {
   const operations = [];
   const router = createRouter({
-    from(table) {
-      assert.equal(table, 'products');
-      const operation = {};
-      const query = {
-        update(values) {
-          operation.values = values;
-          operations.push(operation);
-          return query;
+    rpc: async (name, args) => {
+      operations.push({ name, args });
+      return {
+        data: {
+          adjustment_id: 1,
+          quantity_before: 12,
+          quantity_delta: 8,
+          quantity_after: 20,
+          stock: 20,
+          reason: '實體盤點差異'
         },
-        eq(column, value) {
-          operation.filter = { column, value };
-          return query;
-        },
-        select(fields) {
-          operation.fields = fields;
-          return query;
-        },
-        maybeSingle: async () => ({
-          data: { id: operation.filter.value, name: '星球筆記本', category: 'stationery', stock: operation.values.stock },
-          error: null
-        })
+        error: null
       };
-      return query;
     }
   });
 
   await withServer(router, async baseUrl => {
-    const path = '/api/products/4c260c94-2cb3-4de4-a71e-5b0f5cf53d87/stock';
+    const path = '/api/products/7/stock';
     const unauthorized = await request(baseUrl, path, {
       method: 'PATCH',
-      body: { stock: 20 }
+      body: { stock: 20, reason: '實體盤點差異' }
     });
     assert.equal(unauthorized.status, 401);
 
     const updated = await request(baseUrl, path, {
       method: 'PATCH',
       token: ADMIN_TOKEN,
-      body: { stock: 20, category: '不應傳入存貨更新' }
+      body: { stock: 20, reason: '實體盤點差異' }
     });
     assert.equal(updated.status, 200);
     assert.equal(updated.body.data.stock, 20);
-    assert.equal(updated.body.data.category, 'stationery');
+    assert.equal(updated.body.data.adjustment_id, 1);
   });
 
   assert.deepEqual(operations, [{
-    values: { stock: 20 },
-    filter: { column: 'id', value: '4c260c94-2cb3-4de4-a71e-5b0f5cf53d87' },
-    fields: '*'
+    name: 'set_product_inventory',
+    args: {
+      p_product_id: 7,
+      p_stock: 20,
+      p_reason: '實體盤點差異',
+      p_note: null,
+      p_actor: 'admin'
+    }
   }]);
 });
 
 test('stock update validates product ID and stock without calling Supabase', async () => {
   let writes = 0;
   const router = createRouter({
-    from() {
-      return {
-        update() {
-          writes += 1;
-          throw new Error('Invalid stock input must not write to Supabase.');
-        }
-      };
+    rpc() {
+      writes += 1;
+      throw new Error('Invalid stock input must not write to Supabase.');
     }
   });
 
   await withServer(router, async baseUrl => {
     for (const [path, stock] of [
       ['/api/products/not-a-product-id/stock', 5],
+      ['/api/products/9007199254740992/stock', 5],
       ['/api/products/7/stock', -1],
       ['/api/products/7/stock', 1.5],
       ['/api/products/7/stock', '01'],
@@ -613,10 +855,16 @@ test('stock update validates product ID and stock without calling Supabase', asy
       const invalid = await request(baseUrl, path, {
         method: 'PATCH',
         token: ADMIN_TOKEN,
-        body: { stock }
+        body: { stock, reason: '損毀' }
       });
       assert.equal(invalid.status, 400);
     }
+    const missingReason = await request(baseUrl, '/api/products/7/stock', {
+      method: 'PATCH',
+      token: ADMIN_TOKEN,
+      body: { stock: 5 }
+    });
+    assert.equal(missingReason.status, 400);
   });
 
   assert.equal(writes, 0);
@@ -628,21 +876,13 @@ test('stock update surfaces missing migration, missing product and unexpected Su
     [{ code: 'XX000' }, 500]
   ]) {
     const router = createRouter({
-      from: () => ({
-        update: () => ({
-          eq: () => ({
-            select: () => ({
-              maybeSingle: async () => ({ data: null, error })
-            })
-          })
-        })
-      })
+      rpc: async () => ({ data: null, error })
     });
     await withServer(router, async baseUrl => {
       const response = await request(
         baseUrl,
         '/api/products/7/stock',
-        { method: 'PATCH', token: ADMIN_TOKEN, body: { stock: 3 } }
+        { method: 'PATCH', token: ADMIN_TOKEN, body: { stock: 3, reason: '損毀' } }
       );
       assert.equal(response.status, expectedStatus);
       assert.equal(response.body.success, false);
@@ -650,21 +890,13 @@ test('stock update surfaces missing migration, missing product and unexpected Su
   }
 
   const missingProductRouter = createRouter({
-    from: () => ({
-      update: () => ({
-        eq: () => ({
-          select: () => ({
-            maybeSingle: async () => ({ data: null, error: null })
-          })
-        })
-      })
-    })
+    rpc: async () => ({ data: null, error: { code: 'P0002', message: 'missing' } })
   });
   await withServer(missingProductRouter, async baseUrl => {
     const response = await request(baseUrl, '/api/products/7/stock', {
       method: 'PATCH',
       token: ADMIN_TOKEN,
-      body: { stock: 3 }
+      body: { stock: 3, reason: '損毀' }
     });
     assert.equal(response.status, 404);
   });
@@ -672,7 +904,7 @@ test('stock update surfaces missing migration, missing product and unexpected Su
 
 test('stock update fails closed if service role or admin token is unavailable', async () => {
   const supabase = {
-    from: () => {
+    rpc: () => {
       throw new Error('Supabase must not be called while writes are disabled.');
     }
   };
@@ -684,7 +916,7 @@ test('stock update fails closed if service role or admin token is unavailable', 
   await withServer(router, async baseUrl => {
     const response = await request(baseUrl, '/api/products/7/stock', {
       method: 'PATCH',
-      body: { stock: 3 }
+      body: { stock: 3, reason: '損毀' }
     });
     assert.equal(response.status, 503);
   });

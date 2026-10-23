@@ -179,6 +179,76 @@ test('admin order list returns bounded pages with phone, items, price, date and 
   });
 });
 
+test('admin order list returns signed private payment-proof previews without exposing storage paths', async () => {
+  const supabase = {
+    from(table) {
+      const query = {
+        select() {
+          return query;
+        },
+        order() {
+          return query;
+        },
+        range() {
+          return query;
+        },
+        in() {
+          return query;
+        },
+        limit() {
+          return query;
+        },
+        then(resolve, reject) {
+          if (table === 'orders') {
+            return Promise.resolve({
+              data: [{
+                order_id: ORDER_ID,
+                order_number: 'LP-20261022-A1B2C3D4',
+                customer_phone: '85212345678',
+                payment_proof_url: `${ORDER_ID}/proof.png`,
+                payment_proof_status: 'pending'
+              }],
+              count: 1,
+              error: null
+            }).then(resolve, reject);
+          }
+          return Promise.resolve({ data: [], error: null }).then(resolve, reject);
+        }
+      };
+      return query;
+    },
+    storage: {
+      from(bucket) {
+        assert.equal(bucket, 'payment-proofs');
+        return {
+          async createSignedUrls(paths, expiresIn) {
+            assert.deepEqual(paths, [`${ORDER_ID}/proof.png`]);
+            assert.equal(expiresIn, 300);
+            return {
+              data: [{
+                path: `${ORDER_ID}/proof.png`,
+                signedUrl: 'https://storage.example/signed-proof'
+              }],
+              error: null
+            };
+          }
+        };
+      }
+    }
+  };
+
+  await withServer(supabase, async baseUrl => {
+    const response = await fetch(`${baseUrl}/api/orders/admin/orders`, {
+      headers: { 'x-admin-session': 'valid' }
+    });
+    const result = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(result.data.orders[0].payment_proof_signed_url, 'https://storage.example/signed-proof');
+    assert.equal(result.data.orders[0].payment_proof_url, undefined);
+    assert.equal(result.data.orders[0].payment_proof_status, 'pending');
+  });
+});
+
 test('admin order status update validates status and persists the allowed value', async () => {
   const supabase = createSupabase();
   await withServer(supabase, async baseUrl => {

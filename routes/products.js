@@ -8,8 +8,28 @@ const MISSING_STOCK_BATCH_TABLE_ERROR_CODES = new Set(['42P01', 'PGRST205']);
 const MAX_STOCK = 2147483647;
 const MAX_PRICE = 99999999.99;
 const MAX_IMAGE_URL_LENGTH = 2048;
+const MAX_PRODUCT_IMAGE_BYTES = 5 * 1024 * 1024;
+const PRODUCT_IMAGE_BUCKET = 'product-images';
+const INVENTORY_ADJUSTMENT_REASONS = new Set([
+  '損毀',
+  '員工自用',
+  '實體盤點差異',
+  '其他'
+]);
+const PRODUCT_IMAGE_TYPES = new Map([
+  ['image/jpeg', { extension: 'jpg', signature: buffer =>
+    buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff }],
+  ['image/png', { extension: 'png', signature: buffer =>
+    buffer.length >= 8 &&
+    buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) }],
+  ['image/webp', { extension: 'webp', signature: buffer =>
+    buffer.length >= 12 &&
+    buffer.toString('ascii', 0, 4) === 'RIFF' &&
+    buffer.toString('ascii', 8, 12) === 'WEBP' }]
+]);
 const MAX_CATEGORY_NAME_LENGTH = 100;
 const MAX_PRODUCTS_PAGE_SIZE = 100;
+const MAX_PUBLIC_PRODUCT_IDS = 100;
 const MAX_PRODUCT_SEARCH_LENGTH = 100;
 const PRODUCT_SORTS = new Map([
   ['default', ['created_at', false]],
@@ -32,6 +52,8 @@ const PUBLIC_PRODUCT_FIELDS = new Set([
   'status',
   'discount_rule',
   'cutoff_datetime',
+  'tier_prices',
+  'preorder_deadline',
   'created_at'
 ]);
 
@@ -52,6 +74,33 @@ function filterPublicProductFields(product) {
   return Object.fromEntries(
     Object.entries(product).filter(([field]) => PUBLIC_PRODUCT_FIELDS.has(field))
   );
+}
+
+function hasAdminAccess(req, options, adminToken) {
+  if (
+    typeof options.isSessionAuthorized === 'function' &&
+    (options.isSessionAuthorized(req, 'products') ||
+      options.isSessionAuthorized(req, adminToken, 'products'))
+  ) {
+    return true;
+  }
+
+  const authorization = req.get('authorization') || '';
+  const suppliedToken = authorization.startsWith('Bearer ')
+    ? authorization.slice('Bearer '.length)
+    : '';
+  const expectedBuffer = Buffer.from(adminToken);
+  const suppliedBuffer = Buffer.from(suppliedToken);
+  return expectedBuffer.length === suppliedBuffer.length &&
+    expectedBuffer.length > 0 &&
+    crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
+}
+
+function filterAdminProductFields(product) {
+  return {
+    ...filterPublicProductFields(product),
+    ...(Object.hasOwn(product, 'cost_price') ? { cost_price: product.cost_price } : {})
+  };
 }
 
 function parseStock(value) {
@@ -87,6 +136,20 @@ function validateProductFields(body) {
     return { error: '商品價格必須是最多兩位小數的非負數。' };
   }
 
+  if (Object.hasOwn(body, 'cost_price')) {
+    const costPrice = body.cost_price;
+    if (
+      costPrice !== null &&
+      (typeof costPrice !== 'number' ||
+        !Number.isFinite(costPrice) ||
+        costPrice < 0 ||
+        costPrice > MAX_PRICE ||
+        Math.abs(costPrice * 100 - Math.round(costPrice * 100)) > 1e-8)
+    ) {
+      return { error: '成本價必須是留空或最多兩位小數的非負數。' };
+    }
+  }
+
   let stock = undefined;
   if (Object.hasOwn(body, 'stock')) {
     stock = parseStock(body.stock);
@@ -99,6 +162,7 @@ function validateProductFields(body) {
   const values = {
     name: body.name.trim(),
     price,
+    ...(Object.hasOwn(body, 'cost_price') ? { cost_price: body.cost_price } : {}),
     ...(stock !== undefined ? { stock } : {})
   };
 
@@ -149,6 +213,62 @@ function validateProductFields(body) {
     }
   }
 
+  if (Object.hasOwn(body, 'tier_prices')) {
+    let tierPrices = body.tier_prices;
+    if (typeof tierPrices === 'string') {
+      try {
+        tierPrices = JSON.parse(tierPrices);
+      } catch (error) {
+        return { error: '階梯價必須是有效 JSON 陣列。' };
+      }
+    }
+    if (!Array.isArray(tierPrices) || tierPrices.length > 20) {
+      return { error: '階梯價必須是最多 20 項的陣列。' };
+    }
+    const normalizedTiers = [];
+    const minimumQuantities = new Set();
+    for (const tier of tierPrices) {
+      if (
+        !tier ||
+        typeof tier !== 'object' ||
+        Array.isArray(tier) ||
+        !Number.isSafeInteger(tier.min_qty) ||
+        tier.min_qty < 2 ||
+        tier.min_qty > 1000 ||
+        minimumQuantities.has(tier.min_qty) ||
+        typeof tier.price !== 'number' ||
+        !Number.isFinite(tier.price) ||
+        tier.price < 0 ||
+        tier.price > price ||
+        Math.abs(tier.price * 100 - Math.round(tier.price * 100)) > 1e-8
+      ) {
+        return { error: '每個階梯價須有不重複的 2 至 1000 件門檻，以及不高於原價的兩位小數單價。' };
+      }
+      minimumQuantities.add(tier.min_qty);
+      normalizedTiers.push({ min_qty: tier.min_qty, price: tier.price });
+    }
+    normalizedTiers.sort((left, right) => left.min_qty - right.min_qty);
+    let previousTierPrice = price;
+    for (const tier of normalizedTiers) {
+      if (tier.price > previousTierPrice) {
+        return { error: '購買門檻提高時，階梯單價不可高於較低門檻的單價。' };
+      }
+      previousTierPrice = tier.price;
+    }
+    values.tier_prices = normalizedTiers;
+  }
+
+  if (Object.hasOwn(body, 'preorder_deadline')) {
+    const rawDeadline = body.preorder_deadline;
+    if (rawDeadline === null || rawDeadline === '') {
+      values.preorder_deadline = null;
+    } else if (typeof rawDeadline !== 'string' || !Number.isFinite(Date.parse(rawDeadline))) {
+      return { error: '預購截單時間格式無效。' };
+    } else {
+      values.preorder_deadline = new Date(rawDeadline).toISOString();
+    }
+  }
+
   if (Object.hasOwn(body, 'best_before_date')) {
     let rawDate = body.best_before_date ? String(body.best_before_date).trim() : null;
     if (rawDate) {
@@ -186,20 +306,7 @@ function createProductsRouter(supabase, options = {}) {
       return false;
     }
 
-    if (typeof options.isSessionAuthorized === 'function' &&
-        (options.isSessionAuthorized(req, 'products') ||
-         options.isSessionAuthorized(req, adminToken, 'products'))) {
-      return true;
-    }
-
-    const authorization = req.get('authorization') || '';
-    const suppliedToken = authorization.startsWith('Bearer ')
-      ? authorization.slice('Bearer '.length)
-      : '';
-    const expectedBuffer = Buffer.from(adminToken);
-    const suppliedBuffer = Buffer.from(suppliedToken);
-    if (expectedBuffer.length === suppliedBuffer.length &&
-        crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)) {
+    if (hasAdminAccess(req, options, adminToken)) {
       return true;
     }
 
@@ -218,6 +325,91 @@ function createProductsRouter(supabase, options = {}) {
       message: '產品分類資料表尚未建立，請先執行產品分類 migration。'
     });
   }
+
+  router.post(
+    '/images',
+    express.raw({
+      type: [...PRODUCT_IMAGE_TYPES.keys()],
+      limit: MAX_PRODUCT_IMAGE_BYTES
+    }),
+    async (req, res) => {
+      try {
+        if (!requireAdmin(req, res)) {
+          return;
+        }
+        if (!stockWriteEnabled) {
+          return res.status(503).json({
+            success: false,
+            data: null,
+            message: '商品圖片上傳需要設定 SUPABASE_SERVICE_ROLE_KEY。'
+          });
+        }
+
+        const contentType = (req.get('content-type') || '').split(';', 1)[0].trim().toLowerCase();
+        const imageType = PRODUCT_IMAGE_TYPES.get(contentType);
+        const imageBuffer = req.body;
+        if (
+          !imageType ||
+          !Buffer.isBuffer(imageBuffer) ||
+          imageBuffer.length < 1 ||
+          imageBuffer.length > MAX_PRODUCT_IMAGE_BYTES ||
+          !imageType.signature(imageBuffer)
+        ) {
+          return res.status(400).json({
+            success: false,
+            data: null,
+            message: '圖片格式或內容無效，請上傳 JPG、PNG 或 WebP（最大 5MB）。'
+          });
+        }
+
+        const objectPath = `${crypto.randomUUID()}.${imageType.extension}`;
+        const { error } = await supabase.storage
+          .from(PRODUCT_IMAGE_BUCKET)
+          .upload(objectPath, imageBuffer, {
+            cacheControl: '31536000',
+            contentType,
+            upsert: false
+          });
+        if (error) {
+          console.error('上傳商品圖片至 Supabase Storage 失敗：', error);
+          return res.status(
+            error.statusCode === '404' || error.statusCode === 404 ? 503 : 500
+          ).json({
+            success: false,
+            data: null,
+            message: error.statusCode === '404' || error.statusCode === 404
+              ? '商品圖片 Storage bucket 尚未建立，請先套用圖片 Storage migration。'
+              : '商品圖片上傳失敗，請稍後再試。'
+          });
+        }
+
+        const { data } = supabase.storage
+          .from(PRODUCT_IMAGE_BUCKET)
+          .getPublicUrl(objectPath);
+        if (!data || typeof data.publicUrl !== 'string' || !data.publicUrl) {
+          console.error('Supabase Storage 未回傳商品圖片公開網址。');
+          return res.status(500).json({
+            success: false,
+            data: null,
+            message: '商品圖片網址建立失敗。'
+          });
+        }
+
+        return res.status(201).json({
+          success: true,
+          data: { image_url: data.publicUrl },
+          message: '商品圖片上傳成功。'
+        });
+      } catch (error) {
+        console.error('處理商品圖片上傳時發生未預期錯誤：', error);
+        return res.status(500).json({
+          success: false,
+          data: null,
+          message: '商品圖片上傳時發生錯誤，請稍後再試。'
+        });
+      }
+    }
+  );
 
   async function validateCategoryExists(category, res, existingProductId) {
     const { data, error } = await supabase
@@ -435,6 +627,11 @@ function createProductsRouter(supabase, options = {}) {
     const category = req.query.category;
     const status = req.query.status;
     const includeBestBeforeDates = req.query.include_best_before_dates === 'true';
+    const requestedIds = req.query.ids === undefined
+      ? null
+      : typeof req.query.ids === 'string'
+        ? req.query.ids.split(',').map(id => id.trim())
+        : null;
     if (
       parsedLimit === null ||
       parsedOffset === null ||
@@ -449,6 +646,16 @@ function createProductsRouter(supabase, options = {}) {
       )) ||
       (category !== undefined && typeof category !== 'string') ||
       (status !== undefined && typeof status !== 'string') ||
+      (req.query.ids !== undefined && (
+        requestedIds === null ||
+        requestedIds.length < 1 ||
+        requestedIds.length > MAX_PUBLIC_PRODUCT_IDS ||
+        requestedIds.some(id => !isValidProductId(id)) ||
+        new Set(requestedIds).size !== requestedIds.length ||
+        search !== undefined ||
+        category !== undefined ||
+        status !== undefined
+      )) ||
       (req.query.include_best_before_dates !== undefined &&
         !['true', 'false'].includes(req.query.include_best_before_dates))
     ) {
@@ -464,7 +671,9 @@ function createProductsRouter(supabase, options = {}) {
         .from('products')
         .select('*', { count: 'exact' });
 
-      if (search !== undefined) {
+      if (requestedIds) {
+        query = query.in('id', requestedIds);
+      } else if (search !== undefined) {
         query = query.or(`name.ilike.*${search}*,description.ilike.*${search}*`);
       }
       if (category) {
@@ -551,7 +760,9 @@ function createProductsRouter(supabase, options = {}) {
         success: true,
         data: {
           products: data.map(product => {
-            const publicProduct = filterPublicProductFields(product);
+            const publicProduct = hasAdminAccess(req, options, adminToken)
+              ? filterAdminProductFields(product)
+              : filterPublicProductFields(product);
             if (includeBestBeforeDates) {
               const summary = batchSummaries.get(String(product.id));
               publicProduct.best_before_summary = {
@@ -582,6 +793,316 @@ function createProductsRouter(supabase, options = {}) {
     }
   });
 
+  router.get('/inventory-alerts', async (req, res) => {
+    try {
+      if (!requireAdmin(req, res)) {
+        return;
+      }
+      if (!stockWriteEnabled) {
+        return res.status(503).json({
+          success: false,
+          data: null,
+          message: '庫存警示需要設定 SUPABASE_SERVICE_ROLE_KEY。'
+        });
+      }
+
+      const safetyStock = parseQueryInteger(req.query.safety_stock, 0, 100000, 3);
+      const targetStock = parseQueryInteger(req.query.target_stock, 1, 100000, 10);
+      const slowDays = parseQueryInteger(req.query.slow_days, 1, 3650, 30);
+      if (
+        safetyStock === null ||
+        targetStock === null ||
+        targetStock < safetyStock ||
+        slowDays === null
+      ) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: '庫存安全線、目標庫存或滯銷天數參數無效。'
+        });
+      }
+
+      const { data, error } = await supabase.rpc('get_product_inventory_alerts', {
+        p_safety_stock: safetyStock,
+        p_target_stock: targetStock,
+        p_slow_days: slowDays
+      });
+      if (error) {
+        console.error('讀取商品庫存警示時發生 Supabase RPC 錯誤：', error);
+        if (
+          error.code === '42883' ||
+          error.code === 'PGRST202' ||
+          MISSING_COLUMN_ERROR_CODES.has(error.code)
+        ) {
+          return res.status(503).json({
+            success: false,
+            data: null,
+            message: '庫存警示資料庫 migration 尚未執行。'
+          });
+        }
+        return res.status(500).json({
+          success: false,
+          data: null,
+          message: '讀取商品庫存警示失敗，請稍後再試。'
+        });
+      }
+      if (!Array.isArray(data)) {
+        console.error('商品庫存警示 RPC 回傳格式無效：', data);
+        return res.status(500).json({
+          success: false,
+          data: null,
+          message: '商品庫存警示回傳格式無效。'
+        });
+      }
+      return res.json({
+        success: true,
+        data: {
+          alerts: data,
+          safety_stock: safetyStock,
+          target_stock: targetStock,
+          slow_days: slowDays
+        },
+        message: '商品補貨與滯銷警示已載入。'
+      });
+    } catch (error) {
+      console.error('讀取商品庫存警示時發生未預期錯誤：', error);
+      return res.status(500).json({
+        success: false,
+        data: null,
+        message: '讀取商品庫存警示時發生錯誤，請稍後再試。'
+      });
+    }
+  });
+
+  router.get('/adjustments', async (req, res) => {
+    try {
+      if (!requireAdmin(req, res)) {
+        return;
+      }
+      if (!stockWriteEnabled) {
+        return res.status(503).json({
+          success: false,
+          data: null,
+          message: '庫存調整記錄需要設定 SUPABASE_SERVICE_ROLE_KEY。'
+        });
+      }
+
+      const limit = parseQueryInteger(req.query.limit, 1, 100, 50);
+      if (limit === null) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: '庫存調整記錄 limit 必須是 1 至 100 的整數。'
+        });
+      }
+
+      const { data: adjustments, error } = await supabase
+        .from('inventory_adjustments')
+        .select('adjustment_id,product_id,quantity_before,quantity_delta,quantity_after,reason,note,actor,created_at')
+        .order('created_at', { ascending: false })
+        .order('adjustment_id', { ascending: false })
+        .limit(limit);
+      if (error) {
+        console.error('讀取庫存調整記錄時發生 Supabase 錯誤：', error);
+        if (MISSING_COLUMN_ERROR_CODES.has(error.code) ||
+            error.code === '42P01' || error.code === 'PGRST205') {
+          return res.status(503).json({
+            success: false,
+            data: null,
+            message: '庫存調整資料庫 migration 尚未執行。'
+          });
+        }
+        return res.status(500).json({
+          success: false,
+          data: null,
+          message: '讀取庫存調整記錄失敗，請稍後再試。'
+        });
+      }
+      if (!Array.isArray(adjustments)) {
+        console.error('庫存調整記錄查詢回傳格式無效：', adjustments);
+        return res.status(500).json({
+          success: false,
+          data: null,
+          message: '庫存調整記錄回傳格式無效。'
+        });
+      }
+
+      const productIds = [...new Set(adjustments.map(row => String(row.product_id)))];
+      let productNames = new Map();
+      if (productIds.length > 0) {
+        const { data: products, error: productsError } = await supabase
+          .from('products')
+          .select('id,name,product_name')
+          .in('id', productIds);
+        if (productsError) {
+          console.error('讀取庫存調整商品名稱時發生 Supabase 錯誤：', productsError);
+          return res.status(500).json({
+            success: false,
+            data: null,
+            message: '讀取庫存調整商品名稱失敗，請稍後再試。'
+          });
+        }
+        if (!Array.isArray(products)) {
+          console.error('庫存調整商品名稱查詢回傳格式無效：', products);
+          return res.status(500).json({
+            success: false,
+            data: null,
+            message: '庫存調整商品名稱回傳格式無效。'
+          });
+        }
+        productNames = new Map(products.map(product => [
+          String(product.id),
+          product.product_name || product.name || `商品 #${product.id}`
+        ]));
+      }
+
+      return res.json({
+        success: true,
+        data: {
+          adjustments: adjustments.map(adjustment => ({
+            ...adjustment,
+            product_name: productNames.get(String(adjustment.product_id)) ||
+              `商品 #${adjustment.product_id}`
+          }))
+        },
+        message: '庫存調整記錄已載入。'
+      });
+    } catch (error) {
+      console.error('讀取庫存調整記錄時發生未預期錯誤：', error);
+      return res.status(500).json({
+        success: false,
+        data: null,
+        message: '讀取庫存調整記錄時發生錯誤，請稍後再試。'
+      });
+    }
+  });
+
+  router.post('/:productId/adjustments', async (req, res) => {
+    try {
+      if (!requireAdmin(req, res)) {
+        return;
+      }
+      if (!stockWriteEnabled) {
+        return res.status(503).json({
+          success: false,
+          data: null,
+          message: '庫存調整需要設定 SUPABASE_SERVICE_ROLE_KEY 才可安全寫入。'
+        });
+      }
+      if (
+        !isValidProductRecordId(req.params.productId) ||
+        !Number.isSafeInteger(Number(req.params.productId))
+      ) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: '產品編號格式無效。'
+        });
+      }
+
+      const body = req.body;
+      const allowedFields = new Set(['quantity_delta', 'reason', 'note']);
+      if (
+        !body ||
+        typeof body !== 'object' ||
+        Array.isArray(body) ||
+        Object.keys(body).some(key => !allowedFields.has(key))
+      ) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: '庫存調整資料格式無效。'
+        });
+      }
+      if (
+        !Number.isSafeInteger(body.quantity_delta) ||
+        body.quantity_delta === 0 ||
+        Math.abs(body.quantity_delta) > 100000
+      ) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: 'quantity_delta 必須是 -100000 至 100000 之間且不等於零的整數。'
+        });
+      }
+      if (typeof body.reason !== 'string' || !INVENTORY_ADJUSTMENT_REASONS.has(body.reason)) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: '請選擇有效的庫存調整原因。'
+        });
+      }
+      const note = body.note === undefined || body.note === null ? null : body.note;
+      if (
+        note !== null &&
+        (typeof note !== 'string' || note.trim().length > 500 || /[\u0000-\u001f\u007f]/.test(note))
+      ) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: '庫存調整備註不可超過 500 個字元或包含控制字元。'
+        });
+      }
+
+      const { data, error } = await supabase.rpc('adjust_product_inventory', {
+        p_product_id: Number(req.params.productId),
+        p_quantity_delta: body.quantity_delta,
+        p_reason: body.reason,
+        p_note: note ? note.trim() : null,
+        p_actor: 'admin'
+      });
+      if (error) {
+        console.error('調整產品庫存時發生 Supabase RPC 錯誤：', error);
+        if (error.code === '42883' || error.code === 'PGRST202') {
+          return res.status(503).json({
+            success: false,
+            data: null,
+            message: '庫存調整資料庫 migration 尚未執行。'
+          });
+        }
+        if (error.code === 'P0002') {
+          return res.status(404).json({
+            success: false,
+            data: null,
+            message: '找不到指定商品。'
+          });
+        }
+        if (error.code === '22023' || error.code === '23514') {
+          return res.status(400).json({
+            success: false,
+            data: null,
+            message: error.message || '庫存調整資料不符合資料庫規則。'
+          });
+        }
+        return res.status(500).json({
+          success: false,
+          data: null,
+          message: '調整產品庫存失敗，請稍後再試。'
+        });
+      }
+      if (!data || typeof data !== 'object' || !Number.isSafeInteger(data.adjustment_id)) {
+        console.error('庫存調整 RPC 回傳格式無效：', data);
+        return res.status(500).json({
+          success: false,
+          data: null,
+          message: '庫存調整結果格式無效。'
+        });
+      }
+      return res.json({
+        success: true,
+        data,
+        message: '庫存調整已記錄。'
+      });
+    } catch (error) {
+      console.error('調整產品庫存時發生未預期錯誤：', error);
+      return res.status(500).json({
+        success: false,
+        data: null,
+        message: '調整產品庫存時發生錯誤，請稍後再試。'
+      });
+    }
+  });
+
   router.patch('/:productId/stock', async (req, res) => {
     try {
       if (!requireAdmin(req, res)) {
@@ -596,7 +1117,10 @@ function createProductsRouter(supabase, options = {}) {
         });
       }
 
-      if (!isValidProductId(req.params.productId)) {
+      if (
+        !isValidProductRecordId(req.params.productId) ||
+        !Number.isSafeInteger(Number(req.params.productId))
+      ) {
         return res.status(400).json({
           success: false,
           data: null,
@@ -605,11 +1129,16 @@ function createProductsRouter(supabase, options = {}) {
       }
 
       const body = req.body;
-      if (!body || typeof body !== 'object' || Array.isArray(body)) {
+      if (
+        !body ||
+        typeof body !== 'object' ||
+        Array.isArray(body) ||
+        Object.keys(body).some(key => !['stock', 'reason', 'note'].includes(key))
+      ) {
         return res.status(400).json({
           success: false,
           data: null,
-          message: '庫存更新資料格式無效。'
+          message: '庫存更新需提交 stock、reason 及可選 note 欄位。'
         });
       }
 
@@ -621,21 +1150,51 @@ function createProductsRouter(supabase, options = {}) {
           message: `stock 必須是 0 至 ${MAX_STOCK} 的整數。`
         });
       }
+      if (typeof body.reason !== 'string' || !INVENTORY_ADJUSTMENT_REASONS.has(body.reason)) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: '請選擇有效的庫存調整原因。'
+        });
+      }
+      const note = body.note === undefined || body.note === null ? null : body.note;
+      if (
+        note !== null &&
+        (typeof note !== 'string' || note.trim().length > 500 || /[\u0000-\u001f\u007f]/.test(note))
+      ) {
+        return res.status(400).json({
+          success: false,
+          data: null,
+          message: '庫存調整備註不可超過 500 個字元或包含控制字元。'
+        });
+      }
 
-      const { data, error } = await supabase
-        .from('products')
-        .update({ stock })
-        .eq('id', req.params.productId)
-        .select('*')
-        .maybeSingle();
+      const { data, error } = await supabase.rpc('set_product_inventory', {
+        p_product_id: Number(req.params.productId),
+        p_stock: stock,
+        p_reason: body.reason,
+        p_note: note ? note.trim() : null,
+        p_actor: 'admin'
+      });
 
       if (error) {
-        console.error('更新產品庫存時發生 Supabase 錯誤：', error);
-        if (MISSING_COLUMN_ERROR_CODES.has(error.code)) {
+        console.error('更新產品庫存時發生 Supabase RPC 錯誤：', error);
+        if (
+          error.code === '42883' ||
+          error.code === 'PGRST202' ||
+          MISSING_COLUMN_ERROR_CODES.has(error.code)
+        ) {
           return res.status(503).json({
             success: false,
             data: null,
-            message: '產品庫存欄位尚未建立，請先套用產品庫存 migration。'
+            message: '庫存調整資料庫 migration 尚未執行。'
+          });
+        }
+        if (error.code === 'P0002') {
+          return res.status(404).json({
+            success: false,
+            data: null,
+            message: '找不到指定產品。'
           });
         }
         if (error.code === '22023' || error.code === '23514') {
@@ -653,13 +1212,6 @@ function createProductsRouter(supabase, options = {}) {
       }
 
       if (!data || typeof data !== 'object' || data.stock !== stock) {
-        if (!data) {
-          return res.status(404).json({
-            success: false,
-            data: null,
-            message: '找不到指定產品。'
-          });
-        }
         console.error('產品庫存更新回傳格式無效：', data);
         return res.status(500).json({
           success: false,
@@ -670,8 +1222,10 @@ function createProductsRouter(supabase, options = {}) {
 
       return res.json({
         success: true,
-        data: filterPublicProductFields(data),
-        message: '產品庫存更新成功。'
+        data: { ...data, id: req.params.productId },
+        message: data.quantity_delta === 0
+          ? '庫存數量沒有變更，未新增調整記錄。'
+          : '產品庫存更新成功並已記錄調整原因。'
       });
     } catch (error) {
       console.error('更新產品庫存時發生未預期錯誤：', error);
@@ -757,7 +1311,7 @@ function createProductsRouter(supabase, options = {}) {
 
       return res.status(201).json({
         success: true,
-        data: filterPublicProductFields(data),
+        data: filterAdminProductFields(data),
         message: '產品新增成功。'
       });
     } catch (error) {
@@ -872,7 +1426,7 @@ function createProductsRouter(supabase, options = {}) {
 
       return res.json({
         success: true,
-        data: filterPublicProductFields(data),
+        data: filterAdminProductFields(data),
         message: '產品更新成功。'
       });
     } catch (error) {

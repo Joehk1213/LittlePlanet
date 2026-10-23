@@ -62,6 +62,14 @@ test('product management endpoints accept the products scope without a browser b
   app.use(express.json());
   app.use('/api/admin-auth', sessions.router);
   app.use('/api/products', createProductsRouter({
+    async rpc(name, args) {
+      assert.equal(name, 'set_product_inventory');
+      stock = args.p_stock;
+      return {
+        data: { stock, quantity_before: 7, quantity_delta: stock - 7, quantity_after: stock },
+        error: null
+      };
+    },
     from() {
       return {
         insert(values) {
@@ -144,7 +152,7 @@ test('product management endpoints accept the products scope without a browser b
         Cookie: cookie,
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ stock: 12 })
+      body: JSON.stringify({ stock: 12, reason: '實體盤點差異' })
     });
     const stockBody = await stockUpdate.json();
     assert.equal(stockUpdate.status, 200);

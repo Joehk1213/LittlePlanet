@@ -69,12 +69,24 @@ function createStore() {
           return { data: null, error: { code: 'XX000', message: 'Simulated atomic transaction failure.' } };
         }
 
-        const requestedItems = args.p_items.map(item => ({
-          product: store.products.find(candidate => String(candidate.id) === String(item.product_id)),
-          quantity: item.quantity
-        }));
+        const requestedItems = args.p_items.map(item => {
+          const product = store.products.find(candidate => String(candidate.id) === String(item.product_id));
+          const unit_price = product
+            ? (Array.isArray(product.tier_prices) ? product.tier_prices : [])
+              .filter(tier => tier.min_qty <= item.quantity)
+              .reduce((price, tier) => tier.price, Number(product.price))
+            : null;
+          return { product, quantity: item.quantity, unit_price };
+        });
         const missingProduct = requestedItems.find(item => !item.product);
         if (missingProduct) {
+          return { data: null, error: { code: 'P0001', message: 'PRODUCT_UNAVAILABLE' } };
+        }
+        const closedPreorder = requestedItems.find(item =>
+          item.product.preorder_deadline &&
+          Date.parse(item.product.preorder_deadline) <= Date.now()
+        );
+        if (closedPreorder) {
           return { data: null, error: { code: 'P0001', message: 'PRODUCT_UNAVAILABLE' } };
         }
         const shortStock = requestedItems.find(item => item.product.stock < item.quantity);
@@ -99,21 +111,24 @@ function createStore() {
           order_id: orderId,
           order_number: orderNumber,
           customer_phone: args.p_customer_phone,
+          customer_name: args.p_customer_name || null,
           order_date: new Date().toISOString(),
+          shipping_method: args.p_shipping_method || null,
+          shipping_address: args.p_shipping_address || null,
           total_amount: requestedItems.reduce(
-            (total, item) => total + Number(item.product.price) * item.quantity,
+            (total, item) => total + item.unit_price * item.quantity,
             0
           ),
           payment_status: '未付款',
           shipping_status: '待到貨'
         };
-        const createdItems = requestedItems.map(({ product, quantity }) => ({
+        const createdItems = requestedItems.map(({ product, quantity, unit_price }) => ({
           item_id: crypto.randomUUID(),
           order_id: orderId,
           product_id: product.id,
           product_name: product.name,
           quantity,
-          unit_price: product.price,
+          unit_price,
           received_quantity: 0,
           item_status: '待進貨',
           is_travel_buy: false
@@ -128,6 +143,9 @@ function createStore() {
             order_id: orderId,
             order_number: orderNumber,
             order_date: order.order_date,
+            customer_name: order.customer_name,
+            shipping_method: order.shipping_method,
+            shipping_address: order.shipping_address,
             payment_status: order.payment_status,
             shipping_status: order.shipping_status,
             total_amount: order.total_amount,
@@ -266,6 +284,12 @@ function createStore() {
       if (name === 'ship_order') {
         const order = store.orders.find(candidate => String(candidate.order_id) === String(args.p_order_id));
         if (!order) return { data: null, error: { code: 'P0002' } };
+        if (order.payment_status !== '已付清') {
+          return {
+            data: null,
+            error: { code: '55000', message: '訂單必須已付清才可出貨。' }
+          };
+        }
         if (order.shipping_status !== '可出貨') {
           return { data: null, error: { code: '55000', message: '訂單未齊貨。' } };
         }
@@ -714,6 +738,9 @@ test('E2E business flow: products, checkout rollback, reminders, inbound, shippi
 
     const checkoutBody = {
       customer_phone: '+85212345678',
+      customer_name: '小行星客人',
+      shipping_method: 'sf_locker',
+      shipping_address: 'H852K01P',
       totalAmount: 50,
       items: [{ product_id: 51, quantity: 2 }]
     };
@@ -736,6 +763,9 @@ test('E2E business flow: products, checkout rollback, reminders, inbound, shippi
     assert.equal(checkout.body.success, true);
     assert.match(checkout.body.data.order_number, /^LP-E2E-[0-9A-F]{8}$/);
     assert.equal(Object.hasOwn(checkout.body.data, 'order_id'), false);
+    assert.equal(store.orders[0].customer_name, '小行星客人');
+    assert.equal(store.orders[0].shipping_method, '順豐');
+    assert.equal(store.orders[0].shipping_address, '順豐智能櫃：H852K01P');
     const orderId = store.orders[0].order_id;
     assert.equal(store.orders.length, 1);
     assert.equal(store.orderItems.length, 1);
@@ -796,6 +826,15 @@ test('E2E business flow: products, checkout rollback, reminders, inbound, shippi
     assert.equal(productPickList.status, 200);
     assert.equal(productPickList.body.data[0].total_quantity, 2);
 
+    const unpaidShipment = await jsonRequest(baseUrl, `/api/shipping/${orderId}/ship`, {
+      method: 'POST',
+      token: TOKENS.shipping,
+      body: { shipping_method: '順豐', tracking_number: 'SF-E2E-700' }
+    });
+    assert.equal(unpaidShipment.status, 409);
+    assert.equal(store.orders[0].shipping_status, '可出貨');
+
+    store.orders[0].payment_status = '已付清';
     const shipped = await jsonRequest(baseUrl, `/api/shipping/${orderId}/ship`, {
       method: 'POST',
       token: TOKENS.shipping,
@@ -861,6 +900,41 @@ test('E2E business flow: products, checkout rollback, reminders, inbound, shippi
     );
     assert.equal(financialRows.status, 200);
     assert.equal(financialRows.body.data.rows[0].order_id, orderId);
+  });
+});
+
+test('checkout applies stored quantity tiers and rejects expired preorder deadlines', async () => {
+  const discountedStore = createStore();
+  discountedStore.products[0].tier_prices = [{ min_qty: 2, price: 19.5 }];
+  await withServer(createApplication(discountedStore), async baseUrl => {
+    const response = await jsonRequest(baseUrl, '/api/orders', {
+      method: 'POST',
+      body: {
+        customer_phone: '85212345678',
+        items: [{ product_id: 51, quantity: 2, unit_price: 0 }],
+        total_amount: 0
+      }
+    });
+    assert.equal(response.status, 201);
+    assert.equal(response.body.data.total_amount, 39);
+    assert.equal(discountedStore.orderItems[0].unit_price, 19.5);
+    assert.equal(discountedStore.products[0].stock, 0);
+  });
+
+  const expiredStore = createStore();
+  expiredStore.products[0].preorder_deadline = new Date(Date.now() - 60_000).toISOString();
+  await withServer(createApplication(expiredStore), async baseUrl => {
+    const response = await jsonRequest(baseUrl, '/api/orders', {
+      method: 'POST',
+      body: {
+        customer_phone: '85212345678',
+        items: [{ product_id: 51, quantity: 1 }]
+      }
+    });
+    assert.equal(response.status, 409);
+    assert.equal(response.body.code, 'PRODUCT_UNAVAILABLE');
+    assert.equal(expiredStore.products[0].stock, 2);
+    assert.equal(expiredStore.orders.length, 0);
   });
 });
 

@@ -7,8 +7,36 @@ const MISSING_SCHEMA_CODES = new Set(['42P01', '42703', '42883', 'PGRST202', 'PG
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ORDER_STATUSES = new Set(['pending', 'shipping', 'completed']);
 const SHIPPING_METHODS = new Set(['面交', '自取', '順豐', '京東']);
+const PAYMENT_PROOF_BUCKET = 'payment-proofs';
 const MAX_ADMIN_PAGE_SIZE = 100;
 const MAX_ORDER_ITEMS = 5000;
+
+function normalizeOfficialOrderNumber(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const orderNumber = value.trim();
+  if (
+    !orderNumber ||
+    orderNumber.length > 100 ||
+    UUID_PATTERN.test(orderNumber) ||
+    /[\u0000-\u001f\u007f]/.test(orderNumber)
+  ) {
+    return null;
+  }
+  return orderNumber;
+}
+
+function getHongKongDatePart(date = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Hong_Kong',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).formatToParts(date);
+  const values = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return `${values.year}${values.month}${values.day}`;
+}
 
 function sendError(res, status, message, code) {
   return res.status(status).json({
@@ -68,7 +96,10 @@ function createOrdersRouter(supabase, options = {}) {
     try {
       const { data: orders, error, count } = await supabase
         .from('orders')
-        .select('order_id,customer_phone,total_amount,order_date,status,order_number', { count: 'exact' })
+        .select(
+          'order_id,customer_phone,customer_name,shipping_address,total_amount,order_date,status,order_number,payment_status,payment_proof_url,payment_proof_status,shipping_status,shipping_method,shipping_carrier,tracking_number',
+          { count: 'exact' }
+        )
         .order('order_date', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -125,6 +156,36 @@ function createOrdersRouter(supabase, options = {}) {
         String(product.id),
         product
       ]));
+      const proofPaths = [...new Set(orders
+        .map(order => order.payment_proof_url)
+        .filter(path => typeof path === 'string' && path.length > 0))];
+      const proofUrlsByPath = new Map();
+      if (proofPaths.length > 0) {
+        if (!supabase.storage) {
+          console.error('付款憑證 Storage 尚未設定。');
+          return sendError(res, 503, '付款憑證儲存服務尚未設定。');
+        }
+        const { data: signedProofs, error: signedProofError } = await supabase.storage
+          .from(PAYMENT_PROOF_BUCKET)
+          .createSignedUrls(proofPaths, 300);
+        if (signedProofError) {
+          console.error('建立付款憑證限時連結失敗：', signedProofError);
+          return sendError(res, 500, '讀取付款憑證失敗，請稍後再試。');
+        }
+        if (!Array.isArray(signedProofs)) {
+          console.error('付款憑證簽署連結回傳格式無效：', signedProofs);
+          return sendError(res, 500, '付款憑證資料格式無效。');
+        }
+        signedProofs.forEach(proof => {
+          if (proof && typeof proof.path === 'string' && typeof proof.signedUrl === 'string') {
+            proofUrlsByPath.set(proof.path, proof.signedUrl);
+          }
+        });
+        if (proofPaths.some(path => !proofUrlsByPath.has(path))) {
+          console.error('付款憑證 Storage 未能為所有物件建立限時連結。');
+          return sendError(res, 500, '付款憑證預覽暫時無法使用，請稍後再試。');
+        }
+      }
       const itemsByOrder = new Map();
       for (const item of items) {
         const key = String(item.order_id);
@@ -145,10 +206,16 @@ function createOrdersRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data: {
-          orders: orders.map(order => ({
-            ...order,
-            items: itemsByOrder.get(String(order.order_id)) || []
-          })),
+          orders: orders.map(order => {
+            const { payment_proof_url: proofPath, ...orderData } = order;
+            return {
+              ...orderData,
+              payment_proof_signed_url: proofPath
+                ? proofUrlsByPath.get(proofPath) || null
+                : null,
+              items: itemsByOrder.get(String(order.order_id)) || []
+            };
+          }),
           total_count: Number.isSafeInteger(count) ? count : orders.length,
           limit,
           offset
@@ -167,8 +234,8 @@ function createOrdersRouter(supabase, options = {}) {
     }
     res.set('Cache-Control', 'no-store');
     const { orderId } = req.params;
-    if (!UUID_PATTERN.test(orderId)) {
-      return sendError(res, 400, 'orderId 必須是有效的 UUID。');
+    if (!UUID_PATTERN.test(orderId) && !/^[1-9]\d*$/.test(orderId)) {
+      return sendError(res, 400, 'orderId 必須是有效的訂單識別碼。');
     }
     const status = req.body && req.body.status;
     if (typeof status !== 'string' || !ORDER_STATUSES.has(status)) {
@@ -214,14 +281,65 @@ function createOrdersRouter(supabase, options = {}) {
     }
 
     const body = req.body && typeof req.body === 'object' ? req.body : {};
+    if (
+      (body.customer_name !== undefined && body.customer_name !== null && typeof body.customer_name !== 'string') ||
+      (body.shipping_method !== undefined && body.shipping_method !== null && typeof body.shipping_method !== 'string') ||
+      (body.shipping_address !== undefined && body.shipping_address !== null && typeof body.shipping_address !== 'string')
+    ) {
+      return sendError(res, 400, '收件人及取貨資料格式無效。');
+    }
     const customerPhone = typeof body.customer_phone === 'string'
       ? body.customer_phone.trim().replace(/^\+/, '')
+      : '';
+    const customerName = typeof body.customer_name === 'string'
+      ? body.customer_name.trim()
+      : '';
+    const submittedShippingMethod = typeof body.shipping_method === 'string'
+      ? body.shipping_method.trim()
+      : '';
+    const submittedShippingAddress = typeof body.shipping_address === 'string'
+      ? body.shipping_address.trim()
       : '';
     const rawItems = Array.isArray(body.items) ? body.items : null;
 
     if (!/^[0-9]{8,15}$/.test(customerPhone)) {
       return sendError(res, 400, '請提供有效的聯絡電話。');
     }
+    if (
+      customerName.length > 100 ||
+      /[\u0000-\u001f\u007f]/.test(customerName)
+    ) {
+      return sendError(res, 400, '收件人姓名不可超過 100 字或包含控制字元。');
+    }
+    const pickupMethods = new Map([
+      ['sf_station', { method: '順豐', label: '順豐站' }],
+      ['sf_locker', { method: '順豐', label: '順豐智能櫃' }],
+      ['順豐站', { method: '順豐', label: '順豐站' }],
+      ['順豐智能櫃', { method: '順豐', label: '順豐智能櫃' }]
+    ]);
+    const pickupSelection = pickupMethods.get(submittedShippingMethod);
+    const shippingMethod = pickupSelection
+      ? pickupSelection.method
+      : submittedShippingMethod || null;
+    const allowedShippingMethods = new Set(['順豐', '自取', '面交', '京東']);
+    if (
+      shippingMethod !== null &&
+      !allowedShippingMethods.has(shippingMethod)
+    ) {
+      return sendError(res, 400, '請選擇有效的取貨方式。');
+    }
+    if (
+      submittedShippingAddress.length > (pickupSelection ? 190 : 200) ||
+      /[\u0000-\u001f\u007f]/.test(submittedShippingAddress)
+    ) {
+      return sendError(res, 400, '取貨地點或地址長度超出限制，或包含控制字元。');
+    }
+    if (pickupSelection && !submittedShippingAddress) {
+      return sendError(res, 400, '請輸入或選擇順豐站／智能櫃編號或地區。');
+    }
+    const shippingAddress = pickupSelection
+      ? `${pickupSelection.label}：${submittedShippingAddress}`
+      : submittedShippingAddress || null;
     if (!rawItems || rawItems.length < 1 || rawItems.length > 100) {
       return sendError(res, 400, '訂單必須包含 1 至 100 項商品。');
     }
@@ -258,7 +376,10 @@ function createOrdersRouter(supabase, options = {}) {
     try {
       const { data, error } = await supabase.rpc('create_customer_order', {
         p_customer_phone: customerPhone,
-        p_items: rpcItems
+        p_items: rpcItems,
+        p_customer_name: customerName || null,
+        p_shipping_method: shippingMethod,
+        p_shipping_address: shippingAddress
       });
 
       if (error) {
@@ -293,12 +414,14 @@ function createOrdersRouter(supabase, options = {}) {
       }
 
       const internalOrderId = result.order_id;
-      let orderNumber = result.order_number || result.order_no || null;
-      if (typeof orderNumber === 'string') {
-        orderNumber = orderNumber.trim() || null;
-      }
-      if (orderNumber && UUID_PATTERN.test(String(orderNumber))) {
-        orderNumber = null;
+      let orderNumber = normalizeOfficialOrderNumber(result.order_number) ||
+        normalizeOfficialOrderNumber(result.order_no);
+      let invalidStoredOrderNumber = null;
+      if (
+        (typeof result.order_number === 'string' && UUID_PATTERN.test(result.order_number.trim())) ||
+        (typeof result.order_no === 'string' && UUID_PATTERN.test(result.order_no.trim()))
+      ) {
+        invalidStoredOrderNumber = result.order_number || result.order_no;
       }
       if (!orderNumber) {
         const { data: orderRecord, error: orderLookupError } = await supabase
@@ -311,28 +434,25 @@ function createOrdersRouter(supabase, options = {}) {
           console.error('讀取正式訂單編號失敗：', orderLookupError);
           return sendError(res, 500, '訂單已建立，但讀取正式訂單編號失敗，請聯絡管理員。');
         }
-        orderNumber = orderRecord && orderRecord.order_number;
-        if (typeof orderNumber === 'string') {
-          orderNumber = orderNumber.trim() || null;
-        }
-        if (orderNumber && UUID_PATTERN.test(String(orderNumber))) {
-          orderNumber = null;
+        const storedOrderNumber = orderRecord && orderRecord.order_number;
+        orderNumber = normalizeOfficialOrderNumber(storedOrderNumber);
+        if (!orderNumber && typeof storedOrderNumber === 'string' &&
+            UUID_PATTERN.test(storedOrderNumber.trim())) {
+          invalidStoredOrderNumber = storedOrderNumber;
         }
       }
 
       if (!orderNumber) {
-        const date = new Date();
-        const datePart = [
-          date.getUTCFullYear(),
-          String(date.getUTCMonth() + 1).padStart(2, '0'),
-          String(date.getUTCDate()).padStart(2, '0')
-        ].join('');
-        const generatedOrderNumber = `LP-${datePart}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
-        const { data: updatedOrder, error: orderUpdateError } = await supabase
+        const generatedOrderNumber =
+          `LP-${getHongKongDatePart()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+        let updateOrderQuery = supabase
           .from('orders')
           .update({ order_number: generatedOrderNumber })
-          .eq('order_id', internalOrderId)
-          .is('order_number', null)
+          .eq('order_id', internalOrderId);
+        updateOrderQuery = invalidStoredOrderNumber
+          ? updateOrderQuery.eq('order_number', invalidStoredOrderNumber)
+          : updateOrderQuery.is('order_number', null);
+        const { data: updatedOrder, error: orderUpdateError } = await updateOrderQuery
           .select('order_number')
           .maybeSingle();
 
@@ -341,7 +461,7 @@ function createOrdersRouter(supabase, options = {}) {
           return sendError(res, 500, '訂單已建立，但儲存正式訂單編號失敗，請聯絡管理員。');
         }
 
-        orderNumber = updatedOrder && updatedOrder.order_number;
+        orderNumber = normalizeOfficialOrderNumber(updatedOrder && updatedOrder.order_number);
         if (!orderNumber) {
           const { data: latestOrder, error: latestOrderError } = await supabase
             .from('orders')
@@ -349,15 +469,16 @@ function createOrdersRouter(supabase, options = {}) {
             .eq('order_id', internalOrderId)
             .maybeSingle();
 
-          if (latestOrderError || !latestOrder || !latestOrder.order_number) {
+          orderNumber = normalizeOfficialOrderNumber(latestOrder && latestOrder.order_number);
+          if (latestOrderError || !orderNumber) {
             console.error('確認正式訂單編號失敗：', latestOrderError || latestOrder);
             return sendError(res, 500, '訂單已建立，但無法確認正式訂單編號，請聯絡管理員。');
           }
-          orderNumber = latestOrder.order_number;
         }
       }
 
-      if (UUID_PATTERN.test(String(orderNumber))) {
+      orderNumber = normalizeOfficialOrderNumber(orderNumber);
+      if (!orderNumber) {
         console.error('正式訂單編號不可使用內部 UUID：', internalOrderId);
         return sendError(res, 500, '訂單正式編號無效，請聯絡管理員。');
       }
@@ -398,7 +519,7 @@ function createOrdersRouter(supabase, options = {}) {
       ])];
       const { data: order, error } = await supabase
         .from('orders')
-        .select('order_id, order_number, customer_phone, total_amount, order_date, status, payment_status, shipping_status, shipping_method, tracking_number')
+        .select('order_id, order_number, customer_phone, customer_name, shipping_address, total_amount, order_date, status, payment_status, payment_proof_url, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number')
         .in('customer_phone', phoneVariants)
         .eq('order_number', trimmedOrderNo.toUpperCase())
         .maybeSingle();
@@ -446,10 +567,12 @@ function createOrdersRouter(supabase, options = {}) {
         };
       });
 
+      const { payment_proof_url: proofPath, ...publicOrder } = order;
       return res.json({
         success: true,
         data: {
-          ...order,
+          ...publicOrder,
+          payment_proof_submitted: Boolean(proofPath),
           items: formattedItems
         },
         message: '成功找到訂單記錄。'
@@ -487,7 +610,7 @@ function createOrdersRouter(supabase, options = {}) {
         .update(updateFields)
         .eq('customer_phone', trimmedPhone)
         .eq('order_number', trimmedOrderNo)
-        .select('order_id, order_number, customer_phone, total_amount, status, payment_status, shipping_status, shipping_method, tracking_number')
+        .select('order_id, order_number, customer_phone, total_amount, status, payment_status, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number')
         .maybeSingle();
 
       if (error) {
@@ -530,7 +653,7 @@ function createOrdersRouter(supabase, options = {}) {
     try {
       const { data: orders, error, count } = await supabase
         .from('orders')
-        .select('order_id,customer_phone,total_amount,order_date,status,order_number', { count: 'exact' })
+        .select('order_id,customer_phone,customer_name,shipping_address,total_amount,order_date,status,order_number', { count: 'exact' })
         .order('order_date', { ascending: false })
         .range(offset, offset + limit - 1);
 

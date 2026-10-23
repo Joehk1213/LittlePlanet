@@ -480,6 +480,182 @@ function createAnalyticsRouter(supabase, options = {}) {
     }
   });
 
+  router.get('/profit', async (req, res) => {
+    try {
+      const dateRange = validateDateRange(req.query);
+      if (!dateRange) {
+        return sendError(
+          res,
+          400,
+          `start_date 和 end_date 必須是有效 YYYY-MM-DD 日期，且區間不可超過 ${MAX_DATE_RANGE_DAYS} 日。`
+        );
+      }
+      const limit = parseInteger(req.query.limit, 1, MAX_TOP_PRODUCTS, 10);
+      if (limit === null) {
+        return sendError(res, 400, `limit 必須是 1 至 ${MAX_TOP_PRODUCTS} 的整數。`);
+      }
+
+      const cacheKey = createCacheKey('profit', {
+        startDate: dateRange.startDate,
+        endDate: dateRange.endDate,
+        limit
+      });
+      const cachedResponse = sendCachedResponse(res, cacheKey, '商品成本與利潤分析查詢完成。');
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+
+      const orders = await fetchOrdersInRange(
+        dateRange,
+        'order_id,total_amount'
+      );
+      const items = await fetchItemsForOrders(orders.map(order => order.order_id));
+      const productIds = [...new Set(items.map(item => String(item.product_id)))];
+      const productInfo = new Map();
+      for (let offset = 0; offset < productIds.length; offset += 100) {
+        const ids = productIds.slice(offset, offset + 100);
+        const products = await fetchSummaryRows(
+          () => supabase
+            .from('products')
+            .select('id,name,cost_price')
+            .in('id', ids),
+          100,
+          '商品成本報表查詢'
+        );
+        for (const product of products) {
+          if (
+            !product ||
+            (typeof product.id !== 'string' && typeof product.id !== 'number') ||
+            typeof product.name !== 'string' ||
+            product.cost_price !== null &&
+              product.cost_price !== undefined &&
+              (typeof product.cost_price !== 'number' &&
+                typeof product.cost_price !== 'string' ||
+                !Number.isFinite(Number(product.cost_price)) ||
+                Number(product.cost_price) < 0)
+          ) {
+            console.error('商品成本報表遇到無效商品資料。');
+            return sendError(res, 500, '商品成本資料格式無效。');
+          }
+          productInfo.set(String(product.id), {
+            product_name: product.name,
+            cost_price: product.cost_price === null || product.cost_price === undefined
+              ? null
+              : Number(product.cost_price)
+          });
+        }
+      }
+
+      const totalsByProduct = new Map();
+      let totalRevenue = 0;
+      let totalCost = 0;
+      let unitsSold = 0;
+      let unitsWithKnownCost = 0;
+      let unknownCostItems = 0;
+      for (const order of orders) {
+        const amount = Number(order.total_amount);
+        if (!Number.isFinite(amount) || amount < 0) {
+          console.error('商品利潤報表遇到無效訂單金額。');
+          return sendError(res, 500, '訂單金額資料格式無效。');
+        }
+        totalRevenue += amount;
+      }
+
+      for (const item of items) {
+        const quantity = Number(item.quantity);
+        const unitPrice = Number(item.unit_price);
+        const key = String(item.product_id);
+        const product = productInfo.get(key);
+        if (
+          !Number.isSafeInteger(quantity) ||
+          quantity < 0 ||
+          !Number.isFinite(unitPrice) ||
+          unitPrice < 0
+        ) {
+          console.error('商品利潤報表遇到無效訂單商品資料。');
+          return sendError(res, 500, '訂單商品資料格式無效。');
+        }
+        const salesAmount = quantity * unitPrice;
+        const knownCost = product && product.cost_price !== null;
+        const costAmount = knownCost ? quantity * product.cost_price : null;
+        const total = totalsByProduct.get(key) || {
+          product_id: item.product_id,
+          product_name: product ? product.product_name : '商品資料已不存在',
+          quantity_sold: 0,
+          sales_amount: 0,
+          cost_amount: 0,
+          net_profit: 0,
+          cost_known: true
+        };
+        total.quantity_sold += quantity;
+        total.sales_amount += salesAmount;
+        if (knownCost) {
+          total.cost_amount += costAmount;
+          total.net_profit += salesAmount - costAmount;
+          unitsWithKnownCost += quantity;
+          totalCost += costAmount;
+        } else {
+          total.cost_known = false;
+          unknownCostItems += 1;
+        }
+        unitsSold += quantity;
+        totalsByProduct.set(key, total);
+      }
+
+      const completeCostCoverage = unknownCostItems === 0;
+      const rankedProducts = [...totalsByProduct.values()]
+        .sort((left, right) => (
+          (right.cost_known ? right.net_profit : Number.NEGATIVE_INFINITY) -
+            (left.cost_known ? left.net_profit : Number.NEGATIVE_INFINITY) ||
+          right.sales_amount - left.sales_amount ||
+          String(left.product_id).localeCompare(String(right.product_id))
+        ))
+        .slice(0, limit)
+        .map((product, index) => ({
+          product_id: product.product_id,
+          product_name: product.product_name,
+          quantity_sold: product.quantity_sold,
+          sales_amount: Math.round((product.sales_amount + Number.EPSILON) * 100) / 100,
+          cost_amount: product.cost_known
+            ? Math.round((product.cost_amount + Number.EPSILON) * 100) / 100
+            : null,
+          net_profit: product.cost_known
+            ? Math.round((product.net_profit + Number.EPSILON) * 100) / 100
+            : null,
+          rank: index + 1
+        }));
+      const roundedRevenue = Math.round((totalRevenue + Number.EPSILON) * 100) / 100;
+      const roundedCost = Math.round((totalCost + Number.EPSILON) * 100) / 100;
+      const grossProfit = completeCostCoverage ? roundedRevenue - roundedCost : null;
+      const data = {
+        start_date: dateRange.startDate,
+        end_date: dateRange.endDate,
+        total_revenue: roundedRevenue,
+        total_cost: roundedCost,
+        gross_profit: grossProfit === null
+          ? null
+          : Math.round((grossProfit + Number.EPSILON) * 100) / 100,
+        gross_margin_percentage: completeCostCoverage && roundedRevenue > 0
+          ? Math.round((grossProfit / roundedRevenue) * 10000) / 100
+          : null,
+        cost_coverage_percentage: unitsSold > 0
+          ? Math.round((unitsWithKnownCost / unitsSold) * 10000) / 100
+          : 100,
+        cost_data_complete: completeCostCoverage,
+        unknown_cost_items: unknownCostItems,
+        top_products: rankedProducts
+      };
+      storeCachedResponse(cacheKey, data);
+      return res.json({
+        success: true,
+        data,
+        message: '商品成本與利潤分析查詢完成。'
+      });
+    } catch (error) {
+      return handleFallbackError(res, error, '取得商品成本與利潤分析');
+    }
+  });
+
   router.get('/overview', async (req, res) => {
     try {
       const dateRange = validateDateRange(req.query);

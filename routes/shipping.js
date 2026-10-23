@@ -1,10 +1,99 @@
 const crypto = require('crypto');
 const express = require('express');
+const XLSX = require('xlsx');
 
 const MISSING_RPC_CODES = new Set(['42883', 'PGRST202']);
 const SHIPPING_METHODS = new Set(['面交', '自取', '順豐', '京東']);
 const MAX_PICK_LIST_ORDERS = 5000;
 const MAX_PICK_LIST_ITEMS = 20000;
+const MAX_BULK_TRACKING_FILE_BYTES = 2 * 1024 * 1024;
+const MAX_BULK_TRACKING_ROWS = 100;
+
+function normalizeTrackingHeader(value) {
+  return String(value ?? '')
+    .trim()
+    .toLocaleLowerCase()
+    .replace(/[\s_-]+/g, '');
+}
+
+function parseBulkTrackingFile(buffer, fileName, defaultShippingMethod) {
+  const extension = fileName.toLocaleLowerCase().split('.').pop();
+  if (!['csv', 'xlsx', 'xls'].includes(extension)) {
+    return { error: '只接受 CSV、XLSX 或 XLS 格式的物流檔案。' };
+  }
+  if (!SHIPPING_METHODS.has(defaultShippingMethod)) {
+    return { error: '請選擇有效的運送方式。' };
+  }
+
+  let workbook;
+  try {
+    workbook = XLSX.read(buffer, {
+      type: 'buffer',
+      cellDates: false,
+      sheetRows: MAX_BULK_TRACKING_ROWS + 2
+    });
+  } catch (error) {
+    console.error('解析批量物流檔案失敗：', error);
+    return { error: '物流檔案內容無法讀取，請確認檔案格式正確。' };
+  }
+  const firstSheetName = workbook.SheetNames[0];
+  const sheet = firstSheetName && workbook.Sheets[firstSheetName];
+  if (!sheet) {
+    return { error: '物流檔案內沒有可讀取的工作表。' };
+  }
+
+  const rows = XLSX.utils.sheet_to_json(sheet, {
+    header: 1,
+    raw: false,
+    defval: '',
+    blankrows: false
+  });
+  if (!Array.isArray(rows) || rows.length < 2 || rows.length > MAX_BULK_TRACKING_ROWS + 1) {
+    return { error: `物流檔案必須包含標題列及 1 至 ${MAX_BULK_TRACKING_ROWS} 筆資料。` };
+  }
+
+  const headers = rows[0].map(normalizeTrackingHeader);
+  const orderNumberIndex = headers.findIndex(header =>
+    ['ordernumber', 'orderno.', '訂單編號', '訂單號碼'].includes(header)
+  );
+  const trackingNumberIndex = headers.findIndex(header =>
+    ['trackingnumber', '運單號', '物流單號', '快遞單號'].includes(header)
+  );
+  const shippingMethodIndex = headers.findIndex(header =>
+    ['shippingmethod', '出貨方式', '物流方式', '運送方式'].includes(header)
+  );
+  if (orderNumberIndex < 0 || trackingNumberIndex < 0) {
+    return { error: '標題列必須包含 order_number / 訂單編號及 tracking_number / 運單號欄位。' };
+  }
+
+  const shipments = [];
+  for (let index = 1; index < rows.length; index += 1) {
+    const row = rows[index];
+    const orderNumber = String(row[orderNumberIndex] ?? '').trim();
+    const trackingNumber = String(row[trackingNumberIndex] ?? '').trim();
+    const shippingMethod = shippingMethodIndex >= 0 && String(row[shippingMethodIndex] ?? '').trim()
+      ? String(row[shippingMethodIndex]).trim()
+      : defaultShippingMethod;
+    if (
+      !orderNumber ||
+      orderNumber.length > 100 ||
+      !trackingNumber ||
+      trackingNumber.length > 100 ||
+      !SHIPPING_METHODS.has(shippingMethod)
+    ) {
+      return { error: `第 ${index + 1} 列的訂單編號、運單號或出貨方式無效。` };
+    }
+    shipments.push({
+      order_number: orderNumber,
+      tracking_number: trackingNumber,
+      shipping_method: shippingMethod
+    });
+  }
+  if (new Set(shipments.map(row => row.order_number.toLocaleUpperCase())).size !== shipments.length) {
+    return { error: '物流檔案包含重複訂單編號，請先整理後再匯入。' };
+  }
+  return { shipments };
+}
 
 function sendError(res, status, message, data = null) {
   return res.status(status).json({
@@ -402,6 +491,113 @@ function createShippingRouter(supabase, options = {}) {
       return sendError(res, 500, '取得執貨清單時發生錯誤，請稍後再試。');
     }
   });
+
+  router.post(
+    '/bulk-tracking',
+    express.raw({
+      type: [
+        'text/csv',
+        'application/csv',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-excel',
+        'application/octet-stream'
+      ],
+      limit: MAX_BULK_TRACKING_FILE_BYTES
+    }),
+    async (req, res) => {
+      try {
+        const fileNameHeader = req.get('x-upload-filename') || '';
+        let fileName;
+        try {
+          fileName = decodeURIComponent(fileNameHeader);
+        } catch (error) {
+          return sendError(res, 400, '物流檔案名稱格式無效。');
+        }
+        if (
+          !fileName ||
+          fileName.length > 255 ||
+          /[\\/\u0000-\u001f\u007f]/.test(fileName)
+        ) {
+          return sendError(res, 400, '請提供有效的 CSV 或 Excel 物流檔案名稱。');
+        }
+        let defaultShippingMethod;
+        try {
+          defaultShippingMethod = decodeURIComponent(req.get('x-shipping-method') || '');
+        } catch (error) {
+          return sendError(res, 400, '預設運送方式格式無效。');
+        }
+        const file = req.body;
+        if (
+          !Buffer.isBuffer(file) ||
+          file.length < 1 ||
+          file.length > MAX_BULK_TRACKING_FILE_BYTES
+        ) {
+          return sendError(res, 400, '物流檔案不可為空，且大小不可超過 2MB。');
+        }
+
+        const parsed = parseBulkTrackingFile(file, fileName, defaultShippingMethod);
+        if (parsed.error) {
+          return sendError(res, 400, parsed.error);
+        }
+        const { data, error } = await supabase.rpc('bulk_ship_orders', {
+          p_shipments: parsed.shipments
+        });
+        if (error) {
+          return handleRpcError(res, error, '批量匯入物流單號');
+        }
+        if (
+          !data ||
+          typeof data !== 'object' ||
+          !Array.isArray(data.shipments) ||
+          !Array.isArray(data.order_ids) ||
+          data.shipments.length !== parsed.shipments.length ||
+          data.order_ids.length !== parsed.shipments.length
+        ) {
+          console.error('批量出貨 RPC 回傳格式無效：', data);
+          return sendError(res, 500, '批量出貨結果格式無效，請檢查資料庫 RPC。');
+        }
+
+        const results = [];
+        for (let index = 0; index < data.order_ids.length; index += 1) {
+          const orderId = String(data.order_ids[index]);
+          let notification;
+          try {
+            notification = await sendShipmentNotification(orderId);
+          } catch (error) {
+            console.error('批量出貨後發送 WhatsApp 通知時發生錯誤：', { orderId, error });
+            notification = {
+              success: false,
+              message: '出貨成功，但 WhatsApp 通知未能確認，可稍後重試。'
+            };
+          }
+          results.push({
+            order_number: data.shipments[index].order_number,
+            tracking_number: parsed.shipments[index].tracking_number,
+            notification
+          });
+        }
+
+        const failedNotifications = results.filter(result => !result.notification.success).length;
+        return res.json({
+          success: true,
+          data: {
+            imported_count: results.length,
+            failed_notifications: failedNotifications,
+            results
+          },
+          message: failedNotifications === 0
+            ? `已成功匯入 ${results.length} 筆物流單號並發送通知。`
+            : `已成功匯入 ${results.length} 筆物流單號；${failedNotifications} 筆 WhatsApp 通知未能確認，可稍後重試。`
+        });
+      } catch (error) {
+        console.error('批量匯入物流單號時發生未預期錯誤：', error);
+        if (error && error.statusCode === 413) {
+          return sendError(res, 413, '物流檔案大小不可超過 2MB。');
+        }
+        return sendError(res, 500, '批量匯入物流單號時發生錯誤，資料庫交易未確認，請稍後再試。');
+      }
+    }
+  );
 
   router.post('/:orderId/ship', async (req, res) => {
     try {

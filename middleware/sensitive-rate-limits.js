@@ -58,6 +58,10 @@ function createSensitiveRateLimiters(options = {}) {
       options.customerReviewMax || 5,
       '評價提交次數過多，請稍後再試。'
     ),
+    paymentProofUpload: createLimiter(
+      options.paymentProofUploadMax || 5,
+      '付款憑證上傳次數過多，請稍後再試。'
+    ),
     reviewAdmin: createLimiter(
       options.reviewAdminMax || 60,
       '評價管理請求次數過多，請稍後再試。'

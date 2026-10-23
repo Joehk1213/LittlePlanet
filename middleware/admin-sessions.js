@@ -5,7 +5,7 @@ const express = require('express');
 
 const COOKIE_NAME = 'littleplanet_admin_session';
 const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60;
-const SESSION_SCOPES = new Set(['shipping', 'orders', 'products', 'analytics', 'inbound', 'reviews']);
+const SESSION_SCOPES = new Set(['shipping', 'orders', 'products', 'analytics', 'inbound', 'reviews', 'customers']);
 
 function sendError(res, status, message) {
   return res.status(status).json({

@@ -1,0 +1,24 @@
+BEGIN;
+
+ALTER TABLE public.products
+  ADD COLUMN IF NOT EXISTS cost_price numeric(14, 2);
+
+DO $migration$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conrelid = 'public.products'::regclass
+      AND conname = 'products_cost_price_nonnegative_check'
+  ) THEN
+    ALTER TABLE public.products
+      ADD CONSTRAINT products_cost_price_nonnegative_check
+      CHECK (cost_price IS NULL OR cost_price >= 0);
+  END IF;
+END
+$migration$;
+
+COMMENT ON COLUMN public.products.cost_price IS
+  'Internal per-unit cost used by admin profit analytics; NULL means cost is unknown.';
+
+COMMIT;

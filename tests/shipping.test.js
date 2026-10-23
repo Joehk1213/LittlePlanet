@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
+const XLSX = require('xlsx');
 const createShippingRouter = require('../routes/shipping');
 const createOrdersRouter = require('../routes/orders');
 
@@ -179,6 +180,106 @@ test('shipping updates atomically and sends a WhatsApp notification', async () =
     sendWhatsApp: async message => sent.push(message)
   });
 
+  test('bulk tracking imports CSV using order numbers and processes notification status', async () => {
+    const calls = [];
+    const orderId = 'f6d0d17c-60a4-4434-a704-7f68456c0bf2';
+    const router = createRouter({
+      rpc: async (name, args) => {
+        calls.push({ name, args });
+        if (name === 'bulk_ship_orders') {
+          return {
+            data: {
+              shipments: [{
+                order_number: 'LP-20261022-001',
+                shipment: { shipping_status: '已出貨' }
+              }],
+              order_ids: [orderId]
+            },
+            error: null
+          };
+        }
+        if (name === 'claim_shipping_notification') {
+          return {
+            data: { claimed: false, status: 'sent' },
+            error: null
+          };
+        }
+        throw new Error(`Unexpected RPC ${name}`);
+      }
+    });
+
+    await withServer(router, async baseUrl => {
+      const csv = Buffer.from(
+        'order_number,tracking_number\nLP-20261022-001,SF12345678\n',
+        'utf8'
+      );
+      const response = await fetch(`${baseUrl}/api/shipping/bulk-tracking`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${ADMIN_TOKEN}`,
+          'Content-Type': 'text/csv',
+          'X-Upload-Filename': 'tracking.csv',
+          'X-Shipping-Method': encodeURIComponent('順豐')
+        },
+        body: csv
+      });
+      const body = await response.json();
+      assert.equal(response.status, 200);
+      assert.equal(body.success, true);
+      assert.equal(body.data.imported_count, 1);
+      assert.equal(body.data.results[0].notification.success, true);
+      assert.deepEqual(calls, [
+        {
+          name: 'bulk_ship_orders',
+          args: {
+            p_shipments: [{
+              order_number: 'LP-20261022-001',
+              tracking_number: 'SF12345678',
+              shipping_method: '順豐'
+            }]
+          }
+        },
+        {
+          name: 'claim_shipping_notification',
+          args: { p_order_id: orderId }
+        }
+      ]);
+    });
+  });
+
+  test('bulk tracking rejects duplicate rows and invalid headers before database access', async () => {
+    let calls = 0;
+    const router = createRouter({
+      rpc: async () => {
+        calls += 1;
+        return { data: null, error: null };
+      }
+    });
+
+    await withServer(router, async baseUrl => {
+      for (const contents of [
+        'order_number,tracking_number\nLP-1,SF1\nLP-1,SF2\n',
+        'wrong_header,tracking_number\nLP-1,SF1\n'
+      ]) {
+        const response = await fetch(`${baseUrl}/api/shipping/bulk-tracking`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${ADMIN_TOKEN}`,
+            'Content-Type': 'text/csv',
+            'X-Upload-Filename': 'tracking.csv',
+            'X-Shipping-Method': encodeURIComponent('順豐')
+          },
+          body: Buffer.from(contents, 'utf8')
+        });
+        const body = await response.json();
+        assert.equal(response.status, 400);
+        assert.equal(body.success, false);
+        assert.equal(body.data, null);
+      }
+    });
+    assert.equal(calls, 0);
+  });
+
   await withServer(router, async baseUrl => {
     const response = await request(baseUrl, '/api/shipping/29/ship', {
       method: 'POST',
@@ -215,6 +316,63 @@ test('shipping updates atomically and sends a WhatsApp notification', async () =
   assert.equal(sent.length, 1);
   assert.equal(sent[0].to, '85212345678');
   assert.match(sent[0].text, /SF1000/);
+});
+
+test('bulk tracking accepts an Excel workbook with localized column headings', async () => {
+  const calls = [];
+  const orderId = 'f6d0d17c-60a4-4434-a704-7f68456c0bf2';
+  const workbook = XLSX.utils.book_new();
+  const sheet = XLSX.utils.aoa_to_sheet([
+    ['訂單編號', '運單號'],
+    ['LP-20261022-002', 'SF87654321']
+  ]);
+  XLSX.utils.book_append_sheet(workbook, sheet, '物流');
+  const bytes = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+  const router = createRouter({
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      if (name === 'bulk_ship_orders') {
+        return {
+          data: {
+            shipments: [{
+              order_number: 'LP-20261022-002',
+              shipment: { shipping_status: '已出貨' }
+            }],
+            order_ids: [orderId]
+          },
+          error: null
+        };
+      }
+      if (name === 'claim_shipping_notification') {
+        return { data: { claimed: false, status: 'sent' }, error: null };
+      }
+      throw new Error(`Unexpected RPC ${name}`);
+    }
+  });
+
+  await withServer(router, async baseUrl => {
+    const response = await fetch(`${baseUrl}/api/shipping/bulk-tracking`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${ADMIN_TOKEN}`,
+        'Content-Type': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'X-Upload-Filename': 'tracking.xlsx',
+        'X-Shipping-Method': encodeURIComponent('順豐')
+      },
+      body: bytes
+    });
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.success, true);
+    assert.equal(body.data.results[0].tracking_number, 'SF87654321');
+  });
+
+  assert.equal(calls[0].name, 'bulk_ship_orders');
+  assert.deepEqual(calls[0].args.p_shipments, [{
+    order_number: 'LP-20261022-002',
+    tracking_number: 'SF87654321',
+    shipping_method: '順豐'
+  }]);
 });
 
 test('shipping route accepts UUID order IDs used by the production database', async () => {

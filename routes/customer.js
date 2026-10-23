@@ -627,7 +627,7 @@ function createCustomerRouter(supabase, options = {}) {
       ])];
       const { data: order, error } = await supabase
         .from('orders')
-        .select('order_id, order_number, customer_phone')
+        .select('order_id, order_number, customer_phone, shipping_status, shipping_method, shipping_carrier, tracking_number, payment_proof_url, payment_proof_status')
         .in('customer_phone', phoneVariants)
         .eq('order_number', orderNumber.toUpperCase())
         .maybeSingle();
@@ -683,7 +683,13 @@ function createCustomerRouter(supabase, options = {}) {
         .map(item => ({
           ...item,
           order_number: order.order_number,
-          customer_phone: order.customer_phone
+          customer_phone: order.customer_phone,
+          shipping_status: order.shipping_status,
+          shipping_method: order.shipping_method,
+          shipping_carrier: order.shipping_carrier,
+          tracking_number: order.tracking_number,
+          payment_proof_submitted: Boolean(order.payment_proof_url),
+          payment_proof_status: order.payment_proof_status
         }));
 
       return res.json({

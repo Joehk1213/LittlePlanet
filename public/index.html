@@ -4,6 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#f8fafc">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="LittlePlanet">
+  <meta name="referrer" content="no-referrer">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/image/pwa-icon.svg">
+  <link rel="apple-touch-icon" href="/image/littleplanet.png">
   <title>LittlePlanet 小行星｜探索星球精選好物</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
@@ -13,6 +19,10 @@
     .drawer-backdrop { transition: opacity 220ms ease; }
     .product-image { transition: transform 420ms cubic-bezier(.2,.8,.2,1); }
     .product-card:hover .product-image { transform: scale(1.06); }
+    .cart-count-pop { animation: cart-count-pop 320ms cubic-bezier(.2,.8,.2,1); }
+    @keyframes cart-count-pop { 45% { transform: scale(1.28); } }
+    .toast-error { background-color: #be123c !important; }
+    .toast-success { background-color: #047857 !important; }
     .skeleton {
       background: linear-gradient(100deg, #e2e8f0 20%, #f8fafc 38%, #e2e8f0 58%);
       background-size: 200% 100%;
@@ -60,7 +70,7 @@
         <a href="/track.html" class="hidden rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-indigo-700 sm:inline-flex">查詢訂單</a>
         <a href="/customer.html" class="hidden rounded-xl px-3 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-indigo-700 sm:inline-flex">會員中心</a>
         <button id="themeToggleBtn" type="button" class="grid h-10 w-10 place-items-center rounded-xl border border-slate-200 text-lg transition hover:bg-slate-100" aria-label="切換深色模式">🌙</button>
-        <button id="cartButton" type="button" class="relative inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700 sm:px-5">
+        <button id="cartButton" type="button" aria-controls="cartDrawer" aria-expanded="false" class="relative inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-3.5 py-2.5 text-sm font-bold text-white shadow-lg shadow-indigo-200 transition hover:-translate-y-0.5 hover:bg-indigo-700 sm:px-5">
           <span aria-hidden="true">🛒</span><span class="hidden sm:inline">購物車</span>
           <span id="cartCount" class="grid min-h-5 min-w-5 place-items-center rounded-full bg-rose-500 px-1 text-xs font-extrabold text-white" aria-label="購物車商品數量">0</span>
         </button>
@@ -138,6 +148,12 @@
           </label>
         </div>
       </div>
+      <div class="mt-3 flex flex-wrap items-center gap-2" aria-label="熱門搜尋關鍵字">
+        <span class="text-xs font-bold text-slate-500">熱門搜尋</span>
+        <button type="button" data-search-keyword="日本直送" class="rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1.5 text-xs font-bold text-indigo-700 transition hover:border-indigo-300 hover:bg-indigo-100">#日本直送</button>
+        <button type="button" data-search-keyword="限時特價" class="rounded-full border border-rose-100 bg-rose-50 px-3 py-1.5 text-xs font-bold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100">#限時特價</button>
+        <button type="button" data-search-keyword="人氣熱賣" class="rounded-full border border-amber-100 bg-amber-50 px-3 py-1.5 text-xs font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100">#人氣熱賣</button>
+      </div>
 
       <div id="productGrid" class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4" aria-label="商品列表" aria-live="polite"></div>
       <p class="mt-4 text-xs leading-5 text-slate-500">
@@ -176,6 +192,9 @@
           <span id="quickViewCategory" class="inline-block bg-indigo-50 text-indigo-700 text-xs font-semibold px-2.5 py-1 rounded-full">分類</span>
           <h2 id="quickViewTitle" class="text-2xl font-bold text-slate-900">商品標題</h2>
           <p id="quickViewPrice" class="text-xl font-semibold text-indigo-600">HK$ 0</p>
+          <div id="quickViewTierPrices" class="text-sm font-semibold text-emerald-700"></div>
+          <p id="quickViewCountdown" class="text-sm font-bold text-rose-600" aria-live="off"></p>
+          <p id="quickViewReviewSummary" class="text-sm font-semibold text-amber-600">☆☆☆☆☆ 暫無評價</p>
           <p id="quickViewStock" class="text-sm text-slate-500">庫存：0 件</p>
           <!-- 加上 formatted-desc 類別以完整支援排版換行 -->
           <div id="quickViewDescription" class="text-sm text-slate-600 leading-relaxed formatted-desc">商品描述將顯示在這裡...</div>
@@ -208,9 +227,33 @@
     </div>
     <div id="cartItems" class="flex-1 overflow-y-auto px-5 py-4 sm:px-6"></div>
     <div class="border-t border-slate-200 bg-slate-50 px-5 py-5 sm:px-6">
+    <p id="cartShippingHint" class="mb-3 rounded-xl border border-indigo-100 bg-indigo-50 px-3 py-2 text-xs font-semibold leading-5 text-indigo-800" aria-live="polite">運費按所選取貨方式確認。</p>
       <label for="customerPhone" class="block text-sm font-bold text-slate-800">WhatsApp 聯絡電話</label>
       <p class="mt-1 text-xs leading-5 text-slate-500">請輸入可接收出貨通知的電話號碼（可加國際區碼）。</p>
       <input id="customerPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="例如：91234567 或 +85291234567" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
+      <label for="customerName" class="mt-3 block text-sm font-bold text-slate-800">收件人姓名／稱呼</label>
+      <input id="customerName" type="text" maxlength="100" autocomplete="name" placeholder="請輸入收件人姓名或稱呼" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
+      <label for="shippingMethod" class="mt-3 block text-sm font-bold text-slate-800">取貨方式</label>
+      <select id="shippingMethod" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
+        <option value="">請選擇（可稍後確認）</option>
+        <option value="sf_station">順豐站</option>
+        <option value="sf_locker">順豐智能櫃</option>
+        <option value="順豐">順豐送貨</option>
+        <option value="自取">自取</option>
+        <option value="面交">面交</option>
+        <option value="京東">京東</option>
+      </select>
+      <label for="shippingAddress" class="mt-3 block text-sm font-bold text-slate-800">取貨點編號／地址 <span id="shippingAddressOptional" class="font-normal text-slate-500">（選填）</span></label>
+      <input id="shippingAddress" type="text" maxlength="200" autocomplete="street-address" list="pickupPointExamples" placeholder="可輸入地區或取件點編號" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
+      <datalist id="pickupPointExamples">
+        <option value="852AL"></option>
+        <option value="H852K01P"></option>
+      </datalist>
+      <p id="shippingAddressHint" class="mt-1 text-xs leading-5 text-slate-500">順豐站／智能櫃編號例子只作輸入提示，請核對所選地點。</p>
+      <label class="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-600">
+        <input id="rememberCheckoutDetails" type="checkbox" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+        <span>只在此裝置記住我的收件資料，方便下次自動帶入（可隨時取消）。</span>
+      </label>
       <div class="mt-4 flex items-center justify-between text-sm"><span class="font-semibold text-slate-600">商品小計（估算）</span><strong id="cartSubtotal" class="text-lg font-black text-slate-900">HK$0.00</strong></div>
       <p class="mt-1 text-xs leading-5 text-slate-500">最終價格及庫存會由伺服器於建立訂單時再次核實。</p>
       <button id="checkoutButton" type="button" class="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3.5 text-sm font-extrabold text-white shadow-lg shadow-indigo-200 transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:shadow-none">前往結帳 <span aria-hidden="true">→</span></button>
@@ -260,7 +303,7 @@
     <a href="/" class="flex flex-col items-center gap-0.5 py-1 text-xs font-bold text-indigo-700"><span class="text-lg" aria-hidden="true">🏠</span>商店</a>
     <a href="/track.html" class="flex flex-col items-center gap-0.5 py-1 text-xs font-semibold text-slate-500"><span class="text-lg" aria-hidden="true">📦</span>查單</a>
     <a href="/customer.html" class="flex flex-col items-center gap-0.5 py-1 text-xs font-semibold text-slate-500"><span class="text-lg" aria-hidden="true">👤</span>會員</a>
-    <button id="mobileCartBtn" type="button" class="flex flex-col items-center gap-0.5 py-1 text-xs font-semibold text-slate-500"><span class="text-lg" aria-hidden="true">🛒</span>購物車</button>
+    <button id="mobileCartBtn" type="button" aria-controls="cartDrawer" aria-expanded="false" class="flex flex-col items-center gap-0.5 py-1 text-xs font-semibold text-slate-500"><span class="text-lg" aria-hidden="true">🛒</span>購物車</button>
   </nav>
   <div id="toastNotification" class="pointer-events-none fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 translate-y-3 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white opacity-0 shadow-xl transition sm:bottom-6" role="status" aria-live="polite"></div>
 
@@ -268,7 +311,25 @@
     'use strict';
 
     const CART_STORAGE_KEY = 'littleplanet_cart';
+    const CHECKOUT_PROFILE_STORAGE_KEY = 'littleplanet_checkout_profiles';
     const THEME_STORAGE_KEY = 'littleplanet_theme';
+    const storefrontUrlParams = new URLSearchParams(window.location.search);
+    if (
+      storefrontUrlParams.has('items') ||
+      storefrontUrlParams.has('phone') ||
+      storefrontUrlParams.has('name')
+    ) {
+      const cleanParams = new URLSearchParams(storefrontUrlParams);
+      cleanParams.delete('items');
+      cleanParams.delete('phone');
+      cleanParams.delete('name');
+      const remainingQuery = cleanParams.toString();
+      window.history.replaceState(
+        {},
+        '',
+        `${window.location.pathname}${remainingQuery ? `?${remainingQuery}` : ''}${window.location.hash}`
+      );
+    }
     const NEW_PRODUCT_DAYS = 30;
     const PRODUCT_PAGE_SIZE = 24;
     const currencyFormatter = new Intl.NumberFormat('zh-HK', { style: 'currency', currency: 'HKD' });
@@ -317,6 +378,74 @@
         console.error('儲存購物車失敗：', error);
         showToast('無法儲存購物車，請檢查瀏覽器儲存空間。');
       }
+    }
+
+    function normalizePhoneForProfile(value) {
+      return String(value || '').replace(/\D/g, '');
+    }
+
+    function loadCheckoutProfiles() {
+      try {
+        const profiles = JSON.parse(localStorage.getItem(CHECKOUT_PROFILE_STORAGE_KEY) || '[]');
+        if (!Array.isArray(profiles)) {
+          throw new Error('熟客資料格式無效。');
+        }
+        return profiles.filter(profile =>
+          profile &&
+          typeof profile.phone === 'string' &&
+          typeof profile.customer_name === 'string' &&
+          typeof profile.shipping_method === 'string' &&
+          typeof profile.shipping_address === 'string'
+        );
+      } catch (error) {
+        console.error('讀取本機熟客資料失敗：', error);
+        showToast('無法讀取此裝置已記住的資料，請檢查瀏覽器儲存設定。');
+        return [];
+      }
+    }
+
+    function fillCheckoutProfile() {
+      const phone = normalizePhoneForProfile(document.querySelector('#customerPhone').value);
+      if (!/^\d{8,15}$/.test(phone)) return;
+      const profile = loadCheckoutProfiles().find(item => item.phone === phone);
+      if (!profile) return;
+      document.querySelector('#customerName').value = profile.customer_name;
+      document.querySelector('#shippingMethod').value = profile.shipping_method;
+      document.querySelector('#shippingAddress').value = profile.shipping_address;
+      updateShippingAddressRequirement();
+      showToast('已從此裝置帶入上次收件資料。');
+    }
+
+    function saveCheckoutProfile(phone) {
+      if (!document.querySelector('#rememberCheckoutDetails').checked) return;
+      const profile = {
+        phone: normalizePhoneForProfile(phone),
+        customer_name: document.querySelector('#customerName').value.trim(),
+        shipping_method: document.querySelector('#shippingMethod').value,
+        shipping_address: document.querySelector('#shippingAddress').value.trim(),
+        updated_at: new Date().toISOString()
+      };
+      if (!profile.phone || (!profile.customer_name && !profile.shipping_method && !profile.shipping_address)) return;
+      try {
+        const profiles = loadCheckoutProfiles().filter(item => item.phone !== profile.phone);
+        profiles.unshift(profile);
+        localStorage.setItem(CHECKOUT_PROFILE_STORAGE_KEY, JSON.stringify(profiles.slice(0, 10)));
+      } catch (error) {
+        console.error('儲存本機熟客資料失敗：', error);
+        showToast('訂單已建立，但無法記住資料；請檢查瀏覽器儲存空間。');
+      }
+    }
+
+    function updateShippingAddressRequirement() {
+      const method = document.querySelector('#shippingMethod').value;
+      const requiresPickupPoint = method === 'sf_station' || method === 'sf_locker';
+      const addressInput = document.querySelector('#shippingAddress');
+      addressInput.required = requiresPickupPoint;
+      addressInput.maxLength = requiresPickupPoint ? 190 : 200;
+      document.querySelector('#shippingAddressOptional').textContent = requiresPickupPoint ? '（必填）' : '（選填）';
+      document.querySelector('#shippingAddressHint').textContent = requiresPickupPoint
+        ? '請輸入順豐站／智能櫃編號或地區；示例僅作提示，請核對地點。'
+        : '順豐站／智能櫃編號例子只作輸入提示，請核對所選地點。';
     }
 
     function clearCart() {
@@ -371,21 +500,79 @@
       return price === null ? '價格待確認' : currencyFormatter.format(price);
     }
 
+    function getTierPrices(product) {
+      return Array.isArray(product.tier_prices)
+        ? product.tier_prices.filter(tier =>
+          tier && Number.isSafeInteger(tier.min_qty) &&
+          tier.min_qty > 1 && Number.isFinite(tier.price) && tier.price >= 0
+        ).sort((left, right) => left.min_qty - right.min_qty)
+        : [];
+    }
+
+    function getEffectiveUnitPrice(product, quantity) {
+      const basePrice = getProductPrice(product);
+      if (basePrice === null) return null;
+      return getTierPrices(product).reduce(
+        (price, tier) => quantity >= tier.min_qty ? tier.price : price,
+        basePrice
+      );
+    }
+
+    function tierPriceSummary(product) {
+      return getTierPrices(product)
+        .map(tier => `買滿 ${tier.min_qty} 件每件 ${formatPrice(tier.price)}`)
+        .join(' · ');
+    }
+
+    function formatCountdown(deadline) {
+      const remaining = Date.parse(deadline) - Date.now();
+      if (!Number.isFinite(remaining) || remaining <= 0) return '已截單';
+      const seconds = Math.floor(remaining / 1000);
+      const days = Math.floor(seconds / 86400);
+      const hours = Math.floor((seconds % 86400) / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const secs = seconds % 60;
+      return `截單倒數 ${days}日 ${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    }
+
+    function updateCountdownLabels() {
+      document.querySelectorAll('[data-countdown-deadline]').forEach(label => {
+        label.textContent = formatCountdown(label.dataset.countdownDeadline);
+      });
+      const quickViewAddButton = document.querySelector('#quickViewAddToCartBtn');
+      if (currentQuickViewProduct && currentQuickViewProduct.preorder_deadline) {
+        quickViewAddButton.disabled =
+          Date.parse(currentQuickViewProduct.preorder_deadline) <= Date.now();
+      }
+    }
+
+    const reviewSummaries = new Map();
+
     function showToast(message) {
       const toast = document.querySelector('#toastNotification');
       toast.textContent = message;
+      const isError = /失敗|無法|錯誤|不足|無效|超出|不能/.test(message);
+      toast.classList.toggle('toast-error', isError);
+      toast.classList.toggle('toast-success', !isError);
       toast.classList.remove('translate-y-3', 'opacity-0');
       toast.classList.add('translate-y-0', 'opacity-100');
       clearTimeout(toastTimer);
       toastTimer = setTimeout(() => {
         toast.classList.add('translate-y-3', 'opacity-0');
         toast.classList.remove('translate-y-0', 'opacity-100');
-      }, 2400);
+      }, 2000);
     }
 
     function updateCartCount() {
       const count = cart.reduce((total, item) => total + item.quantity, 0);
-      document.querySelector('#cartCount').textContent = String(count);
+      const countBadge = document.querySelector('#cartCount');
+      const previousCount = Number(countBadge.textContent);
+      countBadge.textContent = String(count);
+      if (count !== previousCount) {
+        countBadge.classList.remove('cart-count-pop');
+        void countBadge.offsetWidth;
+        countBadge.classList.add('cart-count-pop');
+      }
       document.querySelector('#drawerCartCount').textContent = `(${count})`;
       persistCart();
       if (!cartDrawer.inert) renderCart();
@@ -499,6 +686,17 @@
       document.querySelector('#quickViewCategory').textContent = product.category || '精選商品';
       document.querySelector('#quickViewTitle').textContent = getProductName(product);
       document.querySelector('#quickViewPrice').textContent = formatPrice(getProductPrice(product));
+      const tierSummary = document.querySelector('#quickViewTierPrices');
+      tierSummary.textContent = tierPriceSummary(product);
+      tierSummary.hidden = !tierSummary.textContent;
+      const countdown = document.querySelector('#quickViewCountdown');
+      countdown.dataset.countdownDeadline = product.preorder_deadline || '';
+      countdown.hidden = !product.preorder_deadline;
+      if (product.preorder_deadline) countdown.textContent = formatCountdown(product.preorder_deadline);
+      const reviewSummary = reviewSummaries.get(getProductId(product));
+      document.querySelector('#quickViewReviewSummary').textContent = reviewSummary
+        ? `${'★'.repeat(Math.round(reviewSummary.average_rating))}${'☆'.repeat(5 - Math.round(reviewSummary.average_rating))} ${reviewSummary.average_rating.toFixed(1)} · ${reviewSummary.review_count} 則評價`
+        : '☆☆☆☆☆ 暫無評價';
       const stock = getProductStock(product);
 
       const isPreorder = (product.description && product.description.includes('截單')) || (product.name && product.name.includes('【預購】'));
@@ -576,9 +774,23 @@ document.querySelector('#quickViewStock').textContent = isPreorder ? '商品狀�
         imageWrap.append(makeElement('span', 'absolute left-3 top-3 rounded-full bg-slate-900/80 px-2.5 py-1 text-xs font-bold text-white', product.status === '已下架' ? '暫停供應' : '已售罄'));
       } else if (isNewProduct(product)) {
         imageWrap.append(makeElement('span', 'absolute left-3 top-3 rounded-full bg-fuchsia-600 px-2.5 py-1 text-xs font-bold text-white shadow', 'NEW 新品'));
-      } else if (stock !== null && stock <= 5) {
-        imageWrap.append(makeElement('span', 'absolute left-3 top-3 rounded-full bg-rose-500 px-2.5 py-1 text-xs font-bold text-white shadow', 'HOT 熱賣'));
       }
+      const badges = makeElement('div', 'absolute left-3 top-3 flex flex-col items-start gap-1.5');
+      if (!soldOut && stock !== null && stock > 0 && stock < 5) {
+        badges.append(makeElement(
+          'span',
+          'rounded-full bg-rose-600 px-2.5 py-1 text-xs font-extrabold text-white shadow',
+          `🔥 僅剩最後 ${stock} 件！`
+        ));
+      }
+      if (!soldOut && getTierPrices(product).length > 0) {
+        badges.append(makeElement(
+          'span',
+          'rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-extrabold text-white shadow',
+          '團購優惠中'
+        ));
+      }
+      if (badges.childElementCount > 0) imageWrap.append(badges);
 
       const content = makeElement('div', 'flex flex-1 flex-col px-1 pb-1 pt-4');
       if (product.category) content.append(makeElement('p', 'text-xs font-bold tracking-wide text-indigo-600', product.category));
@@ -589,9 +801,25 @@ document.querySelector('#quickViewStock').textContent = isPreorder ? '商品狀�
 
       content.append(makeElement('p', 'mt-2 text-lg font-black tracking-tight text-indigo-700', formatPrice(price)));
 
+      const tierSummary = tierPriceSummary(product);
+      if (tierSummary) content.append(makeElement('p', 'mt-1 text-xs font-bold leading-5 text-emerald-700', tierSummary));
+      if (product.preorder_deadline) {
+        const countdown = makeElement('p', 'mt-1 text-xs font-extrabold text-rose-600');
+        countdown.dataset.countdownDeadline = product.preorder_deadline;
+        countdown.textContent = formatCountdown(product.preorder_deadline);
+        content.append(countdown);
+      }
+      const reviewSummary = reviewSummaries.get(productId);
+      const reviewBadge = makeElement('p', 'mt-1 text-xs font-semibold text-amber-600');
+      reviewBadge.dataset.reviewSummaryFor = productId;
+      reviewBadge.textContent = reviewSummary
+        ? `${'★'.repeat(Math.round(reviewSummary.average_rating))}${'☆'.repeat(5 - Math.round(reviewSummary.average_rating))} ${reviewSummary.average_rating.toFixed(1)} · ${reviewSummary.review_count} 則評價`
+        : '☆☆☆☆☆ 暫無評價';
+      content.append(reviewBadge);
+
 const isPreorder = (product.description && product.description.includes('截單')) || (product.name && product.name.includes('【預購】'));
-const stockText = soldOut ? '暫無庫存' : isPreorder ? '⏳ 預購中（按公告日期到貨）' : stock === null ? '庫存資訊待確認' : stock <= 5 ? `庫存緊張 · 剩餘 ${stock} 件` : `現貨 · ${stock} 件`;
-content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-slate-400' : isPreorder ? 'text-indigo-600 font-bold' : stock !== null && stock <= 5 ? 'text-rose-600' : 'text-emerald-700'}`, stockText));
+const stockText = soldOut ? '暫無庫存' : isPreorder ? '⏳ 預購中（按公告日期到貨）' : stock === null ? '庫存資訊待確認' : stock > 0 && stock < 5 ? `庫存緊張 · 剩餘 ${stock} 件` : `現貨 · ${stock} 件`;
+content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-slate-400' : isPreorder ? 'text-indigo-600 font-bold' : stock !== null && stock > 0 && stock < 5 ? 'text-rose-600' : 'text-emerald-700'}`, stockText));
 
       content.append(createBestBeforeSummary(product.best_before_summary));
 
@@ -827,6 +1055,7 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
           const item = makeElement('li', 'rounded-2xl border border-slate-200 bg-slate-50 p-4');
           item.append(makeElement('p', 'font-bold text-amber-600', `${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}`));
           item.append(makeElement('p', 'mt-2 whitespace-pre-wrap break-words text-sm leading-6 text-slate-700', review.comment));
+          item.append(makeElement('p', 'mt-2 text-xs font-semibold text-slate-500', review.customer_name || '已驗證買家'));
           const date = new Date(review.created_at);
           item.append(makeElement('p', 'mt-2 text-xs text-slate-500', Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('zh-HK')));
           list.append(item);
@@ -868,6 +1097,43 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       await Promise.all([loadProductReviews(), refreshReviewMemberState()]);
     }
 
+    async function loadReviewSummaries(productList) {
+      const productIds = [...new Set(productList.map(getProductId).filter(Boolean))];
+      if (productIds.length === 0) return;
+      try {
+        const query = new URLSearchParams({ product_ids: productIds.join(',') });
+        const response = await fetch(`/api/reviews/summary?${query}`, {
+          headers: { Accept: 'application/json' }
+        });
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true || !result.data ||
+            !result.data.summaries || typeof result.data.summaries !== 'object') {
+          throw new Error(result && result.message
+            ? result.message
+            : `評價摘要載入失敗（HTTP ${response.status}）。`);
+        }
+        for (const [productId, summary] of Object.entries(result.data.summaries)) {
+          if (
+            productIds.includes(productId) &&
+            summary &&
+            Number.isFinite(summary.average_rating) &&
+            Number.isSafeInteger(summary.review_count)
+          ) {
+            reviewSummaries.set(productId, summary);
+          }
+        }
+        document.querySelectorAll('[data-review-summary-for]').forEach(label => {
+          const summary = reviewSummaries.get(label.dataset.reviewSummaryFor);
+          if (summary) {
+            const stars = Math.round(summary.average_rating);
+            label.textContent = `${'★'.repeat(stars)}${'☆'.repeat(5 - stars)} ${summary.average_rating.toFixed(1)} · ${summary.review_count} 則評價`;
+          }
+        });
+      } catch (error) {
+        console.error('載入商品星級摘要失敗：', error);
+      }
+    }
+
     function renderProducts() {
       const visible = products.filter(productMatchesCategory);
 
@@ -903,6 +1169,102 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       });
       persistCart();
       updateCartCount();
+    }
+
+    let deepLinkProcessed = false;
+
+    async function applyDeepLinkOrder() {
+      if (deepLinkProcessed) return;
+      deepLinkProcessed = true;
+      const params = storefrontUrlParams;
+      const rawItems = params.get('items');
+      if (!rawItems) return;
+
+      const requested = new Map();
+      const chunks = rawItems.split(',');
+      if (chunks.length > 20) {
+        showToast('開單連結商品數量超出上限，請聯絡店主。');
+        return;
+      }
+      for (const chunk of chunks) {
+        const match = chunk.match(/^([^:,]+):([1-9]\d{0,3})$/);
+        if (!match || !/^(?:[1-9]\d{0,18}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(match[1])) {
+          showToast('開單連結商品格式無效，請向店主索取新連結。');
+          return;
+        }
+        const productId = match[1].toLowerCase();
+        const quantity = Number(match[2]);
+        const totalQuantity = (requested.get(productId) || 0) + quantity;
+        if (totalQuantity > 1000) {
+          showToast('開單連結商品數量超出上限。');
+          return;
+        }
+        requested.set(productId, totalQuantity);
+      }
+
+      try {
+        const query = new URLSearchParams({ ids: [...requested.keys()].join(',') });
+        const response = await fetch(`/api/products?${query}`, {
+          headers: { Accept: 'application/json' }
+        });
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true || !result.data ||
+            !Array.isArray(result.data.products)) {
+          throw new Error(result && result.message
+            ? result.message
+            : `開單商品讀取失敗（HTTP ${response.status}）。`);
+        }
+        const productsById = new Map(result.data.products.map(product => [
+          getProductId(product).toLowerCase(),
+          product
+        ]));
+        if (productsById.size !== requested.size) {
+          throw new Error('開單連結包含不存在或已下架的商品，請聯絡店主。');
+        }
+        for (const [productId, quantity] of requested) {
+          const product = productsById.get(productId);
+          const existing = cart.find(item => getProductId(item.product).toLowerCase() === productId);
+          const stock = getProductStock(product);
+          if (
+            !product ||
+            stock === null ||
+            stock < quantity + (existing ? existing.quantity : 0) ||
+            quantity + (existing ? existing.quantity : 0) > 1000 ||
+            product.preorder_deadline && Date.parse(product.preorder_deadline) <= Date.now() ||
+            product.status === '已下架' ||
+            product.is_active === false
+          ) {
+            throw new Error(`商品「${product ? getProductName(product) : productId}」目前無法按連結數量加入購物車。`);
+          }
+        }
+        for (const [productId, quantity] of requested) {
+          const product = productsById.get(productId);
+          const existing = cart.find(item => getProductId(item.product).toLowerCase() === productId);
+          if (existing) {
+            existing.product = product;
+            existing.quantity += quantity;
+          } else {
+            cart.push({ product, quantity });
+          }
+        }
+        const phone = params.get('phone') || '';
+        if (/^\+?\d{8,15}$/.test(phone)) {
+          document.querySelector('#customerPhone').value = phone;
+        }
+        const name = params.get('name') || '';
+        if (name.length <= 100 && !/[\u0000-\u001f\u007f]/.test(name)) {
+          document.querySelector('#customerName').value = name.trim();
+        }
+        persistCart();
+        updateCartCount();
+        renderProducts();
+        renderCart();
+        openCart();
+        showToast('私訊開單商品已加入購物車，請核對資料後結帳。');
+      } catch (error) {
+        console.error('套用私訊開單連結失敗：', error);
+        showToast(error.message || '開單連結載入失敗，請稍後重試。');
+      }
     }
 
     async function loadProducts(offset = 0) {
@@ -942,6 +1304,8 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
         renderCategoryTabs();
         reconcileCartWithProducts();
         renderProducts();
+        void loadReviewSummaries(products);
+        if (offset === 0) void applyDeepLinkOrder();
       } catch (error) {
         if (error.name === 'AbortError') return;
         console.error('載入商品失敗：', error);
@@ -970,7 +1334,9 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       if (!product) return;
       const stock = getProductStock(product);
       const price = getProductPrice(product);
-      if (stock === null || stock < 1 || price === null || product.status === '已下架' || product.is_active === false) {
+      if (stock === null || stock < 1 || price === null ||
+          product.preorder_deadline && Date.parse(product.preorder_deadline) <= Date.now() ||
+          product.status === '已下架' || product.is_active === false) {
         showToast('商品目前無法加入購物車。');
         return;
       }
@@ -989,7 +1355,7 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       }
       updateCartCount();
       renderProducts();
-      if (!cartDrawer.inert) renderCart();
+      openCart();
       showToast(`已將 ${quantity} 件「${getProductName(product)}」加入購物車。`);
     }
 
@@ -1020,7 +1386,11 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       remove.setAttribute('aria-label', `移除${name}`);
       top.append(remove);
       details.append(top);
-      details.append(makeElement('p', 'mt-1 text-xs font-semibold text-slate-500', `${formatPrice(price)} × ${item.quantity}`));
+      const unitPrice = getEffectiveUnitPrice(product, item.quantity);
+      const priceText = unitPrice !== price
+        ? `${formatPrice(unitPrice)} / 件（階梯優惠） × ${item.quantity}`
+        : `${formatPrice(price)} × ${item.quantity}`;
+      details.append(makeElement('p', 'mt-1 text-xs font-semibold text-slate-500', priceText));
       if (stock === null || item.quantity > stock) details.append(makeElement('p', 'mt-1 text-xs font-bold text-rose-600', stock === null ? '庫存待確認，暫不能結帳' : '目前庫存不足，請調整數量'));
 
       const controls = makeElement('div', 'mt-2 flex items-center gap-2');
@@ -1049,6 +1419,7 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       return cart.length > 0 && cart.every(item => {
         const stock = getProductStock(item.product);
         return stock !== null && stock > 0 && item.quantity <= stock && getProductPrice(item.product) !== null &&
+          (!item.product.preorder_deadline || Date.parse(item.product.preorder_deadline) > Date.now()) &&
           item.product.status !== '已下架' && item.product.is_active !== false;
       });
     }
@@ -1065,13 +1436,17 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
         cart.forEach(item => cartItemsElement.append(createCartItem(item)));
       }
       const subtotal = cart.reduce((total, item) => {
-        const price = getProductPrice(item.product);
+        const price = getEffectiveUnitPrice(item.product, item.quantity);
         return total + (price === null ? 0 : price * item.quantity);
       }, 0);
       document.querySelector('#cartSubtotal').textContent = currencyFormatter.format(subtotal);
+      const shippingHint = document.querySelector('#cartShippingHint');
+      shippingHint.textContent = document.querySelector('#shippingMethod').value
+        ? '運費按所選取貨方式確認。'
+        : '先選擇取貨方式，即可確認適用運費；目前沒有設定固定免運門檻。';
       document.querySelector('#checkoutButton').disabled = !canCheckout();
       document.querySelector('#checkoutStatus').textContent = cart.length > 0 && !canCheckout()
-        ? '請移除已下架商品，或調整庫存不足的數量後再結帳。'
+        ? '請移除已下架／已截單商品，或調整庫存不足的數量後再結帳。'
         : '';
     }
 
@@ -1080,6 +1455,9 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       renderCart();
       cartDrawer.inert = false;
       cartDrawer.setAttribute('aria-hidden', 'false');
+      document.querySelectorAll('#cartButton, #mobileCartBtn').forEach(button =>
+        button.setAttribute('aria-expanded', 'true')
+      );
       cartBackdrop.classList.remove('hidden');
       document.body.classList.add('overflow-hidden');
       requestAnimationFrame(() => {
@@ -1096,6 +1474,9 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       cartDrawer.classList.add('translate-x-full');
       cartDrawer.setAttribute('aria-hidden', 'true');
       cartDrawer.inert = true;
+      document.querySelectorAll('#cartButton, #mobileCartBtn').forEach(button =>
+        button.setAttribute('aria-expanded', 'false')
+      );
       document.body.classList.remove('overflow-hidden');
       setTimeout(() => cartBackdrop.classList.add('hidden'), 230);
       if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') lastFocusedElement.focus();
@@ -1156,7 +1537,15 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
 
     document.querySelector('#searchInput').addEventListener('input', () => {
       clearTimeout(productSearchTimer);
-      productSearchTimer = setTimeout(() => loadProducts(0), 250);
+      productSearchTimer = setTimeout(() => loadProducts(0), 140);
+    });
+    document.querySelectorAll('[data-search-keyword]').forEach(button => {
+      button.addEventListener('click', () => {
+        const input = document.querySelector('#searchInput');
+        input.value = button.dataset.searchKeyword;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.focus();
+      });
     });
     document.querySelector('#categoryFilter').addEventListener('change', () => {
       activeCategory = 'all';
@@ -1218,7 +1607,11 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       const productId = getProductId(currentQuickViewProduct);
       const stock = getProductStock(currentQuickViewProduct);
       const price = getProductPrice(currentQuickViewProduct);
-      if (stock === null || stock < 1 || price === null || currentQuickViewProduct.status === '已下架' || currentQuickViewProduct.is_active === false) {
+      if (stock === null || stock < 1 || price === null ||
+          currentQuickViewProduct.preorder_deadline &&
+            Date.parse(currentQuickViewProduct.preorder_deadline) <= Date.now() ||
+          currentQuickViewProduct.status === '已下架' ||
+          currentQuickViewProduct.is_active === false) {
         showToast('商品目前無法加入購物車。');
         return;
       }
@@ -1235,7 +1628,7 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       }
       updateCartCount();
       renderProducts();
-      if (!cartDrawer.inert) renderCart();
+      openCart();
       closeQuickView();
       showToast(`已將 ${currentQuickViewQuantity} 件「${getProductName(currentQuickViewProduct)}」加入購物車。`);
     });
@@ -1347,10 +1740,21 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       showToast('已清空購物車。');
     });
 
+    document.querySelector('#customerPhone').addEventListener('change', fillCheckoutProfile);
+    document.querySelector('#customerPhone').addEventListener('blur', fillCheckoutProfile);
+    document.querySelector('#shippingMethod').addEventListener('change', () => {
+      updateShippingAddressRequirement();
+      renderCart();
+    });
+    updateShippingAddressRequirement();
+
     document.querySelector('#checkoutButton').addEventListener('click', async event => {
       const button = event.currentTarget;
       const status = document.querySelector('#checkoutStatus');
       const phone = document.querySelector('#customerPhone').value.trim();
+      const customerName = document.querySelector('#customerName').value.trim();
+      const shippingMethod = document.querySelector('#shippingMethod').value;
+      const shippingAddress = document.querySelector('#shippingAddress').value.trim();
       if (cart.length === 0) {
         status.textContent = '購物車目前沒有商品。';
         return;
@@ -1358,6 +1762,22 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       if (!/^\+?\d{8,15}$/.test(phone)) {
         status.textContent = '請輸入有效的 WhatsApp 電話號碼。';
         document.querySelector('#customerPhone').focus();
+        return;
+      }
+      if (customerName.length > 100 || /[\u0000-\u001f\u007f]/.test(customerName)) {
+        status.textContent = '收件人姓名不可超過 100 字或包含特殊控制字元。';
+        document.querySelector('#customerName').focus();
+        return;
+      }
+      const maxShippingAddressLength = shippingMethod === 'sf_station' || shippingMethod === 'sf_locker' ? 190 : 200;
+      if (shippingAddress.length > maxShippingAddressLength || /[\u0000-\u001f\u007f]/.test(shippingAddress)) {
+        status.textContent = `取貨地點或地址不可超過 ${maxShippingAddressLength} 字。`;
+        document.querySelector('#shippingAddress').focus();
+        return;
+      }
+      if ((shippingMethod === 'sf_station' || shippingMethod === 'sf_locker') && !shippingAddress) {
+        status.textContent = '請輸入順豐站／智能櫃編號或地區。';
+        document.querySelector('#shippingAddress').focus();
         return;
       }
       if (!canCheckout()) {
@@ -1374,6 +1794,9 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
           headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
           body: JSON.stringify({
             customer_phone: phone,
+            customer_name: customerName,
+            shipping_method: shippingMethod,
+            shipping_address: shippingAddress,
             items: cart.map(item => ({
               product_id: getProductId(item.product),
               quantity: item.quantity
@@ -1416,10 +1839,18 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
         }
 
         const orderData = result.data;
-        const orderNo = orderData.order_number || orderData.orderNo || '';
-        if (!orderNo || /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderNo)) {
+        const rawOrderNo = orderData.order_number || orderData.orderNo || '';
+        const orderNo = typeof rawOrderNo === 'string' ? rawOrderNo.trim() : '';
+        if (
+          !orderNo ||
+          orderNo.length > 100 ||
+          /[\u0000-\u001f\u007f]/.test(orderNo) ||
+          /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderNo)
+        ) {
           throw new Error('訂單已建立，但未收到正式訂單編號，請聯絡管理員。');
         }
+
+        saveCheckoutProfile(phone);
 
         // 結帳成功：清空購物車（LocalStorage 與頁面狀態）
         clearCart();
@@ -1452,6 +1883,21 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
     updateCartCount();
     loadProducts();
     loadMemberWishlist();
+    updateCountdownLabels();
+    window.setInterval(() => {
+      updateCountdownLabels();
+      if (cart.length > 0) {
+        document.querySelector('#checkoutButton').disabled = !canCheckout();
+      }
+    }, 1000);
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .catch(error => console.error('註冊離線快取服務失敗：', error));
+      });
+    }
   </script>
 </body>
 </html>

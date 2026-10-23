@@ -105,7 +105,13 @@ test('guest single-order lookup requires both matching phone and official order 
     order_number: 'LP-20261022-A1B2C3D4',
     customer_phone: '85212345678',
     order_date: '2026-10-22T00:00:00.000Z',
-    total_amount: 10
+    total_amount: 10,
+    shipping_status: '已出貨',
+    shipping_method: '順豐',
+    shipping_carrier: 'SF Express',
+    tracking_number: 'SF-123456',
+    payment_proof_url: 'private/path/proof.png',
+    payment_proof_status: 'pending'
   };
 
   await withServer(createRouter(createLookupSupabase([order], state)), async baseUrl => {
@@ -117,6 +123,11 @@ test('guest single-order lookup requires both matching phone and official order 
     assert.equal(match.body.success, true);
     assert.equal(match.body.data.length, 1);
     assert.equal(match.body.data[0].order_number, order.order_number);
+    assert.equal(match.body.data[0].shipping_carrier, 'SF Express');
+    assert.equal(match.body.data[0].tracking_number, 'SF-123456');
+    assert.equal(match.body.data[0].payment_proof_submitted, true);
+    assert.equal(match.body.data[0].payment_proof_status, 'pending');
+    assert.equal(match.body.data[0].payment_proof_url, undefined);
 
     const wrongPhone = await request(baseUrl, {
       customer_phone: '85200000000',

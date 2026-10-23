@@ -78,6 +78,7 @@
               <strong id="resPhone" class="font-bold text-slate-800 dark:text-slate-200">-</strong>
               <button id="editPhoneBtn" type="button" class="text-xs text-indigo-500 hover:underline">修改</button>
             </div>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">收件人：<strong id="resCustomerName" class="font-semibold text-slate-700 dark:text-slate-300">未提供</strong></p>
           </div>
           <div>
             <span class="block text-xs font-bold text-slate-400">出貨方式</span>
@@ -85,12 +86,30 @@
               <strong id="resShippingMethod" class="font-bold text-slate-800 dark:text-slate-200">待後台安排</strong>
               <button id="editShippingBtn" type="button" class="text-xs text-indigo-500 hover:underline">修改</button>
             </div>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">取貨資料：<strong id="resShippingAddress" class="font-semibold text-slate-700 dark:text-slate-300">未提供</strong></p>
           </div>
           <div>
             <span class="block text-xs font-bold text-slate-400">訂單總額</span>
             <strong id="resTotalAmount" class="font-black text-indigo-600 dark:text-indigo-400 mt-0.5 block">HK$0.00</strong>
           </div>
         </div>
+
+        <section id="resTrackingPanel" class="hidden rounded-2xl border border-indigo-100 bg-indigo-50 p-4 dark:border-indigo-900 dark:bg-indigo-950/40" aria-labelledby="trackingHeading">
+          <h3 id="trackingHeading" class="font-black text-slate-900 dark:text-slate-100">📦 物流追蹤</h3>
+          <p id="resTrackingCarrier" class="mt-2 text-sm text-slate-600 dark:text-slate-300"></p>
+          <p class="mt-1 text-sm text-slate-600 dark:text-slate-300">運單號：<strong id="resTrackingNumber" class="select-all"></strong></p>
+          <a id="resTrackingLink" class="mt-3 inline-flex rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-700" target="_blank" rel="noopener noreferrer">前往物流商網站追蹤</a>
+        </section>
+
+        <section id="paymentProofPanel" class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700" aria-labelledby="paymentProofHeading">
+          <h3 id="paymentProofHeading" class="font-black text-slate-900 dark:text-slate-100">💳 FPS / PayMe 付款憑證</h3>
+          <p id="paymentProofStatus" class="mt-2 text-sm text-slate-600 dark:text-slate-300" role="status" aria-live="polite">尚未提交付款憑證</p>
+          <form id="paymentProofForm" class="mt-3 space-y-3">
+            <label for="paymentProofFile" class="block text-sm font-semibold text-slate-700 dark:text-slate-300">選擇付款截圖（JPG、PNG 或 WEBP，最多 5 MB）</label>
+            <input id="paymentProofFile" name="payment_proof" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp" required class="block w-full rounded-xl border border-slate-300 p-2 text-sm dark:border-slate-700">
+            <button id="paymentProofSubmit" type="submit" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-indigo-700">上傳付款憑證</button>
+          </form>
+        </section>
 
         <!-- 商品明細清單 -->
         <div>
@@ -99,6 +118,29 @@
             <!-- 動態填入商品列 -->
           </div>
         </div>
+
+        <section id="orderReviewPanel" class="hidden rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 dark:border-indigo-900 dark:bg-indigo-950/40">
+          <h3 class="font-black text-slate-900 dark:text-slate-100">⭐ 分享訂單商品評價</h3>
+          <p class="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-300">評價只會在管理員審核通過後公開；電話及訂單資料不會公開顯示。</p>
+          <form id="orderReviewForm" class="mt-3 space-y-3">
+            <label for="orderReviewProduct" class="block text-sm font-semibold">選擇商品</label>
+            <select id="orderReviewProduct" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900"></select>
+            <label for="orderReviewName" class="block text-sm font-semibold">公開顯示名稱（選填）</label>
+            <input id="orderReviewName" type="text" maxlength="50" autocomplete="nickname" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900" placeholder="預設顯示「已驗證買家」">
+            <label for="orderReviewRating" class="block text-sm font-semibold">評分</label>
+            <select id="orderReviewRating" required class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900">
+              <option value="5">★★★★★（5 分）</option>
+              <option value="4">★★★★☆（4 分）</option>
+              <option value="3">★★★☆☆（3 分）</option>
+              <option value="2">★★☆☆☆（2 分）</option>
+              <option value="1">★☆☆☆☆（1 分）</option>
+            </select>
+            <label for="orderReviewComment" class="block text-sm font-semibold">評價內容</label>
+            <textarea id="orderReviewComment" required minlength="1" maxlength="1000" rows="3" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm dark:border-slate-700 dark:bg-slate-900" placeholder="分享使用感受（最多 1000 字）"></textarea>
+            <button id="orderReviewSubmit" type="submit" class="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-indigo-700">提交評價</button>
+          </form>
+          <p id="orderReviewStatus" class="mt-3 text-sm" role="status" aria-live="polite"></p>
+        </section>
 
         <!-- 金額結算 -->
         <div class="flex justify-end pt-2">
@@ -163,6 +205,7 @@
 
     let isEditingPhone = false;
     let isEditingShipping = false;
+    let currentOrderData = null;
 
     // 修改聯絡電話邏輯
     editPhoneBtn.addEventListener('click', async () => {
@@ -257,6 +300,7 @@
     });
 
     function renderOrderData(order) {
+      currentOrderData = order;
       document.querySelector('#resOrderNo').textContent = order.order_number || order.order_no || '未知單號';
       
       const phoneEl = document.querySelector('#resPhone');
@@ -264,7 +308,42 @@
       phoneEl.textContent = phoneVal;
       phoneEl.dataset.rawPhone = phoneVal;
 
+      document.querySelector('#resCustomerName').textContent = order.customer_name || '未提供';
       document.querySelector('#resShippingMethod').textContent = order.shipping_method || '待後台安排';
+      document.querySelector('#resShippingAddress').textContent = order.shipping_address || '未提供';
+
+      const trackingNumber = typeof order.tracking_number === 'string'
+        ? order.tracking_number.trim()
+        : '';
+      const carrier = order.shipping_carrier ||
+        (order.shipping_method === '順豐' ? 'SF Express' :
+          order.shipping_method === '京東' ? 'Jump Point' : '');
+      const trackingPanel = document.querySelector('#resTrackingPanel');
+      const trackingLink = document.querySelector('#resTrackingLink');
+      const trackingUrls = {
+        'SF Express': 'https://www.sf-express.com/hk/tc/dynamic_function/waybill/',
+        'Jump Point': 'https://www.jumppoint.io/'
+      };
+      if (trackingNumber && trackingUrls[carrier]) {
+        document.querySelector('#resTrackingCarrier').textContent = `物流商：${carrier}`;
+        document.querySelector('#resTrackingNumber').textContent = trackingNumber;
+        trackingLink.href = trackingUrls[carrier];
+        trackingLink.setAttribute('aria-label', `前往 ${carrier} 網站查詢運單 ${trackingNumber}`);
+        trackingPanel.classList.remove('hidden');
+      } else {
+        trackingPanel.classList.add('hidden');
+      }
+
+      const proofStatus = order.payment_proof_status || 'pending';
+      const proofStatusText = proofStatus === 'verified'
+        ? '✅ 付款憑證已核實。'
+        : proofStatus === 'rejected'
+          ? '⚠️ 付款憑證未能核實，請確認圖片清晰及付款資料正確後重新提交。'
+          : order.payment_proof_submitted
+            ? '⏳ 已收到付款憑證，管理員核對中。'
+            : '尚未提交付款憑證';
+      document.querySelector('#paymentProofStatus').textContent = proofStatusText;
+      document.querySelector('#paymentProofForm').hidden = proofStatus === 'verified';
       
       const total = order.total_amount != null ? `HK$${order.total_amount}` : '計算中';
       document.querySelector('#resTotalAmount').textContent = total;
@@ -278,6 +357,25 @@
       itemsList.replaceChildren();
 
       const items = Array.isArray(order.items) ? order.items : [];
+      const reviewPanel = document.querySelector('#orderReviewPanel');
+      const reviewProductSelect = document.querySelector('#orderReviewProduct');
+      const orderNumber = order.order_number || order.order_no || '';
+      const reviewableItems = [...new Map(items
+        .filter(item => item && (typeof item.product_id === 'string' || typeof item.product_id === 'number'))
+        .map(item => [String(item.product_id), item])).values()];
+      if (orderNumber && !/^[0-9a-f-]{36}$/i.test(orderNumber) && reviewableItems.length > 0) {
+        reviewProductSelect.replaceChildren(...reviewableItems.map(item => {
+          const option = document.createElement('option');
+          option.value = String(item.product_id);
+          option.textContent = item.product_name || item.name || `商品 ${item.product_id}`;
+          return option;
+        }));
+        reviewPanel.classList.remove('hidden');
+        document.querySelector('#orderReviewStatus').textContent = '';
+        document.querySelector('#orderReviewForm').reset();
+      } else {
+        reviewPanel.classList.add('hidden');
+      }
       if (items.length === 0) {
         const empty = document.createElement('div');
         empty.className = 'py-4 text-center text-sm text-slate-400';
@@ -367,6 +465,7 @@
         if (!response.ok || !result || result.success !== true) {
           throw new Error(result && result.message ? result.message : '找不到對應的訂單資料。');
         }
+
         const order = result.data;
         if (!order) throw new Error('查無訂單');
         renderOrderData(order);
@@ -377,6 +476,110 @@
         resultCard.style.display = 'none';
       }
     }
+
+    document.querySelector('#paymentProofForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const fileInput = document.querySelector('#paymentProofFile');
+      const submitButton = document.querySelector('#paymentProofSubmit');
+      const status = document.querySelector('#paymentProofStatus');
+      const file = fileInput.files && fileInput.files[0];
+      const orderNumber = currentOrderData &&
+        (currentOrderData.order_number || currentOrderData.order_no);
+      const phone = currentOrderData && currentOrderData.customer_phone;
+
+      if (!file || !orderNumber || !phone) {
+        status.textContent = '請先查詢訂單，並選擇付款截圖。';
+        return;
+      }
+      if (
+        file.size < 1 ||
+        file.size > 5 * 1024 * 1024 ||
+        !['image/jpeg', 'image/png', 'image/webp'].includes(file.type)
+      ) {
+        status.textContent = '請選擇 JPG、PNG 或 WEBP 圖片，檔案大小不可超過 5 MB。';
+        return;
+      }
+
+      submitButton.disabled = true;
+      status.textContent = '正在安全上傳付款憑證…';
+      try {
+        const response = await fetch(
+          `/api/orders/${encodeURIComponent(orderNumber)}/payment-proof`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': file.type,
+              'X-Customer-Phone': phone
+            },
+            body: file
+          }
+        );
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true || !result.data) {
+          throw new Error(result && result.message
+            ? result.message
+            : `付款憑證上傳失敗（HTTP ${response.status}）。`);
+        }
+        currentOrderData.payment_proof_status = result.data.payment_proof_status;
+        currentOrderData.payment_proof_submitted = true;
+        status.textContent = result.message || '付款憑證已收到，管理員核對後會更新付款狀態。';
+        fileInput.value = '';
+        if (result.data.payment_proof_status === 'verified') {
+          document.querySelector('#paymentProofForm').hidden = true;
+        }
+      } catch (error) {
+        console.error('上傳付款憑證失敗：', error);
+        status.textContent = error.message || '付款憑證上傳失敗，請稍後再試。';
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
+
+    document.querySelector('#orderReviewForm').addEventListener('submit', async event => {
+      event.preventDefault();
+      const submitButton = document.querySelector('#orderReviewSubmit');
+      const status = document.querySelector('#orderReviewStatus');
+      const phone = currentOrderData && currentOrderData.customer_phone;
+      const orderNumber = currentOrderData && (currentOrderData.order_number || currentOrderData.order_no);
+      const productId = document.querySelector('#orderReviewProduct').value;
+      const customerName = document.querySelector('#orderReviewName').value.trim();
+      const rating = Number(document.querySelector('#orderReviewRating').value);
+      const comment = document.querySelector('#orderReviewComment').value.trim();
+      if (!phone || !orderNumber || !productId) {
+        status.textContent = '請先完成電話及訂單編號驗證。';
+        return;
+      }
+      submitButton.disabled = true;
+      status.textContent = '正在提交評價…';
+      try {
+        const response = await fetch('/api/reviews', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            product_id: productId,
+            customer_phone: phone,
+            order_number: orderNumber,
+            customer_name: customerName,
+            rating,
+            comment
+          })
+        });
+        const result = await response.json();
+        if (!response.ok || !result || result.success !== true) {
+          throw new Error(result && result.message
+            ? result.message
+            : `評價提交失敗（HTTP ${response.status}）。`);
+        }
+        status.textContent = result.message || '評價已提交，待管理員審核。';
+        document.querySelector('#orderReviewForm').reset();
+      } catch (error) {
+        console.error('提交訂單評價失敗：', error);
+        status.textContent = error.message || '評價提交失敗，請稍後再試。';
+      } finally {
+        submitButton.disabled = false;
+      }
+    });
 
     const urlParams = new URLSearchParams(window.location.search);
     const paramOrderNo = urlParams.get('order_no') || urlParams.get('order_id');

@@ -58,6 +58,9 @@ test('checkout merges duplicate products and returns the official order number, 
   }), async baseUrl => {
     const response = await postOrder(baseUrl, {
       ...validOrder,
+      customer_name: '小行星客人',
+      shipping_method: 'sf_station',
+      shipping_address: '852AL',
       totalAmount: 0
     });
     assert.equal(response.status, 201);
@@ -71,6 +74,9 @@ test('checkout merges duplicate products and returns the official order number, 
   assert.equal(rpcCall.name, 'create_customer_order');
   assert.equal(rpcCall.args.p_customer_phone, '85212345678');
   assert.deepEqual(rpcCall.args.p_items, [{ product_id: '51', quantity: 3 }]);
+  assert.equal(rpcCall.args.p_customer_name, '小行星客人');
+  assert.equal(rpcCall.args.p_shipping_method, '順豐');
+  assert.equal(rpcCall.args.p_shipping_address, '順豐站：852AL');
 });
 
 test('checkout stores a human-readable order number when the RPC does not return one', async () => {
@@ -123,6 +129,68 @@ test('checkout stores a human-readable order number when the RPC does not return
   });
 });
 
+test('checkout replaces a UUID mistakenly stored as order_number before responding', async () => {
+  const order = { order_id: ORDER_UUID, order_number: ORDER_UUID };
+  const updates = [];
+  const supabase = {
+    rpc: async () => ({
+      data: {
+        order_id: ORDER_UUID,
+        order_number: ORDER_UUID,
+        total_amount: 25,
+        items: []
+      },
+      error: null
+    }),
+    from(table) {
+      assert.equal(table, 'orders');
+      let operation = 'select';
+      let filters = {};
+      let payload;
+      const query = {
+        select() {
+          return query;
+        },
+        update(values) {
+          operation = 'update';
+          payload = values;
+          updates.push(values);
+          return query;
+        },
+        eq(field, value) {
+          filters[field] = value;
+          return query;
+        },
+        is(field, value) {
+          filters[field] = value;
+          return query;
+        },
+        async maybeSingle() {
+          if (filters.order_id !== ORDER_UUID) {
+            return { data: null, error: null };
+          }
+          if (operation === 'update') {
+            assert.equal(filters.order_number, ORDER_UUID);
+            order.order_number = payload.order_number;
+          }
+          return { data: { order_number: order.order_number }, error: null };
+        }
+      };
+      return query;
+    }
+  };
+
+  await withServer(createOrdersRouter(supabase), async baseUrl => {
+    const response = await postOrder(baseUrl, validOrder);
+    assert.equal(response.status, 201);
+    assert.match(response.body.data.order_number, /^LP-\d{8}-[A-F0-9]{8}$/);
+    assert.equal(response.body.data.orderNo, response.body.data.order_number);
+    assert.notEqual(response.body.data.order_number, ORDER_UUID);
+    assert.equal(Object.hasOwn(response.body.data, 'order_id'), false);
+  });
+  assert.equal(order.order_number, updates[0].order_number);
+});
+
 test('stock conflict is surfaced without a success-shaped fallback', async () => {
   await withServer(createOrdersRouter({
     rpc: async () => ({
@@ -157,7 +225,11 @@ test('invalid checkout data and missing service role never call the RPC', async 
       { ...validOrder, items: [{ product_id: 51, quantity: 0 }] },
       { ...validOrder, items: [{ product_id: 'not-an-id', quantity: 1 }] },
       { ...validOrder, items: [{ product_id: 51, quantity: '1' }] },
-      { ...validOrder, items: [{ product_id: 51, quantity: true }] }
+      { ...validOrder, items: [{ product_id: 51, quantity: true }] },
+      { ...validOrder, shipping_method: 'sf_station' },
+      { ...validOrder, shipping_method: 'sf_station', shipping_address: 'x'.repeat(191) },
+      { ...validOrder, customer_name: 42 },
+      { ...validOrder, shipping_address: 'x'.repeat(201) }
     ]) {
       const response = await postOrder(baseUrl, body);
       assert.equal(response.status, 400);

@@ -6,6 +6,7 @@ const createAdminSessions = require('./middleware/admin-sessions');
 const { createClient } = require('@supabase/supabase-js');
 const createProductsRouter = require('./routes/products');
 const createOrdersRouter = require('./routes/orders');
+const createCustomersRouter = require('./routes/customers');
 const createReminderRouter = require('./routes/reminders');
 const createInboundRouter = require('./routes/inbound');
 const createShippingRouter = require('./routes/shipping');
@@ -13,6 +14,8 @@ const createCustomerRouter = require('./routes/customer');
 const createReviewsRouter = require('./routes/reviews');
 const createAnalyticsRouter = require('./routes/analytics');
 const createWebhookRouter = require('./routes/webhook');
+const createWhatsAppSender = require('./utils/whatsapp-cloud-api');
+const createPaymentProofRouter = require('./routes/payment-proofs');
 const createApiProtection = require('./middleware/api-protection');
 const createSensitiveRateLimiters = require('./middleware/sensitive-rate-limits');
 const helmet = require('helmet');
@@ -131,9 +134,14 @@ app.use('/api', createApiProtection({
 const sensitiveRateLimiters = createSensitiveRateLimiters();
 app.post('/api/orders', sensitiveRateLimiters.checkout);
 app.post('/api/products', sensitiveRateLimiters.adminWrite);
+app.post('/api/products/images', sensitiveRateLimiters.adminWrite);
 app.patch('/api/products/:productId', sensitiveRateLimiters.adminWrite);
 app.patch('/api/products/:productId/stock', sensitiveRateLimiters.inventory);
+app.get('/api/products/inventory-alerts', sensitiveRateLimiters.adminWrite);
+app.get('/api/products/adjustments', sensitiveRateLimiters.adminWrite);
+app.post('/api/products/:productId/adjustments', sensitiveRateLimiters.adminWrite);
 app.post('/api/customer/orders/lookup', sensitiveRateLimiters.customerLookup);
+app.post('/api/orders/:id/payment-proof', sensitiveRateLimiters.paymentProofUpload);
 app.post('/api/admin-auth/login', sensitiveRateLimiters.adminLogin);
 app.post('/api/customer/member/session', sensitiveRateLimiters.customerAuth);
 app.get('/api/customer/orders', sensitiveRateLimiters.customerOrders);
@@ -141,10 +149,16 @@ app.get('/api/customer/wishlist', sensitiveRateLimiters.customerWishlistRead);
 app.post('/api/customer/wishlist', sensitiveRateLimiters.customerWishlistWrite);
 app.delete('/api/customer/wishlist/:productId', sensitiveRateLimiters.customerWishlistWrite);
 app.post('/api/products/:productId/reviews', sensitiveRateLimiters.customerReview);
+app.post('/api/reviews', sensitiveRateLimiters.customerReview);
 app.delete('/api/admin/reviews/:reviewId', sensitiveRateLimiters.reviewAdmin);
 app.get('/api/admin/reviews', sensitiveRateLimiters.reviewAdmin);
+app.patch('/api/admin/reviews/:reviewId/status', sensitiveRateLimiters.reviewAdmin);
+app.get('/api/admin/customers', sensitiveRateLimiters.reviewAdmin);
+app.patch('/api/admin/customers/:id/credit-status', sensitiveRateLimiters.adminWrite);
 app.patch('/api/orders/admin/orders/:orderId/status', sensitiveRateLimiters.adminWrite);
+app.patch('/api/admin/orders/:orderId/payment-status', sensitiveRateLimiters.adminWrite);
 app.post('/api/shipping/:orderId/ship', sensitiveRateLimiters.adminWrite);
+app.post('/api/shipping/bulk-tracking', sensitiveRateLimiters.adminWrite);
 app.post('/api/shipping/:orderId/notification/retry', sensitiveRateLimiters.adminWrite);
 app.post('/api/inbound/receipt', sensitiveRateLimiters.adminWrite);
 app.get('/api/inbound/batches', sensitiveRateLimiters.adminWrite);
@@ -187,6 +201,18 @@ const productAdminToken = process.env.PRODUCT_ADMIN_TOKEN || shippingAdminToken;
 const analyticsAdminToken = process.env.ANALYTICS_ADMIN_TOKEN || shippingAdminToken;
 const inboundAdminToken = process.env.INBOUND_ADMIN_TOKEN || '';
 const reviewsAdminToken = process.env.REVIEWS_ADMIN_TOKEN || '';
+const paymentProofReceiptRecipients = (process.env.WHATSAPP_PAYMENT_RECEIPT_RECIPIENTS || '')
+  .split(',')
+  .map(value => value.trim())
+  .filter(Boolean);
+if (paymentProofReceiptRecipients.some(phone => !/^[0-9]{8,15}$/.test(phone))) {
+  throw new Error('WHATSAPP_PAYMENT_RECEIPT_RECIPIENTS 必須是逗號分隔的 8 至 15 位電話號碼。');
+}
+const whatsappSender = createWhatsAppSender({
+  apiVersion: process.env.WHATSAPP_GRAPH_API_VERSION,
+  phoneNumberId: process.env.WHATSAPP_PHONE_NUMBER_ID,
+  accessToken: process.env.WHATSAPP_API_TOKEN || process.env.WHATSAPP_ACCESS_TOKEN
+});
 const adminSessionSecret = process.env.ADMIN_SESSION_SECRET || (
   app.get('env') === 'production'
     ? ''
@@ -197,7 +223,7 @@ const adminSessions = createAdminSessions({
   sessionSecret: adminSessionSecret,
   secureCookie: app.get('env') === 'production',
   credentials: [
-    { token: shippingAdminToken, scopes: ['shipping', 'orders'] },
+    { token: shippingAdminToken, scopes: ['shipping', 'orders', 'customers'] },
     { token: productAdminToken, scopes: ['products'] },
     { token: analyticsAdminToken, scopes: ['analytics'] },
     { token: inboundAdminToken, scopes: ['inbound'] },
@@ -223,6 +249,20 @@ app.use('/api/orders', createOrdersRouter(adminSupabase, {
   serviceRoleAvailable: supabaseServiceRoleKey.length > 0,
   isSessionAuthorized: adminSessions.isSessionAuthorized
 }));
+app.use('/api/orders', createPaymentProofRouter(adminSupabase, {
+  serviceRoleAvailable: supabaseServiceRoleKey.length > 0,
+  isSessionAuthorized: adminSessions.isSessionAuthorized,
+  enableAdmin: false
+}));
+app.use('/api/admin/orders', createPaymentProofRouter(adminSupabase, {
+  serviceRoleAvailable: supabaseServiceRoleKey.length > 0,
+  isSessionAuthorized: adminSessions.isSessionAuthorized,
+  enableUpload: false
+}));
+app.use('/api/admin/customers', createCustomersRouter(adminSupabase, {
+  serviceRoleAvailable: supabaseServiceRoleKey.length > 0,
+  isSessionAuthorized: adminSessions.isSessionAuthorized
+}));
 app.use('/api/customer', createCustomerRouter(adminSupabase, {
   rateLimitSecret: process.env.CUSTOMER_LOOKUP_RATE_SECRET,
   sessionSecret: process.env.CUSTOMER_SESSION_SECRET || 'temp-secret',
@@ -245,6 +285,14 @@ app.use('/api/inbound', createInboundRouter(adminSupabase, {
   adminToken: inboundAdminToken,
   isSessionAuthorized: adminSessions.isAuthorized,
   writeEnabled: supabaseServiceRoleKey.length > 0
+}));
+
+app.use('/api/webhook', createWebhookRouter(adminSupabase, {
+  verifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
+  appSecret: process.env.WHATSAPP_APP_SECRET,
+  writeEnabled: supabaseServiceRoleKey.length > 0,
+  sendWhatsApp: whatsappSender,
+  receiptRecipients: paymentProofReceiptRecipients
 }));
 
 app.use('/api/shipping', createShippingRouter(adminSupabase, {

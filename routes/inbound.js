@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const express = require('express');
 
 const MAX_INBOUND_QUANTITY = 100000;
+const MAX_EXPIRING_BATCHES = 500;
 const MISSING_RPC_CODES = new Set(['42883', 'PGRST202']);
 const BATCH_SELECT_COLUMNS =
   'batch_id, product_id, quantity_received, quantity_remaining, best_before_date, received_at, is_legacy_stock';
@@ -49,13 +50,13 @@ function parseOrderUuid(value) {
     : null;
 }
 
-function getHongKongDate() {
+function getHongKongDate(date = new Date()) {
   const dateParts = new Intl.DateTimeFormat('en-CA', {
     timeZone: 'Asia/Hong_Kong',
     year: 'numeric',
     month: '2-digit',
     day: '2-digit'
-  }).formatToParts(new Date());
+  }).formatToParts(date);
   const parts = Object.fromEntries(dateParts.map(part => [part.type, part.value]));
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
@@ -180,6 +181,88 @@ function createInboundRouter(supabase, options = {}) {
     } catch (error) {
       console.error('處理入庫時發生未預期錯誤：', error);
       return sendError(res, 500, '處理入庫時發生錯誤，資料庫交易未確認，請稍後再試。');
+    }
+  });
+
+  router.get('/expiring', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    try {
+      const now = typeof options.now === 'function' ? options.now() : new Date();
+      const today = getHongKongDate(now);
+      const alertEnd = new Date(`${today}T00:00:00.000Z`);
+      alertEnd.setUTCDate(alertEnd.getUTCDate() + 30);
+      const endDate = alertEnd.toISOString().slice(0, 10);
+
+      const { data: batches, error: batchError } = await supabase
+        .from('product_stock_batches')
+        .select(BATCH_SELECT_COLUMNS)
+        .gt('quantity_remaining', 0)
+        .not('best_before_date', 'is', null)
+        .lte('best_before_date', endDate)
+        .order('best_before_date', { ascending: true })
+        .limit(MAX_EXPIRING_BATCHES + 1);
+      if (batchError) {
+        console.error('讀取近效期庫存批次時發生 Supabase 錯誤：', batchError);
+        if (batchError.code === '42P01' || batchError.code === 'PGRST205') {
+          return sendError(res, 503, '商品效期批次 migration 尚未執行。');
+        }
+        return sendError(res, 500, '讀取近效期庫存失敗，請稍後再試。');
+      }
+      if (!Array.isArray(batches)) {
+        console.error('近效期庫存批次查詢回傳格式無效：', batches);
+        return sendError(res, 500, '近效期庫存資料格式無效。');
+      }
+      if (batches.length > MAX_EXPIRING_BATCHES) {
+        return sendError(res, 413, '近效期庫存警示超過安全顯示上限，請先分批查看。');
+      }
+
+      const productIds = [...new Set(batches.map(batch => batch.product_id))];
+      let products = [];
+      if (productIds.length > 0) {
+        const { data, error: productError } = await supabase
+          .from('products')
+          .select('id,name,product_name')
+          .in('id', productIds);
+        if (productError) {
+          console.error('讀取近效期批次商品名稱時發生 Supabase 錯誤：', productError);
+          return sendError(res, 500, '讀取近效期商品名稱失敗，請稍後再試。');
+        }
+        if (!Array.isArray(data)) {
+          console.error('近效期商品查詢回傳格式無效：', data);
+          return sendError(res, 500, '近效期商品資料格式無效。');
+        }
+        products = data;
+      }
+
+      const namesById = new Map(products.map(product => [
+        String(product.id),
+        String(product.product_name || product.name || '未命名商品')
+      ]));
+      const alerts = batches
+        .filter(batch => (
+          Number.isSafeInteger(batch.quantity_remaining) &&
+          batch.quantity_remaining > 0 &&
+          typeof batch.best_before_date === 'string' &&
+          batch.best_before_date <= endDate
+        ))
+        .map(batch => ({
+          ...batch,
+          product_name: namesById.get(String(batch.product_id)) || '未命名商品',
+          is_expired: batch.best_before_date < today
+        }));
+
+      return res.json({
+        success: true,
+        data: {
+          alerts,
+          today,
+          through_date: endDate
+        },
+        message: '近效期庫存警示已載入。'
+      });
+    } catch (error) {
+      console.error('處理近效期庫存查詢時發生未預期錯誤：', error);
+      return sendError(res, 500, '讀取近效期庫存時發生錯誤，請稍後再試。');
     }
   });
 
