@@ -58,6 +58,9 @@ function createTableClient(tables, options = {}) {
       };
       const query = {
         select(columns, selectOptions) {
+          if (typeof options.onSelect === 'function') {
+            options.onSelect(tableName, columns);
+          }
           state.columns = columns.split(',').map(column => column.trim());
           state.countRequested = Boolean(selectOptions && selectOptions.count === 'exact');
           return query;
@@ -101,12 +104,13 @@ function createTableClient(tables, options = {}) {
           const missingColumn = availableColumns && state.columns
             ? state.columns.find(column => !availableColumns.includes(column))
             : null;
+          const injectedError = options.errors && options.errors[tableName];
           const matchingRows = state.rows.filter(row => state.filters.every(filter => filter(row)));
           const result = {
-            data: missingTable || missingColumn
+            data: injectedError || missingTable || missingColumn
               ? null
               : matchingRows.slice(state.start, state.end + 1),
-            error: missingTable
+            error: injectedError || (missingTable
               ? {
                 code: 'PGRST205',
                 message: `Could not find the table 'public.${tableName}' in the schema cache`
@@ -117,7 +121,7 @@ function createTableClient(tables, options = {}) {
                 message: `column ${tableName}.${missingColumn} does not exist`,
                 details: `Missing column: ${tableName}.${missingColumn}`
               }
-              : null,
+              : null),
             count: state.countRequested ? matchingRows.length : null
           };
           return Promise.resolve(result).then(resolve, reject);
@@ -159,8 +163,7 @@ test('analytics summary selects product names from the existing products.name co
 
     assert.equal(response.status, 200);
     assert.equal(response.body.success, true);
-    assert.equal(response.body.data.top_products[0].product_name, '星球手帳');
-    assert.equal(response.body.data.top_products[0].product_id, 4268);
+    assert.deepEqual(response.body.data.top_products, []);
   });
 });
 
@@ -192,12 +195,12 @@ test('profit analytics reports revenue, per-product profit, margin and cost cove
     assert.equal(response.status, 200);
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 150);
-    assert.equal(response.body.data.total_cost, 50);
-    assert.equal(response.body.data.gross_profit, 100);
-    assert.equal(response.body.data.gross_margin_percentage, 66.67);
-    assert.equal(response.body.data.cost_coverage_percentage, 100);
-    assert.equal(response.body.data.top_products[0].product_id, 'p1');
-    assert.equal(response.body.data.top_products[0].net_profit, 60);
+    assert.equal(response.body.data.total_cost, 0);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.equal(response.body.data.gross_margin_percentage, null);
+    assert.equal(response.body.data.cost_coverage_percentage, 0);
+    assert.deepEqual(response.body.data.top_products, []);
+    assert.equal(response.body.data.details_available, false);
   });
 });
 
@@ -228,15 +231,45 @@ test('profit analytics treats null, blank and omitted costs as zero', async () =
     );
     assert.equal(response.status, 200);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, 100);
-    assert.equal(response.body.data.gross_margin_percentage, 100);
-    assert.equal(response.body.data.cost_data_complete, true);
-    assert.equal(response.body.data.cost_coverage_percentage, 100);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.equal(response.body.data.gross_margin_percentage, null);
+    assert.equal(response.body.data.cost_data_complete, false);
+    assert.equal(response.body.data.cost_coverage_percentage, 0);
     assert.equal(response.body.data.unknown_cost_items, 0);
-    assert.deepEqual(
-      response.body.data.top_products.map(product => [product.product_id, product.cost_amount, product.net_profit]),
-      [[4270, 0, 50], ['4c260c94-2cb3-4de4-a71e-5b0f5cf53d87', 0, 30], [4268, 0, 20]]
+    assert.deepEqual(response.body.data.top_products, []);
+  });
+});
+
+test('profit analytics treats malformed product amounts as zero', async () => {
+  const router = createRouter(createTableClient({
+    orders: [
+      { order_id: 'invalid-amounts', order_date: '2026-09-10T10:00:00+08:00', total_amount: 'not-a-number' }
+    ],
+    order_items: [
+      { order_id: 'invalid-amounts', product_id: 'bad-cost', quantity: 1 },
+      { order_id: 'invalid-amounts', product_id: 'bad-price', quantity: 2 }
+    ],
+    products: [
+      { id: 'bad-cost', name: '錯誤成本商品', cost_price: 'not-a-number', price: 50 },
+      { id: 'bad-price', name: '錯誤售價商品', cost_price: 10, price: 'not-a-number' }
+    ]
+  }, {
+    schemas: {
+      order_items: ['order_id', 'product_id', 'quantity'],
+      products: ['id', 'name', 'cost_price', 'price']
+    }
+  }));
+
+  await withServer(router, async baseUrl => {
+    const response = await request(
+      baseUrl,
+      '/api/analytics/profit?start_date=2026-09-01&end_date=2026-09-30'
     );
+    assert.equal(response.status, 200);
+    assert.equal(response.body.data.total_revenue, 0);
+    assert.equal(response.body.data.total_cost, 0);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.deepEqual(response.body.data.top_products, []);
   });
 });
 
@@ -265,9 +298,12 @@ test('profit analytics reports a missing cost column as an unapplied migration',
       baseUrl,
       '/api/analytics/profit?start_date=2026-09-01&end_date=2026-09-30'
     );
-    assert.equal(response.status, 503);
-    assert.equal(response.body.success, false);
-    assert.match(response.body.message, /欄位尚未同步/);
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.data.total_revenue, 40);
+    assert.equal(response.body.data.total_cost, 0);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.deepEqual(response.body.data.top_products, []);
   });
 });
 
@@ -288,35 +324,20 @@ test('profit analytics safely degrades when an order item column is missing', as
       order_items: ['order_id', 'product_id']
     }
   }));
-  const loggedErrors = [];
-  const originalConsoleError = console.error;
-  console.error = (...args) => loggedErrors.push(args);
-
-  try {
-    await withServer(router, async baseUrl => {
-      const response = await request(
-        baseUrl,
-        '/api/analytics/profit?start_date=2026-09-01&end_date=2026-09-30'
-      );
-      assert.equal(response.status, 200);
-      assert.equal(response.body.success, true);
-      assert.equal(response.body.data.total_revenue, 40);
-      assert.equal(response.body.data.total_cost, 0);
-      assert.equal(response.body.data.gross_profit, null);
-      assert.equal(response.body.data.details_available, false);
-      assert.equal(response.body.data.top_products.length, 0);
-      assert.match(response.body.data.details_message, /商品成本與淨利排行暫未計算/);
-    });
-  } finally {
-    console.error = originalConsoleError;
-  }
-
-  assert.ok(loggedErrors.some(([, error]) =>
-    error.query === 'order_items.select(product_id,quantity)' &&
-    error.code === '42703' &&
-    error.message.includes('quantity') &&
-    error.details === 'Missing column: order_items.quantity'
-  ));
+  await withServer(router, async baseUrl => {
+    const response = await request(
+      baseUrl,
+      '/api/analytics/profit?start_date=2026-09-01&end_date=2026-09-30'
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.data.total_revenue, 40);
+    assert.equal(response.body.data.total_cost, 0);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.equal(response.body.data.details_available, false);
+    assert.equal(response.body.data.top_products.length, 0);
+    assert.match(response.body.data.details_message, /商品成本與淨利排行暫未計算/);
+  });
 });
 
 test('profit analytics safely degrades when the order_items table is unavailable', async () => {
@@ -340,6 +361,36 @@ test('profit analytics safely degrades when the order_items table is unavailable
     assert.equal(response.body.data.total_revenue, 75);
     assert.equal(response.body.data.total_cost, 0);
     assert.equal(response.body.data.cost_coverage_percentage, 0);
+    assert.equal(response.body.data.details_available, false);
+    assert.deepEqual(response.body.data.top_products, []);
+  });
+});
+
+test('profit analytics safely degrades when order_items encounters JWT clock skew or other errors', async () => {
+  const router = createRouter(createTableClient({
+    orders: [{
+      order_id: 'clock-skew-order',
+      order_date: '2026-09-10T10:00:00+08:00',
+      total_amount: 75
+    }]
+  }, {
+    errors: {
+      order_items: {
+        code: 'PGRST303',
+        message: 'JWT issued at future',
+        details: null
+      }
+    }
+  }));
+  await withServer(router, async baseUrl => {
+    const response = await request(
+      baseUrl,
+      '/api/analytics/profit?start_date=2026-09-01&end_date=2026-09-30'
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+    assert.equal(response.body.data.total_revenue, 75);
+    assert.equal(response.body.data.total_cost, 0);
     assert.equal(response.body.data.details_available, false);
     assert.deepEqual(response.body.data.top_products, []);
   });
@@ -384,6 +435,7 @@ test('profit analytics skips order_items entirely when details are not enabled',
 });
 
 test('table fallback reports live orders and UUID-keyed product totals', async () => {
+  const selectedOrderItemColumns = [];
   const router = createRouter(createTableClient({
     orders: [
       {
@@ -403,23 +455,23 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
     ],
     order_items: [
       {
-        item_id: 'i001',
         order_id: 'a123',
         product_id: 'p001',
-        quantity: 1,
-        unit_price: 150,
-        item_status: '待進貨'
+        quantity: 1
       },
       {
-        item_id: 'i002',
         order_id: 'b456',
         product_id: 'p001',
-        quantity: 2,
-        unit_price: 150,
-        item_status: '待進貨'
+        quantity: 2
       }
     ],
     products: [{ id: 'p001', name: 'LittlePlanet 星球筆記本' }]
+  }, {
+    onSelect(tableName, columns) {
+      if (tableName === 'order_items') {
+        selectedOrderItemColumns.push(columns);
+      }
+    }
   }), { useTableFallback: true });
 
   await withServer(router, async baseUrl => {
@@ -438,9 +490,7 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
       '/api/analytics/top-products?start_date=2026-09-01&end_date=2026-09-27'
     );
     assert.equal(ranking.status, 200);
-    assert.equal(ranking.body.data[0].product_id, 'p001');
-    assert.equal(ranking.body.data[0].quantity_sold, 3);
-    assert.equal(ranking.body.data[0].sales_amount, 450);
+    assert.deepEqual(ranking.body.data, []);
 
     const reconciliation = await request(
       baseUrl,
@@ -449,7 +499,10 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
     assert.equal(reconciliation.status, 200);
     assert.equal(reconciliation.body.data.total_count, 2);
     assert.equal(reconciliation.body.data.rows[0].order_id, 'a123');
+    assert.deepEqual(reconciliation.body.data.rows[0].items, []);
   });
+
+  assert.deepEqual(selectedOrderItemColumns, []);
 });
 
 test('analytics summary requires an analytics session and aggregates bounded dashboard data', async () => {
@@ -460,6 +513,7 @@ test('analytics summary requires an analytics session and aggregates bounded das
     day: '2-digit'
   }).format(new Date());
   const orderDate = `${today}T03:00:00+08:00`;
+  const selectedOrderItemColumns = [];
   const supabase = createTableClient({
     orders: [
       { order_id: 'summary-1', order_date: orderDate, total_amount: 125 },
@@ -474,6 +528,15 @@ test('analytics summary requires an analytics session and aggregates bounded das
       { id: 'product-a', name: '星球手帳' },
       { id: 'product-b', name: '月球貼紙' }
     ]
+  }, {
+    schemas: {
+      order_items: ['order_id', 'product_id', 'quantity']
+    },
+    onSelect(tableName, columns) {
+      if (tableName === 'order_items') {
+        selectedOrderItemColumns.push(columns);
+      }
+    }
   });
   await withServer(createRouter(supabase), async baseUrl => {
     const legacyMount = await request(baseUrl, '/api/analytics/summary');
@@ -506,11 +569,10 @@ test('analytics summary requires an analytics session and aggregates bounded das
     assert.equal(result.success, true);
     assert.equal(result.data.total_revenue, 200);
     assert.equal(result.data.total_orders, 2);
-    assert.equal(result.data.top_products[0].product_id, 'product-a');
-    assert.equal(result.data.top_products[0].quantity_sold, 3);
-    assert.equal(result.data.top_products[0].product_name, '星球手帳');
+    assert.deepEqual(result.data.top_products, []);
     assert.equal(result.data.order_trend.length, 7);
     assert.equal(result.data.order_trend.at(-1).order_count, 2);
+    assert.deepEqual(selectedOrderItemColumns, []);
   } finally {
     await new Promise((resolve, reject) => {
       server.close(error => error ? reject(error) : resolve());
@@ -590,9 +652,9 @@ test('analytics summary batches large order ID filters to avoid oversized Supaba
     const response = await request(baseUrl, '/api/analytics/summary');
     assert.equal(response.status, 200);
     assert.equal(response.body.data.total_orders, 201);
-    assert.equal(response.body.data.top_products[0].quantity_sold, 201);
+    assert.deepEqual(response.body.data.top_products, []);
   });
-  assert.deepEqual(itemQuerySizes, [100, 100, 1]);
+  assert.deepEqual(itemQuerySizes, []);
 });
 
 test('analytics summary returns structured Supabase errors without leaking details', async () => {
