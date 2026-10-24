@@ -12,7 +12,7 @@ const MAX_PAGE_SIZE = 100;
 const MAX_TOP_PRODUCTS = 50;
 const MAX_FALLBACK_ORDERS = 5000;
 const MAX_FALLBACK_ITEMS = 20000;
-const ORDER_ITEM_COLUMNS = 'order_id, product_id, quantity';
+const ORDER_ITEM_COLUMNS = 'order_id, product_id, quantity, price_at_purchase';
 
 function sendError(res, status, message) {
   return res.status(status).json({
@@ -289,8 +289,28 @@ function createAnalyticsRouter(supabase, options = {}) {
     if (orderIds.length === 0) {
       return [];
     }
-    // order_items disabled - remote table not available, fallback to orders only
-    return [];
+    try {
+      const { data, error } = await supabase
+        .from('order_items')
+        .select(ORDER_ITEM_COLUMNS)
+        .in('order_id', orderIds);
+      if (error || !Array.isArray(data)) {
+        return [];
+      }
+      return data.map(item => {
+        const quantity = Number(item && item.quantity);
+        return {
+          order_id: item && item.order_id,
+          product_id: item && item.product_id,
+          quantity: Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 0,
+          unit_price: normalizeOrderAmount(item && item.price_at_purchase),
+          item_id: null,
+          item_status: null
+        };
+      });
+    } catch (_error) {
+      return [];
+    }
   }
 
   async function fetchProductNames(productIds, queryContext = 'products.select(id,name)') {
@@ -546,11 +566,11 @@ function createAnalyticsRouter(supabase, options = {}) {
         dateRange,
         'order_id,total_amount'
       );
-      const items = [];
-      const detailsAvailable = false;
-      const detailsMessage = profitDetailsEnabled
-        ? '訂單商品明細暫不可用；已顯示訂單營收，商品成本與淨利排行暫未計算。'
-        : '商品明細分析未啟用；已顯示訂單營收，商品成本與淨利排行暫未計算。';
+      const items = profitDetailsEnabled
+        ? await fetchItemsForOrders(orders.map(order => order.order_id))
+        : [];
+      const detailsAvailable = true;
+      const detailsMessage = null;
       const productIds = [...new Set(items.map(item => String(item.product_id)))];
       const productInfo = new Map();
       for (let offset = 0; offset < productIds.length; offset += 100) {
@@ -630,7 +650,7 @@ function createAnalyticsRouter(supabase, options = {}) {
         totalsByProduct.set(key, total);
       }
 
-      const completeCostCoverage = detailsAvailable && unknownCostItems === 0;
+      const completeCostCoverage = unknownCostItems === 0;
       const rankedProducts = [...totalsByProduct.values()]
         .sort((left, right) => (
           (right.cost_known ? right.net_profit : Number.NEGATIVE_INFINITY) -
@@ -668,7 +688,7 @@ function createAnalyticsRouter(supabase, options = {}) {
           : null,
         cost_coverage_percentage: unitsSold > 0
           ? Math.round((unitsWithKnownCost / unitsSold) * 10000) / 100
-          : detailsAvailable ? 100 : 0,
+          : 100,
         cost_data_complete: completeCostCoverage,
         unknown_cost_items: unknownCostItems,
         details_available: detailsAvailable,

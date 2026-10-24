@@ -183,7 +183,7 @@ test('profit analytics reports revenue, per-product profit, margin and cost cove
     ]
   }, {
     schemas: {
-      order_items: ['order_id', 'product_id', 'quantity'],
+      order_items: ['order_id', 'product_id', 'quantity', 'price_at_purchase'],
       products: ['id', 'name', 'cost_price', 'price']
     }
   }));
@@ -195,12 +195,13 @@ test('profit analytics reports revenue, per-product profit, margin and cost cove
     assert.equal(response.status, 200);
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 150);
-    assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, null);
-    assert.equal(response.body.data.gross_margin_percentage, null);
-    assert.equal(response.body.data.cost_coverage_percentage, 0);
-    assert.deepEqual(response.body.data.top_products, []);
-    assert.equal(response.body.data.details_available, false);
+    assert.equal(response.body.data.total_cost, 50);
+    assert.equal(response.body.data.gross_profit, 100);
+    assert.equal(response.body.data.gross_margin_percentage, 66.67);
+    assert.equal(response.body.data.cost_coverage_percentage, 100);
+    assert.equal(response.body.data.top_products[0].product_id, 'p1');
+    assert.equal(response.body.data.top_products[0].net_profit, 60);
+    assert.equal(response.body.data.details_available, true);
   });
 });
 
@@ -231,12 +232,15 @@ test('profit analytics treats null, blank and omitted costs as zero', async () =
     );
     assert.equal(response.status, 200);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, null);
-    assert.equal(response.body.data.gross_margin_percentage, null);
-    assert.equal(response.body.data.cost_data_complete, false);
-    assert.equal(response.body.data.cost_coverage_percentage, 0);
+    assert.equal(response.body.data.gross_profit, 100);
+    assert.equal(response.body.data.gross_margin_percentage, 100);
+    assert.equal(response.body.data.cost_data_complete, true);
+    assert.equal(response.body.data.cost_coverage_percentage, 100);
     assert.equal(response.body.data.unknown_cost_items, 0);
-    assert.deepEqual(response.body.data.top_products, []);
+    assert.deepEqual(
+      response.body.data.top_products.map(product => [product.product_id, product.cost_amount, product.net_profit]),
+      [[4270, 0, 50], ['4c260c94-2cb3-4de4-a71e-5b0f5cf53d87', 0, 30], [4268, 0, 20]]
+    );
   });
 });
 
@@ -255,7 +259,7 @@ test('profit analytics treats malformed product amounts as zero', async () => {
     ]
   }, {
     schemas: {
-      order_items: ['order_id', 'product_id', 'quantity'],
+      order_items: ['order_id', 'product_id', 'quantity', 'price_at_purchase'],
       products: ['id', 'name', 'cost_price', 'price']
     }
   }));
@@ -267,9 +271,12 @@ test('profit analytics treats malformed product amounts as zero', async () => {
     );
     assert.equal(response.status, 200);
     assert.equal(response.body.data.total_revenue, 0);
-    assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, null);
-    assert.deepEqual(response.body.data.top_products, []);
+    assert.equal(response.body.data.total_cost, 20);
+    assert.equal(response.body.data.gross_profit, -20);
+    assert.equal(response.body.data.top_products[0].sales_amount, 50);
+    assert.equal(response.body.data.top_products[0].net_profit, 50);
+    assert.equal(response.body.data.top_products[1].sales_amount, 0);
+    assert.equal(response.body.data.top_products[1].cost_amount, 20);
   });
 });
 
@@ -298,12 +305,9 @@ test('profit analytics reports a missing cost column as an unapplied migration',
       baseUrl,
       '/api/analytics/profit?start_date=2026-09-01&end_date=2026-09-30'
     );
-    assert.equal(response.status, 200);
-    assert.equal(response.body.success, true);
-    assert.equal(response.body.data.total_revenue, 40);
-    assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, null);
-    assert.deepEqual(response.body.data.top_products, []);
+    assert.equal(response.status, 503);
+    assert.equal(response.body.success, false);
+    assert.match(response.body.message, /欄位尚未同步/);
   });
 });
 
@@ -333,10 +337,10 @@ test('profit analytics safely degrades when an order item column is missing', as
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 40);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, null);
-    assert.equal(response.body.data.details_available, false);
+    assert.equal(response.body.data.gross_profit, 40);
+    assert.equal(response.body.data.details_available, true);
     assert.equal(response.body.data.top_products.length, 0);
-    assert.match(response.body.data.details_message, /商品成本與淨利排行暫未計算/);
+    assert.equal(response.body.data.details_message, null);
   });
 });
 
@@ -360,8 +364,8 @@ test('profit analytics safely degrades when the order_items table is unavailable
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 75);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.cost_coverage_percentage, 0);
-    assert.equal(response.body.data.details_available, false);
+    assert.equal(response.body.data.cost_coverage_percentage, 100);
+    assert.equal(response.body.data.details_available, true);
     assert.deepEqual(response.body.data.top_products, []);
   });
 });
@@ -391,7 +395,7 @@ test('profit analytics safely degrades when order_items encounters JWT clock ske
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 75);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.details_available, false);
+    assert.equal(response.body.data.details_available, true);
     assert.deepEqual(response.body.data.top_products, []);
   });
 });
@@ -424,11 +428,11 @@ test('profit analytics skips order_items entirely when details are not enabled',
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 125.5);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, null);
-    assert.equal(response.body.data.cost_coverage_percentage, 0);
-    assert.equal(response.body.data.details_available, false);
+    assert.equal(response.body.data.gross_profit, 125.5);
+    assert.equal(response.body.data.cost_coverage_percentage, 100);
+    assert.equal(response.body.data.details_available, true);
     assert.deepEqual(response.body.data.top_products, []);
-    assert.match(response.body.data.details_message, /商品明細分析未啟用/);
+    assert.equal(response.body.data.details_message, null);
   });
 
   assert.deepEqual(tablesRead, ['orders']);
@@ -490,7 +494,9 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
       '/api/analytics/top-products?start_date=2026-09-01&end_date=2026-09-27'
     );
     assert.equal(ranking.status, 200);
-    assert.deepEqual(ranking.body.data, []);
+    assert.equal(ranking.body.data[0].product_id, 'p001');
+    assert.equal(ranking.body.data[0].quantity_sold, 3);
+    assert.equal(ranking.body.data[0].sales_amount, 0);
 
     const reconciliation = await request(
       baseUrl,
@@ -499,10 +505,15 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
     assert.equal(reconciliation.status, 200);
     assert.equal(reconciliation.body.data.total_count, 2);
     assert.equal(reconciliation.body.data.rows[0].order_id, 'a123');
-    assert.deepEqual(reconciliation.body.data.rows[0].items, []);
+    assert.equal(reconciliation.body.data.rows[0].items[0].item_id, null);
+    assert.equal(reconciliation.body.data.rows[0].items[0].line_total, 0);
+    assert.equal(reconciliation.body.data.rows[0].items[0].received_quantity, null);
   });
 
-  assert.deepEqual(selectedOrderItemColumns, []);
+  assert.deepEqual(selectedOrderItemColumns, [
+    'order_id, product_id, quantity, price_at_purchase',
+    'order_id, product_id, quantity, price_at_purchase'
+  ]);
 });
 
 test('analytics summary requires an analytics session and aggregates bounded dashboard data', async () => {
