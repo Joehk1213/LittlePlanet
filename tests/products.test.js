@@ -351,6 +351,7 @@ test('products endpoint returns only a date-only public summary for multiple bat
 test('products endpoint reports errors when the public batch-date summary cannot be read', async () => {
   for (const error of [
     { code: 'PGRST205', message: 'table unavailable' },
+    { code: 'PGRST204', message: 'column unavailable' },
     { code: 'XX000', message: 'database unavailable' }
   ]) {
     const supabase = {
@@ -372,7 +373,7 @@ test('products endpoint reports errors when the public batch-date summary cannot
         baseUrl,
         '/api/products?include_best_before_dates=true'
       );
-      assert.equal(response.status, error.code === 'PGRST205' ? 503 : 500);
+      assert.equal(response.status, ['PGRST205', 'PGRST204'].includes(error.code) ? 503 : 500);
       assert.equal(response.body.success, false);
       assert.equal(response.body.data, null);
     });
@@ -525,20 +526,20 @@ test('inventory adjustments validate reasons and persist a transactional audit R
   });
 
   await withServer(router, async baseUrl => {
-    const unauthorized = await request(baseUrl, '/api/products/12/adjustments', {
+    const unauthorized = await request(baseUrl, '/api/products/4268/adjustments', {
       method: 'POST',
       body: { quantity_delta: -1, reason: '損毀' }
     });
     assert.equal(unauthorized.status, 401);
 
-    const invalid = await request(baseUrl, '/api/products/12/adjustments', {
+    const invalid = await request(baseUrl, '/api/products/4268/adjustments', {
       method: 'POST',
       token: ADMIN_TOKEN,
       body: { quantity_delta: -1, reason: '原因不明' }
     });
     assert.equal(invalid.status, 400);
 
-    const saved = await request(baseUrl, '/api/products/12/adjustments', {
+    const saved = await request(baseUrl, '/api/products/4268/adjustments', {
       method: 'POST',
       token: ADMIN_TOKEN,
       body: { quantity_delta: -1, reason: '損毀', note: '包裝破損' }
@@ -546,16 +547,67 @@ test('inventory adjustments validate reasons and persist a transactional audit R
     assert.equal(saved.status, 200);
     assert.equal(saved.body.success, true);
     assert.equal(saved.body.data.quantity_after, 3);
+    const uuid = await request(
+      baseUrl,
+      '/api/products/4c260c94-2cb3-4de4-a71e-5b0f5cf53d87/adjustments',
+      {
+        method: 'POST',
+        token: ADMIN_TOKEN,
+        body: { quantity_delta: -1, reason: '損毀' }
+      }
+    );
+    assert.equal(uuid.status, 200);
     assert.deepEqual(calls, [{
       name: 'adjust_product_inventory',
       args: {
-        p_product_id: 12,
+        p_product_id: '4268',
         p_quantity_delta: -1,
         p_reason: '損毀',
         p_note: '包裝破損',
         p_actor: 'admin'
       }
+    }, {
+      name: 'adjust_product_inventory',
+      args: {
+        p_product_id: '4c260c94-2cb3-4de4-a71e-5b0f5cf53d87',
+        p_quantity_delta: -1,
+        p_reason: '損毀',
+        p_note: null,
+        p_actor: 'admin'
+      }
     }]);
+  });
+});
+
+test('inventory adjustment reports a missing table as an unapplied migration', async () => {
+  const router = createRouter({
+    from(table) {
+      assert.equal(table, 'inventory_adjustments');
+      const query = {
+        select() { return query; },
+        order() { return query; },
+        limit() { return query; },
+        then(resolve, reject) {
+          return Promise.resolve({
+            data: null,
+            error: {
+              code: 'PGRST205',
+              message: "Could not find the table 'public.inventory_adjustments' in the schema cache"
+            }
+          }).then(resolve, reject);
+        }
+      };
+      return query;
+    }
+  });
+
+  await withServer(router, async baseUrl => {
+    const response = await request(baseUrl, '/api/products/adjustments', {
+      token: ADMIN_TOKEN
+    });
+    assert.equal(response.status, 503);
+    assert.equal(response.body.success, false);
+    assert.match(response.body.message, /migration 尚未執行/);
   });
 });
 
@@ -670,6 +722,75 @@ test('product create and edit endpoints require admin access and persist validat
       filter: { column: 'id', value: savedProduct.id }
     }
   ]);
+});
+
+test('product edit preserves UUID IDs when updating batch expiry data', async () => {
+  const productId = '4c260c94-2cb3-4de4-a71e-5b0f5cf53d87';
+  let insertedBatch;
+  const router = createRouter({
+    from(table) {
+      if (table === 'products') {
+        return {
+          update() {
+            return {
+              eq(column, value) {
+                assert.equal(column, 'id');
+                assert.equal(value, productId);
+                return {
+                  select() {
+                    return {
+                      maybeSingle: async () => ({
+                        data: { id: productId, name: 'UUID 商品', price: 10, stock: 4 },
+                        error: null
+                      })
+                    };
+                  }
+                };
+              }
+            };
+          }
+        };
+      }
+      assert.equal(table, 'product_stock_batches');
+      return {
+        delete() {
+          return {
+            eq(column, value) {
+              assert.equal(column, 'product_id');
+              assert.equal(value, productId);
+              return { error: null };
+            }
+          };
+        },
+        insert(values) {
+          insertedBatch = values;
+          return { error: null };
+        }
+      };
+    }
+  });
+
+  await withServer(router, async baseUrl => {
+    const response = await request(baseUrl, `/api/products/${productId}`, {
+      method: 'PATCH',
+      token: ADMIN_TOKEN,
+      body: {
+        name: 'UUID 商品',
+        price: 10,
+        best_before_date: '2027-08-15'
+      }
+    });
+    assert.equal(response.status, 200);
+    assert.equal(response.body.success, true);
+  });
+
+  assert.deepEqual(insertedBatch, {
+    product_id: productId,
+    best_before_date: '2027-08-15',
+    is_legacy_stock: false,
+    quantity_received: 4,
+    quantity_remaining: 4
+  });
 });
 
 test('product create and edit validate input and report database errors', async () => {
@@ -804,7 +925,7 @@ test('stock update requires admin authorization and service role, then returns p
   });
 
   await withServer(router, async baseUrl => {
-    const path = '/api/products/7/stock';
+    const path = '/api/products/4268/stock';
     const unauthorized = await request(baseUrl, path, {
       method: 'PATCH',
       body: { stock: 20, reason: '實體盤點差異' }
@@ -824,8 +945,46 @@ test('stock update requires admin authorization and service role, then returns p
   assert.deepEqual(operations, [{
     name: 'set_product_inventory',
     args: {
-      p_product_id: 7,
+      p_product_id: '4268',
       p_stock: 20,
+      p_reason: '實體盤點差異',
+      p_note: null,
+      p_actor: 'admin'
+    }
+  }]);
+});
+
+test('stock update accepts UUID product IDs', async () => {
+  const calls = [];
+  const router = createRouter({
+    rpc: async (name, args) => {
+      calls.push({ name, args });
+      return {
+        data: { stock: 8, quantity_before: 7, quantity_delta: 1, quantity_after: 8 },
+        error: null
+      };
+    }
+  });
+
+  await withServer(router, async baseUrl => {
+    const response = await request(
+      baseUrl,
+      '/api/products/4c260c94-2cb3-4de4-a71e-5b0f5cf53d87/stock',
+      {
+        method: 'PATCH',
+        token: ADMIN_TOKEN,
+        body: { stock: 8, reason: '實體盤點差異' }
+      }
+    );
+    assert.equal(response.status, 200);
+    assert.equal(response.body.data.stock, 8);
+  });
+
+  assert.deepEqual(calls, [{
+    name: 'set_product_inventory',
+    args: {
+      p_product_id: '4c260c94-2cb3-4de4-a71e-5b0f5cf53d87',
+      p_stock: 8,
       p_reason: '實體盤點差異',
       p_note: null,
       p_actor: 'admin'

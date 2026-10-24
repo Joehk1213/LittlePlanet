@@ -37,6 +37,7 @@ Required core settings:
 | `SHIPPING_ADMIN_TOKEN` | Authorizes shipping administration endpoints. |
 | `INBOUND_ADMIN_TOKEN` | Authorizes inbound/reconciliation endpoints. |
 | `ANALYTICS_ADMIN_TOKEN` | Authorizes analytics endpoints. |
+| `ANALYTICS_PROFIT_DETAILS_ENABLED` | Set to `true` only after verifying `public.order_items` contains `product_id` and `quantity`; defaults to `false` so profit reports do not query an unavailable detail table. |
 | `PRODUCT_ADMIN_TOKEN` | Authorizes stock adjustments; currently falls back to `SHIPPING_ADMIN_TOKEN` if omitted. |
 | `REVIEWS_ADMIN_TOKEN` | Authorizes product review moderation through the isolated `reviews` admin session scope. |
 | `REMINDER_CRON_TOKEN` | Authorizes scheduled reminder jobs. |
@@ -139,6 +140,8 @@ Back up the production database and review the SQL changes before applying migra
 24. `20261022000600_product_image_storage.sql`
 25. `20261022000700_smart_inventory_and_bulk_shipping.sql`
 26. `20261023000100_whatsapp_order_intents.sql`
+27. `20261023000200_whatsapp_payment_proof_receipts.sql`
+28. `20261024000100_repair_inventory_adjustment_schema.sql`
 
 The WhatsApp webhook/payment-report schema also uses UUID order IDs, matching production orders and the storefront's order references.
 
@@ -160,11 +163,15 @@ The checkout contact/pickup migration adds order recipient and pickup-address fi
 
 The tiered-pricing/review migration adds validated `products.tier_prices` JSONB and `preorder_deadline`, and replaces the atomic checkout RPC so qualifying quantity tiers are calculated from database prices while inventory is locked. Past-deadline products cannot be checked out. It also adds review order/name/moderation fields, preserves existing reviews as approved, and makes new order-verified reviews pending until an administrator approves them. The admin review scope controls moderation; public review APIs expose only approved comments, display names, and aggregate ratings, never phone numbers. Apply it after all migrations above and before deploying code that edits tier settings, shows timers, or uses moderated ratings.
 
-The product-cost migration adds nullable, non-negative `products.cost_price`. Enter costs in the product editor; a blank value means the cost is unknown. The Analytics-scoped `/api/admin/analytics/profit` report uses each product's current cost for orders in the selected period, so changing a product cost does not rewrite historical cost snapshots. The report withholds overall gross profit and margin until all sold items have known costs, and reports cost coverage separately. Apply it after the tiered-pricing/review migration and before deploying the profit dashboard.
+The product-cost migration adds nullable, non-negative `products.cost_price`. The Analytics-scoped `/api/admin/analytics/profit` report reads quantities and product IDs from `order_items`, then uses each product's current `price` and `cost_price`; it does not depend on `order_items.unit_price`. Overall sales revenue still comes from `orders.total_amount`. If the `order_items` query fails, the endpoint reports order revenue with `details_available: false`, omits the profit ranking, and does not cache the partial result. Changing a product price or cost can therefore affect past per-product analysis because historical item price/cost snapshots are not stored. A null, omitted, or blank cost is treated as zero; sold items whose product record cannot be found remain uncovered, and gross profit/margin are withheld until those records are resolved. Apply it after the tiered-pricing/review migration and before deploying the profit dashboard.
 
 The product-image migration creates the public `product-images` bucket with a 5 MB limit and JPG/PNG/WebP MIME allowlist. Uploads are accepted only by the product-admin API, which checks image signatures before writing with the server-side service role. Apply it before using the admin SOP post generator's image upload.
 
 The smart-inventory migration ensures `orders.order_number` exists, backfills missing human-readable numbers, and creates a case-insensitive unique index before enabling bulk matching. It also adds a reason-required inventory adjustment log and transactional RPCs for delta adjustments and absolute stock updates. The product-admin inventory-alert RPC flags stock at or below three units and products with no order in the last 30 days (new products are excluded); its restock draft targets ten units. The CRM list adds transparent `#熟客VIP` tags at five orders, `#高消費客群` at HK$5,000 spend, and up to two most-purchased product preferences. The shipping-admin bulk-import RPC applies up to 100 order-number/tracking rows through the existing `ship_order` transaction; the entire batch rolls back if any row cannot ship. Apply this migration after the product-image migration and before deploying the related admin features.
+
+The inventory-adjustment repair migration is forward-only: it ensures the adjustment table and grants exist, then replaces the inventory RPCs with text product IDs so both the existing numeric and UUID `products.id` schemas work. Apply it after reviewing remote migration history, especially if `/api/products/adjustments` reports that `inventory_adjustments` is missing from the schema cache. The application does not run database migrations automatically.
+
+Analytics reports that report missing schema objects need the corresponding outstanding migrations applied: `/api/admin/analytics/profit` requires `20261022000500_product_cost_price.sql`, and inventory adjustment history requires `20261022000700_smart_inventory_and_bulk_shipping.sql` plus the repair migration. Check `supabase migration list --linked` and reconcile any manual or divergent migration history before applying changes; do not blindly push or mark migrations applied.
 
 The WhatsApp order-intent migration creates a service-role-only, expiring confirmation-intent table and RPCs for the server-side product catalog, intent creation, and atomic intent confirmation. The first customer message only creates a price preview and does not reserve or deduct stock; the existing checkout RPC rechecks stock and current database prices only after the customer confirms. The confirmation RPC records the human-readable `order_number` and consumes the intent in the same transaction as checkout, so retries cannot create a second order. Apply it after the smart-inventory migration and before deploying the matching webhook. Configure Meta webhook signature verification and WhatsApp sending credentials; test with a low-value product before enabling production traffic.
 

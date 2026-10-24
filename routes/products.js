@@ -3,8 +3,12 @@ const crypto = require('crypto');
 
 const PRODUCT_STATUSES = new Set(['預購中', '旅購中', '已到貨', '已下架', '上架', '暫停供應', '正常上架']);
 const MISSING_COLUMN_ERROR_CODES = new Set(['42703', 'PGRST204']);
-const MISSING_CATEGORY_TABLE_ERROR_CODES = new Set(['42P01', 'PGRST205']);
+const MISSING_TABLE_ERROR_CODES = new Set(['42P01', 'PGRST205']);
 const MISSING_STOCK_BATCH_TABLE_ERROR_CODES = new Set(['42P01', 'PGRST205']);
+const MISSING_SCHEMA_ERROR_CODES = new Set([
+  ...MISSING_COLUMN_ERROR_CODES,
+  ...MISSING_TABLE_ERROR_CODES
+]);
 const MAX_STOCK = 2147483647;
 const MAX_PRICE = 99999999.99;
 const MAX_IMAGE_URL_LENGTH = 2048;
@@ -119,7 +123,17 @@ function isValidProductId(value) {
 }
 
 function isValidProductRecordId(value) {
-  return typeof value === 'string' && /^[1-9]\d*$/.test(value);
+  return typeof value === 'string' && (
+    (
+      /^[1-9]\d*$/.test(value) &&
+      Number.isSafeInteger(Number(value))
+    ) ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  );
+}
+
+function isMissingSchemaError(error) {
+  return Boolean(error && MISSING_SCHEMA_ERROR_CODES.has(error.code));
 }
 
 function validateProductFields(body) {
@@ -322,7 +336,7 @@ function createProductsRouter(supabase, options = {}) {
     return res.status(503).json({
       success: false,
       data: null,
-      message: '產品分類資料表尚未建立，請先執行產品分類 migration。'
+      message: '產品分類資料表或欄位尚未建立，請先執行產品分類 migration。'
     });
   }
 
@@ -419,7 +433,7 @@ function createProductsRouter(supabase, options = {}) {
       .maybeSingle();
     if (error) {
       console.error('確認產品分類時發生 Supabase 錯誤：', error);
-      if (MISSING_CATEGORY_TABLE_ERROR_CODES.has(error.code)) {
+      if (isMissingSchemaError(error)) {
         sendMissingCategoriesError(res);
       } else {
         res.status(500).json({
@@ -486,7 +500,7 @@ function createProductsRouter(supabase, options = {}) {
         .order('name', { ascending: true });
       if (error) {
         console.error('讀取產品分類時發生 Supabase 錯誤：', error);
-        if (MISSING_CATEGORY_TABLE_ERROR_CODES.has(error.code)) {
+        if (isMissingSchemaError(error)) {
           return sendMissingCategoriesError(res);
         }
         return res.status(500).json({
@@ -538,7 +552,7 @@ function createProductsRouter(supabase, options = {}) {
         .select('name, label');
       if (listError) {
         console.error('檢查產品分類時發生 Supabase 錯誤：', listError);
-        if (MISSING_CATEGORY_TABLE_ERROR_CODES.has(listError.code)) {
+        if (isMissingSchemaError(listError)) {
           return sendMissingCategoriesError(res);
         }
         return res.status(500).json({
@@ -567,7 +581,7 @@ function createProductsRouter(supabase, options = {}) {
         .single();
       if (error) {
         console.error('新增產品分類時發生 Supabase 錯誤：', error);
-        if (MISSING_CATEGORY_TABLE_ERROR_CODES.has(error.code)) {
+        if (isMissingSchemaError(error)) {
           return sendMissingCategoriesError(res);
         }
         if (error.code === '23505') {
@@ -704,12 +718,14 @@ function createProductsRouter(supabase, options = {}) {
 
         if (batchError) {
           console.error('讀取公開商品批次效期摘要時發生 Supabase 錯誤：', batchError);
+          const missingBatchSchema = MISSING_STOCK_BATCH_TABLE_ERROR_CODES.has(batchError.code) ||
+            MISSING_COLUMN_ERROR_CODES.has(batchError.code);
           return res.status(
-            MISSING_STOCK_BATCH_TABLE_ERROR_CODES.has(batchError.code) ? 503 : 500
+            missingBatchSchema ? 503 : 500
           ).json({
             success: false,
             data: null,
-            message: MISSING_STOCK_BATCH_TABLE_ERROR_CODES.has(batchError.code)
+            message: missingBatchSchema
               ? '商品批次資料尚未就緒，請確認效期批次 migration 已部署。'
               : '無法讀取商品批次效期摘要。'
           });
@@ -785,10 +801,12 @@ function createProductsRouter(supabase, options = {}) {
       });
     } catch (error) {
       console.error('讀取產品列表時發生 Supabase 錯誤：', error);
-      return res.status(500).json({
+      return res.status(isMissingSchemaError(error) ? 503 : 500).json({
         success: false,
         data: null,
-        message: '無法讀取產品列表'
+        message: isMissingSchemaError(error)
+          ? '商品資料表或欄位尚未同步，請確認相關資料庫 migration 已執行。'
+          : '無法讀取產品列表'
       });
     }
   });
@@ -832,7 +850,7 @@ function createProductsRouter(supabase, options = {}) {
         if (
           error.code === '42883' ||
           error.code === 'PGRST202' ||
-          MISSING_COLUMN_ERROR_CODES.has(error.code)
+          isMissingSchemaError(error)
         ) {
           return res.status(503).json({
             success: false,
@@ -904,8 +922,7 @@ function createProductsRouter(supabase, options = {}) {
         .limit(limit);
       if (error) {
         console.error('讀取庫存調整記錄時發生 Supabase 錯誤：', error);
-        if (MISSING_COLUMN_ERROR_CODES.has(error.code) ||
-            error.code === '42P01' || error.code === 'PGRST205') {
+        if (isMissingSchemaError(error)) {
           return res.status(503).json({
             success: false,
             data: null,
@@ -936,10 +953,12 @@ function createProductsRouter(supabase, options = {}) {
           .in('id', productIds);
         if (productsError) {
           console.error('讀取庫存調整商品名稱時發生 Supabase 錯誤：', productsError);
-          return res.status(500).json({
+          return res.status(isMissingSchemaError(productsError) ? 503 : 500).json({
             success: false,
             data: null,
-            message: '讀取庫存調整商品名稱失敗，請稍後再試。'
+            message: isMissingSchemaError(productsError)
+              ? '商品資料表或欄位尚未同步，請確認相關資料庫 migration 已執行。'
+              : '讀取庫存調整商品名稱失敗，請稍後再試。'
           });
         }
         if (!Array.isArray(products)) {
@@ -990,8 +1009,7 @@ function createProductsRouter(supabase, options = {}) {
         });
       }
       if (
-        !isValidProductRecordId(req.params.productId) ||
-        !Number.isSafeInteger(Number(req.params.productId))
+        !isValidProductRecordId(req.params.productId)
       ) {
         return res.status(400).json({
           success: false,
@@ -1045,7 +1063,7 @@ function createProductsRouter(supabase, options = {}) {
       }
 
       const { data, error } = await supabase.rpc('adjust_product_inventory', {
-        p_product_id: Number(req.params.productId),
+        p_product_id: req.params.productId,
         p_quantity_delta: body.quantity_delta,
         p_reason: body.reason,
         p_note: note ? note.trim() : null,
@@ -1118,8 +1136,7 @@ function createProductsRouter(supabase, options = {}) {
       }
 
       if (
-        !isValidProductRecordId(req.params.productId) ||
-        !Number.isSafeInteger(Number(req.params.productId))
+        !isValidProductRecordId(req.params.productId)
       ) {
         return res.status(400).json({
           success: false,
@@ -1170,7 +1187,7 @@ function createProductsRouter(supabase, options = {}) {
       }
 
       const { data, error } = await supabase.rpc('set_product_inventory', {
-        p_product_id: Number(req.params.productId),
+        p_product_id: req.params.productId,
         p_stock: stock,
         p_reason: body.reason,
         p_note: note ? note.trim() : null,
@@ -1182,7 +1199,7 @@ function createProductsRouter(supabase, options = {}) {
         if (
           error.code === '42883' ||
           error.code === 'PGRST202' ||
-          MISSING_COLUMN_ERROR_CODES.has(error.code)
+          isMissingSchemaError(error)
         ) {
           return res.status(503).json({
             success: false,
@@ -1277,7 +1294,7 @@ function createProductsRouter(supabase, options = {}) {
 
       if (error) {
         console.error('新增產品時發生 Supabase 錯誤：', error);
-        if (MISSING_COLUMN_ERROR_CODES.has(error.code)) {
+        if (isMissingSchemaError(error)) {
           return res.status(503).json({
             success: false,
             data: null,
@@ -1302,11 +1319,21 @@ function createProductsRouter(supabase, options = {}) {
 
       // 儲存批次效期
       if (bestBeforeDate && data.id) {
-        await supabase.from('product_stock_batches').insert({
+        const { error: batchInsertError } = await supabase.from('product_stock_batches').insert({
           product_id: data.id,
           best_before_date: bestBeforeDate,
           is_legacy_stock: false
         });
+        if (batchInsertError) {
+          console.error('新增產品批次效期時發生 Supabase 錯誤：', batchInsertError);
+          return res.status(isMissingSchemaError(batchInsertError) ? 503 : 500).json({
+            success: false,
+            data: null,
+            message: isMissingSchemaError(batchInsertError)
+              ? '商品批次資料尚未就緒，請確認效期批次 migration 已部署。'
+              : '新增產品效期失敗，請稍後再試。'
+          });
+        }
       }
 
       return res.status(201).json({
@@ -1370,7 +1397,7 @@ function createProductsRouter(supabase, options = {}) {
 
       if (error) {
         console.error('更新產品時發生 Supabase 錯誤：', error);
-        if (MISSING_COLUMN_ERROR_CODES.has(error.code)) {
+        if (isMissingSchemaError(error)) {
           return res.status(503).json({
             success: false,
             data: null,
@@ -1398,16 +1425,18 @@ function createProductsRouter(supabase, options = {}) {
           .eq('product_id', req.params.productId);
         if (batchDeleteError) {
           console.error('刪除產品舊批次效期時發生 Supabase 錯誤：', batchDeleteError);
-          return res.status(500).json({
+          return res.status(isMissingSchemaError(batchDeleteError) ? 503 : 500).json({
             success: false,
             data: null,
-            message: '更新產品效期失敗，請稍後再試。'
+            message: isMissingSchemaError(batchDeleteError)
+              ? '商品批次資料尚未就緒，請確認效期批次 migration 已部署。'
+              : '更新產品效期失敗，請稍後再試。'
           });
         }
 
         if (bestBeforeDate) {
           const { error: batchInsertError } = await supabase.from('product_stock_batches').insert({
-            product_id: Number(req.params.productId),
+            product_id: req.params.productId,
             best_before_date: bestBeforeDate,
             is_legacy_stock: false,
             quantity_received: data.stock ?? 0,
@@ -1415,10 +1444,12 @@ function createProductsRouter(supabase, options = {}) {
           });
           if (batchInsertError) {
             console.error('新增產品批次效期時發生 Supabase 錯誤：', batchInsertError);
-            return res.status(500).json({
+            return res.status(isMissingSchemaError(batchInsertError) ? 503 : 500).json({
               success: false,
               data: null,
-              message: '更新產品效期失敗，請稍後再試。'
+              message: isMissingSchemaError(batchInsertError)
+                ? '商品批次資料尚未就緒，請確認效期批次 migration 已部署。'
+                : '更新產品效期失敗，請稍後再試。'
             });
           }
         }

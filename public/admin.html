@@ -1282,9 +1282,15 @@
                 document.getElementById('profit-cost').textContent =
                     HKD_FORMATTER.format(data.total_cost);
                 document.getElementById('profit-gross').textContent =
-                    data.gross_profit === null ? '成本未齊' : HKD_FORMATTER.format(data.gross_profit);
+                    data.details_available === false
+                        ? '明細不可用'
+                        : data.gross_profit === null
+                            ? '成本未齊'
+                            : HKD_FORMATTER.format(data.gross_profit);
                 document.getElementById('profit-margin').textContent =
-                    `${data.gross_margin_percentage === null ? '—' : `${data.gross_margin_percentage}%`} / ${data.cost_coverage_percentage}%`;
+                    data.details_available === false
+                        ? '—'
+                        : `${data.gross_margin_percentage === null ? '—' : `${data.gross_margin_percentage}%`} / ${data.cost_coverage_percentage}%`;
 
                 const rows = data.top_products.map((product, index) => {
                     const row = document.createElement('tr');
@@ -1314,14 +1320,18 @@
                     const cell = document.createElement('td');
                     cell.colSpan = 6;
                     cell.style.textAlign = 'center';
-                    cell.textContent = '指定期間內沒有商品銷售資料。';
+                    cell.textContent = data.details_available === false
+                        ? '商品訂單明細暫不可用，淨利排行未計算。'
+                        : '指定期間內沒有商品銷售資料。';
                     row.append(cell);
                     rows.push(row);
                 }
                 document.getElementById('profit-products').replaceChildren(...rows);
-                status.textContent = data.cost_data_complete
-                    ? `資料已更新：${data.start_date} 至 ${data.end_date}。`
-                    : `資料已更新：${data.start_date} 至 ${data.end_date}；${data.unknown_cost_items} 筆商品明細尚未設定成本，毛利及毛利率暫不計算。`;
+                status.textContent = data.details_available === false
+                    ? data.details_message || '訂單商品明細暫不可用，毛利及商品排行暫未計算。'
+                    : data.cost_data_complete
+                        ? `資料已更新：${data.start_date} 至 ${data.end_date}。`
+                        : `資料已更新：${data.start_date} 至 ${data.end_date}；${data.unknown_cost_items} 筆商品明細尚未設定成本，毛利及毛利率暫不計算。`;
             } catch (error) {
                 console.error('載入商品成本與利潤分析失敗：', error);
                 status.className = 'chart-status error';

@@ -3,6 +3,8 @@ const express = require('express');
 const NodeCache = require('node-cache');
 
 const MISSING_RPC_CODES = new Set(['42883', 'PGRST202']);
+const MISSING_TABLE_CODES = new Set(['42P01', 'PGRST205']);
+const MISSING_COLUMN_CODES = new Set(['42703', 'PGRST204']);
 const PAYMENT_STATUSES = new Set(['未付款', '已付訂金', '已付清']);
 const SHIPPING_STATUSES = new Set(['待到貨', '部分到貨', '可出貨', '已出貨']);
 const MAX_DATE_RANGE_DAYS = 3660;
@@ -70,10 +72,22 @@ function validateDateRange(query) {
   };
 }
 
+function normalizeOrderAmount(value) {
+  if (typeof value !== 'number' && typeof value !== 'string') {
+    return 0;
+  }
+  if (typeof value === 'string' && value.trim() === '') {
+    return 0;
+  }
+
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? amount : 0;
+}
+
 function calculateOverview(orders, dateRange) {
   const totalOrders = orders.length;
   const totalRevenue = orders.reduce(
-    (sum, order) => sum + Number(order.total_amount || 0),
+    (sum, order) => sum + normalizeOrderAmount(order && order.total_amount),
     0
   );
   const paidOrders = orders.filter(order => (
@@ -157,6 +171,7 @@ function createAnalyticsRouter(supabase, options = {}) {
   const adminToken = options.adminToken || '';
   const readEnabled = options.readEnabled === true;
   const useTableFallback = options.useTableFallback === true;
+  const profitDetailsEnabled = options.profitDetailsEnabled === true;
   const cacheTtlSeconds = Number.isSafeInteger(options.cacheTtlSeconds) &&
       options.cacheTtlSeconds > 0
     ? options.cacheTtlSeconds
@@ -230,9 +245,15 @@ function createAnalyticsRouter(supabase, options = {}) {
   });
 
   function handleRpcError(res, error, operation) {
-    console.error(`${operation} Supabase RPC 失敗：`, error);
+    logSupabaseError(`${operation} Supabase RPC 失敗`, error);
     if (error && MISSING_RPC_CODES.has(error.code)) {
       return sendError(res, 503, '報表資料庫 migration 尚未執行。');
+    }
+    if (error && MISSING_TABLE_CODES.has(error.code)) {
+      return sendError(res, 503, '報表資料表尚未同步，請確認相關資料庫 migration 已執行。');
+    }
+    if (error && MISSING_COLUMN_CODES.has(error.code)) {
+      return sendError(res, 503, '資料庫報表欄位尚未同步，請確認相關資料表的 schema。');
     }
     if (error && error.code === '22023') {
       return sendError(res, 400, error.message || '報表查詢條件無效。');
@@ -250,7 +271,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       .limit(MAX_FALLBACK_ORDERS + 1);
 
     if (error) {
-      throw error;
+      throw createSupabaseQueryError(error, `orders.select(${columns})`);
     }
     if (!Array.isArray(data)) {
       throw new Error('Supabase 訂單報表查詢回傳格式無效。');
@@ -263,19 +284,25 @@ function createAnalyticsRouter(supabase, options = {}) {
     return data;
   }
 
-  async function fetchItemsForOrders(orderIds) {
+  async function fetchItemsForOrders(
+    orderIds,
+    columns = 'item_id, order_id, product_id, quantity, unit_price, item_status'
+  ) {
     if (orderIds.length === 0) {
       return [];
     }
 
     const { data, error } = await supabase
       .from('order_items')
-      .select('item_id, order_id, product_id, quantity, unit_price, item_status')
+      .select(columns)
       .in('order_id', orderIds)
       .limit(MAX_FALLBACK_ITEMS + 1);
 
     if (error) {
-      throw error;
+      throw createSupabaseQueryError(
+        error,
+        `order_items.select(${columns.replace(/\s/g, '')})`
+      );
     }
     if (!Array.isArray(data)) {
       throw new Error('Supabase 訂單明細報表查詢回傳格式無效。');
@@ -288,7 +315,7 @@ function createAnalyticsRouter(supabase, options = {}) {
     return data;
   }
 
-  async function fetchProductNames(productIds) {
+  async function fetchProductNames(productIds, queryContext = 'products.select(id,name)') {
     if (productIds.length === 0) {
       return new Map();
     }
@@ -299,7 +326,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       .in('id', productIds);
 
     if (error) {
-      throw error;
+      throw createSupabaseQueryError(error, queryContext);
     }
     if (!Array.isArray(data)) {
       throw new Error('Supabase 商品報表查詢回傳格式無效。');
@@ -311,14 +338,44 @@ function createAnalyticsRouter(supabase, options = {}) {
   }
 
   function handleFallbackError(res, error, operation) {
-    console.error(`${operation} Supabase 查詢失敗：`, error);
+    logSupabaseError(`${operation} Supabase 查詢失敗`, error);
     if (error && error.statusCode === 413) {
       return sendError(res, 413, error.message);
     }
-    if (error && (error.code === '42703' || error.code === 'PGRST204')) {
+    if (error && MISSING_TABLE_CODES.has(error.code)) {
+      return sendError(res, 503, '報表資料表尚未同步，請確認相關資料庫 migration 已執行。');
+    }
+    if (error && MISSING_COLUMN_CODES.has(error.code)) {
       return sendError(res, 503, '資料庫報表欄位尚未同步，請確認相關資料表的 schema。');
     }
     return sendError(res, 500, `${operation}失敗，請稍後再試。`);
+  }
+
+  function createSupabaseQueryError(error, queryContext) {
+    const queryError = new Error(
+      error && error.message
+        ? error.message
+        : `Supabase 查詢失敗：${queryContext}`
+    );
+    queryError.code = error && error.code;
+    queryError.details = error && error.details;
+    queryError.hint = error && error.hint;
+    queryError.status = error && error.status;
+    queryError.queryContext = queryContext;
+    queryError.originalError = error;
+    return queryError;
+  }
+
+  function logSupabaseError(operation, error) {
+    console.error(`${operation}：`, {
+      query: error && error.queryContext,
+      code: error && error.code,
+      message: error && error.message,
+      details: error && error.details,
+      hint: error && error.hint,
+      status: error && error.status,
+      originalError: error && error.originalError ? error.originalError : error
+    });
   }
 
   async function fetchSummaryRows(createQuery, maximumRows, operation) {
@@ -328,7 +385,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       const { data, error } = await createQuery()
         .range(offset, offset + pageSize - 1);
       if (error) {
-        throw error;
+        throw createSupabaseQueryError(error, operation);
       }
       if (!Array.isArray(data)) {
         throw new Error(`Supabase ${operation}回傳格式無效。`);
@@ -367,20 +424,28 @@ function createAnalyticsRouter(supabase, options = {}) {
           .select('order_id,order_date,total_amount')
           .order('order_date', { ascending: false }),
         MAX_FALLBACK_ORDERS,
-        '營運摘要訂單查詢'
+        'orders.select(order_id,order_date,total_amount)'
       );
       const orderIds = orders.map(order => order.order_id);
       const orderIdSet = new Set(orderIds.map(String));
-      const items = orderIds.length === 0
-        ? []
-        : await fetchSummaryRows(
+      const items = [];
+      for (let offset = 0; offset < orderIds.length; offset += 100) {
+        const orderIdBatch = orderIds.slice(offset, offset + 100);
+        const batchItems = await fetchSummaryRows(
           () => supabase
             .from('order_items')
             .select('order_id,product_id,quantity,unit_price')
-            .in('order_id', orderIds),
+            .in('order_id', orderIdBatch),
           MAX_FALLBACK_ITEMS,
-          '營運摘要訂單商品查詢'
+          'order_items.select(order_id,product_id,quantity,unit_price)'
         );
+        items.push(...batchItems);
+        if (items.length > MAX_FALLBACK_ITEMS) {
+          const error = new Error('營運摘要訂單明細超過安全讀取上限。');
+          error.statusCode = 413;
+          throw error;
+        }
+      }
 
       if (items.some(item => !orderIdSet.has(String(item.order_id)))) {
         console.error('營運摘要訂單商品查詢回傳未要求的訂單明細。');
@@ -420,7 +485,10 @@ function createAnalyticsRouter(supabase, options = {}) {
         .slice(0, 10);
       const productNames = rankedProducts.length === 0
         ? new Map()
-        : await fetchProductNames(rankedProducts.map(product => product.product_id));
+        : await fetchProductNames(
+          rankedProducts.map(product => product.product_id),
+          'products.select(id,name)（營運分析商品名稱）'
+        );
 
       const today = hongKongDate(new Date());
       const todayDate = parseDate(today);
@@ -439,11 +507,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       }]));
       let totalRevenue = 0;
       for (const order of orders) {
-        const amount = Number(order.total_amount || 0);
-        if (!Number.isFinite(amount) || amount < 0) {
-          console.error('營運摘要遇到無效訂單金額。');
-          return sendError(res, 500, '訂單金額資料格式無效。');
-        }
+        const amount = normalizeOrderAmount(order && order.total_amount);
         totalRevenue += amount;
         const daily = trend.get(hongKongDate(order.order_date));
         if (daily) {
@@ -509,7 +573,30 @@ function createAnalyticsRouter(supabase, options = {}) {
         dateRange,
         'order_id,total_amount'
       );
-      const items = await fetchItemsForOrders(orders.map(order => order.order_id));
+      let items = [];
+      let detailsAvailable = profitDetailsEnabled;
+      let detailsMessage = profitDetailsEnabled
+        ? null
+        : '商品明細分析未啟用；已顯示訂單營收，商品成本與淨利排行暫未計算。';
+      if (profitDetailsEnabled) {
+        try {
+          items = await fetchItemsForOrders(
+            orders.map(order => order.order_id),
+            'product_id, quantity'
+          );
+        } catch (error) {
+          if (
+            !error ||
+            typeof error.queryContext !== 'string' ||
+            !error.queryContext.startsWith('order_items.select(')
+          ) {
+            throw error;
+          }
+          logSupabaseError('商品成本分析無法讀取 order_items 明細', error);
+          detailsAvailable = false;
+          detailsMessage = '訂單商品明細暫不可用；已顯示訂單營收，商品成本與淨利排行暫未計算。';
+        }
+      }
       const productIds = [...new Set(items.map(item => String(item.product_id)))];
       const productInfo = new Map();
       for (let offset = 0; offset < productIds.length; offset += 100) {
@@ -517,31 +604,40 @@ function createAnalyticsRouter(supabase, options = {}) {
         const products = await fetchSummaryRows(
           () => supabase
             .from('products')
-            .select('id,name,cost_price')
+            .select('id,name,cost_price,price')
             .in('id', ids),
           100,
           '商品成本報表查詢'
         );
         for (const product of products) {
+          const rawCostPrice = product && product.cost_price;
+          const costPrice = rawCostPrice === null ||
+              rawCostPrice === undefined ||
+              typeof rawCostPrice === 'string' && rawCostPrice.trim() === ''
+            ? 0
+            : Number(rawCostPrice);
+          const rawUnitPrice = product && product.price;
+          const unitPrice = rawUnitPrice === null ||
+              rawUnitPrice === undefined ||
+              typeof rawUnitPrice === 'string' && rawUnitPrice.trim() === ''
+            ? 0
+            : Number(rawUnitPrice);
           if (
             !product ||
             (typeof product.id !== 'string' && typeof product.id !== 'number') ||
             typeof product.name !== 'string' ||
-            product.cost_price !== null &&
-              product.cost_price !== undefined &&
-              (typeof product.cost_price !== 'number' &&
-                typeof product.cost_price !== 'string' ||
-                !Number.isFinite(Number(product.cost_price)) ||
-                Number(product.cost_price) < 0)
+            !Number.isFinite(costPrice) ||
+            costPrice < 0 ||
+            !Number.isFinite(unitPrice) ||
+            unitPrice < 0
           ) {
             console.error('商品成本報表遇到無效商品資料。');
             return sendError(res, 500, '商品成本資料格式無效。');
           }
           productInfo.set(String(product.id), {
             product_name: product.name,
-            cost_price: product.cost_price === null || product.cost_price === undefined
-              ? null
-              : Number(product.cost_price)
+            cost_price: costPrice,
+            unit_price: unitPrice
           });
         }
       }
@@ -553,30 +649,22 @@ function createAnalyticsRouter(supabase, options = {}) {
       let unitsWithKnownCost = 0;
       let unknownCostItems = 0;
       for (const order of orders) {
-        const amount = Number(order.total_amount);
-        if (!Number.isFinite(amount) || amount < 0) {
-          console.error('商品利潤報表遇到無效訂單金額。');
-          return sendError(res, 500, '訂單金額資料格式無效。');
-        }
-        totalRevenue += amount;
+        totalRevenue += normalizeOrderAmount(order && order.total_amount);
       }
 
       for (const item of items) {
         const quantity = Number(item.quantity);
-        const unitPrice = Number(item.unit_price);
         const key = String(item.product_id);
         const product = productInfo.get(key);
         if (
           !Number.isSafeInteger(quantity) ||
-          quantity < 0 ||
-          !Number.isFinite(unitPrice) ||
-          unitPrice < 0
+          quantity < 0
         ) {
           console.error('商品利潤報表遇到無效訂單商品資料。');
           return sendError(res, 500, '訂單商品資料格式無效。');
         }
-        const salesAmount = quantity * unitPrice;
-        const knownCost = product && product.cost_price !== null;
+        const salesAmount = quantity * (product ? product.unit_price : 0);
+        const knownCost = Boolean(product);
         const costAmount = knownCost ? quantity * product.cost_price : null;
         const total = totalsByProduct.get(key) || {
           product_id: item.product_id,
@@ -602,7 +690,7 @@ function createAnalyticsRouter(supabase, options = {}) {
         totalsByProduct.set(key, total);
       }
 
-      const completeCostCoverage = unknownCostItems === 0;
+      const completeCostCoverage = detailsAvailable && unknownCostItems === 0;
       const rankedProducts = [...totalsByProduct.values()]
         .sort((left, right) => (
           (right.cost_known ? right.net_profit : Number.NEGATIVE_INFINITY) -
@@ -640,16 +728,20 @@ function createAnalyticsRouter(supabase, options = {}) {
           : null,
         cost_coverage_percentage: unitsSold > 0
           ? Math.round((unitsWithKnownCost / unitsSold) * 10000) / 100
-          : 100,
+          : detailsAvailable ? 100 : 0,
         cost_data_complete: completeCostCoverage,
         unknown_cost_items: unknownCostItems,
+        details_available: detailsAvailable,
+        details_message: detailsMessage,
         top_products: rankedProducts
       };
-      storeCachedResponse(cacheKey, data);
+      if (detailsAvailable) {
+        storeCachedResponse(cacheKey, data);
+      }
       return res.json({
         success: true,
         data,
-        message: '商品成本與利潤分析查詢完成。'
+        message: detailsMessage || '商品成本與利潤分析查詢完成。'
       });
     } catch (error) {
       return handleFallbackError(res, error, '取得商品成本與利潤分析');
@@ -780,7 +872,10 @@ function createAnalyticsRouter(supabase, options = {}) {
       let data;
       if (useTableFallback) {
         const orders = await fetchOrdersInRange(dateRange, 'order_id');
-        const items = await fetchItemsForOrders(orders.map(order => order.order_id));
+        const items = await fetchItemsForOrders(
+          orders.map(order => order.order_id),
+          'order_id, product_id, quantity, unit_price'
+        );
         const productIds = [...new Set(items.map(item => item.product_id))];
         const productNames = await fetchProductNames(productIds);
         const totals = new Map();

@@ -273,13 +273,15 @@ app.use('/api/admin/analytics', createAnalyticsRouter(adminSupabase, {
   adminToken: analyticsAdminToken,
   isSessionAuthorized: adminSessions.isSessionAuthorized,
   requireSession: true,
-  readEnabled: Boolean(supabaseAnonKey)
+  readEnabled: Boolean(supabaseAnonKey),
+  profitDetailsEnabled: process.env.ANALYTICS_PROFIT_DETAILS_ENABLED === 'true'
 }));
 app.use('/api/analytics', createAnalyticsRouter(adminSupabase, {
   adminToken: analyticsAdminToken,
   isSessionAuthorized: adminSessions.isAuthorized,
   readEnabled: Boolean(supabaseAnonKey),
-  useTableFallback: !supabaseServiceRoleKey
+  useTableFallback: !supabaseServiceRoleKey,
+  profitDetailsEnabled: process.env.ANALYTICS_PROFIT_DETAILS_ENABLED === 'true'
 }));
 app.use('/api/inbound', createInboundRouter(adminSupabase, {
   adminToken: inboundAdminToken,
