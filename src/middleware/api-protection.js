@@ -1,16 +1,17 @@
 'use strict';
 
 function createApiProtection(options = {}) {
-  const windowMs = Number.isSafeInteger(options.windowMs) && options.windowMs > 0
-    ? options.windowMs
-    : 15 * 60 * 1000;
-  const maxRequests = Number.isSafeInteger(options.maxRequests) && options.maxRequests > 0
-    ? options.maxRequests
-    : 120;
-  const maxEntries = Number.isSafeInteger(options.maxEntries) && options.maxEntries > 0
-    ? options.maxEntries
-    : 10000;
-  
+  const windowMs =
+    Number.isSafeInteger(options.windowMs) && options.windowMs > 0
+      ? options.windowMs
+      : 15 * 60 * 1000;
+  const maxRequests =
+    Number.isSafeInteger(options.maxRequests) && options.maxRequests > 0
+      ? options.maxRequests
+      : 120;
+  const maxEntries =
+    Number.isSafeInteger(options.maxEntries) && options.maxEntries > 0 ? options.maxEntries : 10000;
+
   const allowedOrigins = new Set(options.allowedOrigins || []);
   const requests = new Map();
 
@@ -24,20 +25,23 @@ function createApiProtection(options = {}) {
         return res.status(403).json({
           success: false,
           data: null,
-          message: '不允許此來源存取 API。'
+          message: '不允許此來源存取 API。',
         });
       }
 
       const requestOrigin = `${req.protocol}://${req.get('host')}`;
-      
+
       // 檢查是否為同源、是否在手動白名單中、或是來自 devtunnels / localhost 開發環境
-      const isDevTunnel = parsedOrigin.endsWith('.devtunnels.ms') || parsedOrigin.includes('localhost') || parsedOrigin.includes('127.0.0.1');
-      
+      const isDevTunnel =
+        parsedOrigin.endsWith('.devtunnels.ms') ||
+        parsedOrigin.includes('localhost') ||
+        parsedOrigin.includes('127.0.0.1');
+
       if (parsedOrigin !== requestOrigin && !allowedOrigins.has(parsedOrigin) && !isDevTunnel) {
         return res.status(403).json({
           success: false,
           data: null,
-          message: '不允許此來源存取 API。'
+          message: '不允許此來源存取 API。',
         });
       }
 
@@ -69,7 +73,7 @@ function createApiProtection(options = {}) {
         return res.status(503).json({
           success: false,
           data: null,
-          message: 'API 暫時繁忙，請稍後再試。'
+          message: 'API 暫時繁忙，請稍後再試。',
         });
       }
 
@@ -89,7 +93,7 @@ function createApiProtection(options = {}) {
       return res.status(429).json({
         success: false,
         data: null,
-        message: '請求次數過多，請稍後再試。'
+        message: '請求次數過多，請稍後再試。',
       });
     }
 

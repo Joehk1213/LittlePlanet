@@ -30,7 +30,7 @@ function parseBulkTrackingFile(buffer, fileName, defaultShippingMethod) {
     workbook = XLSX.read(buffer, {
       type: 'buffer',
       cellDates: false,
-      sheetRows: MAX_BULK_TRACKING_ROWS + 2
+      sheetRows: MAX_BULK_TRACKING_ROWS + 2,
     });
   } catch (error) {
     console.error('解析批量物流檔案失敗：', error);
@@ -46,20 +46,20 @@ function parseBulkTrackingFile(buffer, fileName, defaultShippingMethod) {
     header: 1,
     raw: false,
     defval: '',
-    blankrows: false
+    blankrows: false,
   });
   if (!Array.isArray(rows) || rows.length < 2 || rows.length > MAX_BULK_TRACKING_ROWS + 1) {
     return { error: `物流檔案必須包含標題列及 1 至 ${MAX_BULK_TRACKING_ROWS} 筆資料。` };
   }
 
   const headers = rows[0].map(normalizeTrackingHeader);
-  const orderNumberIndex = headers.findIndex(header =>
+  const orderNumberIndex = headers.findIndex((header) =>
     ['ordernumber', 'orderno.', '訂單編號', '訂單號碼'].includes(header)
   );
-  const trackingNumberIndex = headers.findIndex(header =>
+  const trackingNumberIndex = headers.findIndex((header) =>
     ['trackingnumber', '運單號', '物流單號', '快遞單號'].includes(header)
   );
-  const shippingMethodIndex = headers.findIndex(header =>
+  const shippingMethodIndex = headers.findIndex((header) =>
     ['shippingmethod', '出貨方式', '物流方式', '運送方式'].includes(header)
   );
   if (orderNumberIndex < 0 || trackingNumberIndex < 0) {
@@ -71,9 +71,10 @@ function parseBulkTrackingFile(buffer, fileName, defaultShippingMethod) {
     const row = rows[index];
     const orderNumber = String(row[orderNumberIndex] ?? '').trim();
     const trackingNumber = String(row[trackingNumberIndex] ?? '').trim();
-    const shippingMethod = shippingMethodIndex >= 0 && String(row[shippingMethodIndex] ?? '').trim()
-      ? String(row[shippingMethodIndex]).trim()
-      : defaultShippingMethod;
+    const shippingMethod =
+      shippingMethodIndex >= 0 && String(row[shippingMethodIndex] ?? '').trim()
+        ? String(row[shippingMethodIndex]).trim()
+        : defaultShippingMethod;
     if (
       !orderNumber ||
       orderNumber.length > 100 ||
@@ -86,10 +87,12 @@ function parseBulkTrackingFile(buffer, fileName, defaultShippingMethod) {
     shipments.push({
       order_number: orderNumber,
       tracking_number: trackingNumber,
-      shipping_method: shippingMethod
+      shipping_method: shippingMethod,
     });
   }
-  if (new Set(shipments.map(row => row.order_number.toLocaleUpperCase())).size !== shipments.length) {
+  if (
+    new Set(shipments.map((row) => row.order_number.toLocaleUpperCase())).size !== shipments.length
+  ) {
     return { error: '物流檔案包含重複訂單編號，請先整理後再匯入。' };
   }
   return { shipments };
@@ -99,7 +102,7 @@ function sendError(res, status, message, data = null) {
   return res.status(status).json({
     success: false,
     data,
-    message
+    message,
   });
 }
 
@@ -137,18 +140,21 @@ function createShippingRouter(supabase, options = {}) {
       return sendError(res, 503, '出貨服務尚未設定 SHIPPING_ADMIN_TOKEN。');
     }
 
-    const authorized = typeof options.isSessionAuthorized === 'function'
-      ? options.isSessionAuthorized(req, adminToken, 'shipping')
-      : (() => {
-        const authorization = req.get('authorization') || '';
-        const suppliedToken = authorization.startsWith('Bearer ')
-          ? authorization.slice('Bearer '.length)
-          : '';
-        const expectedBuffer = Buffer.from(adminToken);
-        const suppliedBuffer = Buffer.from(suppliedToken);
-        return expectedBuffer.length === suppliedBuffer.length &&
-          crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
-      })();
+    const authorized =
+      typeof options.isSessionAuthorized === 'function'
+        ? options.isSessionAuthorized(req, adminToken, 'shipping')
+        : (() => {
+            const authorization = req.get('authorization') || '';
+            const suppliedToken = authorization.startsWith('Bearer ')
+              ? authorization.slice('Bearer '.length)
+              : '';
+            const expectedBuffer = Buffer.from(adminToken);
+            const suppliedBuffer = Buffer.from(suppliedToken);
+            return (
+              expectedBuffer.length === suppliedBuffer.length &&
+              crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)
+            );
+          })();
 
     if (!authorized) {
       return sendError(res, 401, '沒有權限使用出貨服務。');
@@ -207,7 +213,7 @@ function createShippingRouter(supabase, options = {}) {
       return [];
     }
 
-    const orderIds = orders.map(order => order.order_id);
+    const orderIds = orders.map((order) => order.order_id);
     const { data: items, error: itemsError } = await supabase
       .from('order_items')
       .select('item_id,order_id,product_id,quantity,item_status')
@@ -227,14 +233,14 @@ function createShippingRouter(supabase, options = {}) {
       throw error;
     }
 
-    const readyOrders = orders.filter(order => (
-      items.some(item => String(item.order_id) === String(order.order_id))
-    ));
+    const readyOrders = orders.filter((order) =>
+      items.some((item) => String(item.order_id) === String(order.order_id))
+    );
     if (items.length === 0) {
       return [];
     }
 
-    const productIds = [...new Set(items.map(item => item.product_id))];
+    const productIds = [...new Set(items.map((item) => item.product_id))];
     const { data: products, error: productsError } = await supabase
       .from('products')
       .select('id,name,product_name')
@@ -247,29 +253,33 @@ function createShippingRouter(supabase, options = {}) {
       throw new Error('Supabase 執貨清單商品查詢回傳格式無效。');
     }
 
-    const ordersById = new Map(readyOrders.map(order => [String(order.order_id), order]));
-    const productsById = new Map(products.map(product => [
-      String(product.id),
-      String(product.product_name || product.name || '未命名商品')
-    ]));
-    const rows = items.map(item => {
-      const order = ordersById.get(String(item.order_id));
-      if (!order) {
-        return null;
-      }
-      return {
-        order_id: order.order_id,
-        order_date: order.order_date,
-        customer_phone: order.customer_phone,
-        shipping_method: order.shipping_method,
-        tracking_number: order.tracking_number,
-        shipping_status: order.shipping_status,
-        item_id: item.item_id,
-        product_id: item.product_id,
-        product_name: productsById.get(String(item.product_id)) || '未命名商品',
-        quantity: item.quantity
-      };
-    }).filter(Boolean);
+    const ordersById = new Map(readyOrders.map((order) => [String(order.order_id), order]));
+    const productsById = new Map(
+      products.map((product) => [
+        String(product.id),
+        String(product.product_name || product.name || '未命名商品'),
+      ])
+    );
+    const rows = items
+      .map((item) => {
+        const order = ordersById.get(String(item.order_id));
+        if (!order) {
+          return null;
+        }
+        return {
+          order_id: order.order_id,
+          order_date: order.order_date,
+          customer_phone: order.customer_phone,
+          shipping_method: order.shipping_method,
+          tracking_number: order.tracking_number,
+          shipping_status: order.shipping_status,
+          item_id: item.item_id,
+          product_id: item.product_id,
+          product_name: productsById.get(String(item.product_id)) || '未命名商品',
+          quantity: item.quantity,
+        };
+      })
+      .filter(Boolean);
 
     if (groupBy === 'product') {
       const productsGrouped = new Map();
@@ -279,13 +289,13 @@ function createShippingRouter(supabase, options = {}) {
           product_id: row.product_id,
           product_name: row.product_name,
           total_quantity: 0,
-          orders: []
+          orders: [],
         };
         group.total_quantity += Number(row.quantity);
         group.orders.push({
           order_id: row.order_id,
           item_id: row.item_id,
-          quantity: row.quantity
+          quantity: row.quantity,
         });
         productsGrouped.set(key, group);
       }
@@ -302,14 +312,14 @@ function createShippingRouter(supabase, options = {}) {
         shipping_method: row.shipping_method,
         tracking_number: row.tracking_number,
         shipping_status: row.shipping_status,
-        items: []
+        items: [],
       };
       group.items.push({
         item_id: row.item_id,
         product_id: row.product_id,
         product_name: row.product_name,
         quantity: row.quantity,
-        item_status: '已到貨倉'
+        item_status: '已到貨倉',
       });
       ordersGrouped.set(key, group);
     }
@@ -319,10 +329,7 @@ function createShippingRouter(supabase, options = {}) {
   async function sendShipmentNotification(orderId) {
     let notification;
     try {
-      const result = await supabase.rpc(
-        'claim_shipping_notification',
-        { p_order_id: orderId }
-      );
+      const result = await supabase.rpc('claim_shipping_notification', { p_order_id: orderId });
       notification = result.data;
 
       if (result.error) {
@@ -330,7 +337,7 @@ function createShippingRouter(supabase, options = {}) {
         return {
           success: false,
           status: 'pending',
-          message: '出貨已完成，但無法取得通知工作；請稍後重試通知。'
+          message: '出貨已完成，但無法取得通知工作；請稍後重試通知。',
         };
       }
     } catch (error) {
@@ -338,7 +345,7 @@ function createShippingRouter(supabase, options = {}) {
       return {
         success: false,
         status: 'pending',
-        message: '出貨已完成，但無法取得通知工作；請稍後重試通知。'
+        message: '出貨已完成，但無法取得通知工作；請稍後重試通知。',
       };
     }
 
@@ -347,7 +354,7 @@ function createShippingRouter(supabase, options = {}) {
       return {
         success: false,
         status: 'unknown',
-        message: '出貨已完成，但通知工作狀態無效；請檢查資料庫通知佇列。'
+        message: '出貨已完成，但通知工作狀態無效；請檢查資料庫通知佇列。',
       };
     }
 
@@ -357,14 +364,14 @@ function createShippingRouter(supabase, options = {}) {
         return {
           success: false,
           status: 'unknown',
-          message: '出貨已完成，但通知工作狀態無效；請檢查資料庫通知佇列。'
+          message: '出貨已完成，但通知工作狀態無效；請檢查資料庫通知佇列。',
         };
       }
 
       return {
         success: notification.status === 'sent',
         status: notification.status,
-        message: '通知已由其他工作程序處理或目前仍在處理中。'
+        message: '通知已由其他工作程序處理或目前仍在處理中。',
       };
     }
 
@@ -385,12 +392,12 @@ function createShippingRouter(supabase, options = {}) {
       const text = [
         `LittlePlanet 出貨通知：訂單 #${orderId} 已出貨。`,
         `快遞公司／方式：${notification.shipping_method}`,
-        `運單號碼：${notification.tracking_number}`
+        `運單號碼：${notification.tracking_number}`,
       ].join('\n');
 
       await sendWhatsApp({
         to: notification.customer_phone,
-        text
+        text,
       });
     } catch (error) {
       failureMessage = error instanceof Error ? error.message : 'WhatsApp 訊息發送失敗。';
@@ -399,21 +406,18 @@ function createShippingRouter(supabase, options = {}) {
 
     let result;
     try {
-      const finishResult = await supabase.rpc(
-        'finish_shipping_notification',
-        {
-          p_order_id: orderId,
-          p_success: failureMessage.length === 0,
-          p_error_message: failureMessage ? failureMessage.slice(0, 500) : null
-        }
-      );
+      const finishResult = await supabase.rpc('finish_shipping_notification', {
+        p_order_id: orderId,
+        p_success: failureMessage.length === 0,
+        p_error_message: failureMessage ? failureMessage.slice(0, 500) : null,
+      });
       result = finishResult.data;
       if (finishResult.error) {
         console.error('更新出貨通知結果失敗：', { orderId, error: finishResult.error });
         return {
           success: false,
           status: 'sending',
-          message: '出貨已完成，但通知發送結果未能記錄；請檢查 WhatsApp 及通知狀態。'
+          message: '出貨已完成，但通知發送結果未能記錄；請檢查 WhatsApp 及通知狀態。',
         };
       }
     } catch (error) {
@@ -421,7 +425,7 @@ function createShippingRouter(supabase, options = {}) {
       return {
         success: false,
         status: 'sending',
-        message: '出貨已完成，但通知發送結果未能記錄；請檢查 WhatsApp 及通知狀態。'
+        message: '出貨已完成，但通知發送結果未能記錄；請檢查 WhatsApp 及通知狀態。',
       };
     }
 
@@ -431,7 +435,7 @@ function createShippingRouter(supabase, options = {}) {
       return {
         success: false,
         status: 'unknown',
-        message: '出貨已完成，但通知結果未能確認；請檢查通知佇列。'
+        message: '出貨已完成，但通知結果未能確認；請檢查通知佇列。',
       };
     }
 
@@ -440,14 +444,14 @@ function createShippingRouter(supabase, options = {}) {
         success: false,
         status: result.status,
         message: '出貨已完成，但 WhatsApp 通知發送失敗；可呼叫通知重試 API。',
-        error: failureMessage
+        error: failureMessage,
       };
     }
 
     return {
       success: true,
       status: result.status,
-      message: 'WhatsApp 出貨通知已發送。'
+      message: 'WhatsApp 出貨通知已發送。',
     };
   }
 
@@ -463,7 +467,7 @@ function createShippingRouter(supabase, options = {}) {
         data = await getTablePickList(groupBy);
       } else {
         const { data: rpcData, error } = await supabase.rpc('get_shipping_pick_list', {
-          p_group_by: groupBy
+          p_group_by: groupBy,
         });
         if (error) {
           return handleRpcError(res, error, '取得執貨清單');
@@ -478,7 +482,7 @@ function createShippingRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data,
-        message: `已產生按${groupBy === 'order' ? '訂單' : '貨品'}分組的執貨清單。`
+        message: `已產生按${groupBy === 'order' ? '訂單' : '貨品'}分組的執貨清單。`,
       });
     } catch (error) {
       console.error('取得執貨清單時發生未預期錯誤：', error);
@@ -500,9 +504,9 @@ function createShippingRouter(supabase, options = {}) {
         'application/csv',
         'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         'application/vnd.ms-excel',
-        'application/octet-stream'
+        'application/octet-stream',
       ],
-      limit: MAX_BULK_TRACKING_FILE_BYTES
+      limit: MAX_BULK_TRACKING_FILE_BYTES,
     }),
     async (req, res) => {
       try {
@@ -513,11 +517,7 @@ function createShippingRouter(supabase, options = {}) {
         } catch (error) {
           return sendError(res, 400, '物流檔案名稱格式無效。');
         }
-        if (
-          !fileName ||
-          fileName.length > 255 ||
-          /[\\/\u0000-\u001f\u007f]/.test(fileName)
-        ) {
+        if (!fileName || fileName.length > 255 || /[\\/\u0000-\u001f\u007f]/.test(fileName)) {
           return sendError(res, 400, '請提供有效的 CSV 或 Excel 物流檔案名稱。');
         }
         let defaultShippingMethod;
@@ -540,7 +540,7 @@ function createShippingRouter(supabase, options = {}) {
           return sendError(res, 400, parsed.error);
         }
         const { data, error } = await supabase.rpc('bulk_ship_orders', {
-          p_shipments: parsed.shipments
+          p_shipments: parsed.shipments,
         });
         if (error) {
           return handleRpcError(res, error, '批量匯入物流單號');
@@ -567,27 +567,28 @@ function createShippingRouter(supabase, options = {}) {
             console.error('批量出貨後發送 WhatsApp 通知時發生錯誤：', { orderId, error });
             notification = {
               success: false,
-              message: '出貨成功，但 WhatsApp 通知未能確認，可稍後重試。'
+              message: '出貨成功，但 WhatsApp 通知未能確認，可稍後重試。',
             };
           }
           results.push({
             order_number: data.shipments[index].order_number,
             tracking_number: parsed.shipments[index].tracking_number,
-            notification
+            notification,
           });
         }
 
-        const failedNotifications = results.filter(result => !result.notification.success).length;
+        const failedNotifications = results.filter((result) => !result.notification.success).length;
         return res.json({
           success: true,
           data: {
             imported_count: results.length,
             failed_notifications: failedNotifications,
-            results
+            results,
           },
-          message: failedNotifications === 0
-            ? `已成功匯入 ${results.length} 筆物流單號並發送通知。`
-            : `已成功匯入 ${results.length} 筆物流單號；${failedNotifications} 筆 WhatsApp 通知未能確認，可稍後重試。`
+          message:
+            failedNotifications === 0
+              ? `已成功匯入 ${results.length} 筆物流單號並發送通知。`
+              : `已成功匯入 ${results.length} 筆物流單號；${failedNotifications} 筆 WhatsApp 通知未能確認，可稍後重試。`,
         });
       } catch (error) {
         console.error('批量匯入物流單號時發生未預期錯誤：', error);
@@ -611,16 +612,14 @@ function createShippingRouter(supabase, options = {}) {
         return sendError(res, 400, '出貨資料格式無效。');
       }
 
-      const shippingMethod = typeof body.shipping_method === 'string'
-        ? body.shipping_method.trim()
-        : '';
+      const shippingMethod =
+        typeof body.shipping_method === 'string' ? body.shipping_method.trim() : '';
       if (!SHIPPING_METHODS.has(shippingMethod)) {
         return sendError(res, 400, 'shipping_method 必須是面交、自取、順豐或京東。');
       }
 
-      const trackingNumber = typeof body.tracking_number === 'string'
-        ? body.tracking_number.trim()
-        : '';
+      const trackingNumber =
+        typeof body.tracking_number === 'string' ? body.tracking_number.trim() : '';
       if (!trackingNumber || trackingNumber.length > 100) {
         return sendError(res, 400, 'tracking_number 必須是 1 至 100 個字元。');
       }
@@ -637,7 +636,7 @@ function createShippingRouter(supabase, options = {}) {
         p_order_id: orderId,
         p_shipping_method: shippingMethod,
         p_tracking_number: trackingNumber,
-        p_customer_phone: customerPhone
+        p_customer_phone: customerPhone,
       });
 
       if (error) {
@@ -653,11 +652,11 @@ function createShippingRouter(supabase, options = {}) {
         success: true,
         data: {
           ...data,
-          notification
+          notification,
         },
         message: notification.success
           ? '訂單已標記為已出貨，WhatsApp 通知已發送。'
-          : '訂單已標記為已出貨；WhatsApp 通知未能確認送達，可稍後重試。'
+          : '訂單已標記為已出貨；WhatsApp 通知未能確認送達，可稍後重試。',
       });
     } catch (error) {
       console.error('更新出貨資料時發生未預期錯誤：', error);
@@ -677,14 +676,14 @@ function createShippingRouter(supabase, options = {}) {
         return res.status(502).json({
           success: false,
           data: { order_id: orderId, notification },
-          message: notification.message
+          message: notification.message,
         });
       }
 
       return res.json({
         success: true,
         data: { order_id: orderId, notification },
-        message: notification.message
+        message: notification.message,
       });
     } catch (error) {
       console.error('重試 WhatsApp 出貨通知時發生未預期錯誤：', error);

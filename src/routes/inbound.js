@@ -11,7 +11,7 @@ function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
@@ -45,7 +45,9 @@ function parseOrderUuid(value) {
     return null;
   }
   const normalized = value.trim();
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(normalized)
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    normalized
+  )
     ? normalized
     : null;
 }
@@ -55,9 +57,9 @@ function getHongKongDate(date = new Date()) {
     timeZone: 'Asia/Hong_Kong',
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit'
+    day: '2-digit',
   }).formatToParts(date);
-  const parts = Object.fromEntries(dateParts.map(part => [part.type, part.value]));
+  const parts = Object.fromEntries(dateParts.map((part) => [part.type, part.value]));
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
@@ -72,10 +74,7 @@ function parseBestBeforeDate(value) {
     return { error: 'best_before_date 必須是有效的 YYYY-MM-DD 日期，或留空表示無最佳使用期限。' };
   }
   const parsedDate = new Date(`${value}T00:00:00.000Z`);
-  if (
-    Number.isNaN(parsedDate.getTime()) ||
-    parsedDate.toISOString().slice(0, 10) !== value
-  ) {
+  if (Number.isNaN(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== value) {
     return { error: 'best_before_date 必須是有效的 YYYY-MM-DD 日期，或留空表示無最佳使用期限。' };
   }
   if (value < getHongKongDate()) {
@@ -94,18 +93,21 @@ function createInboundRouter(supabase, options = {}) {
       return sendError(res, 503, '入庫服務尚未設定 INBOUND_ADMIN_TOKEN。');
     }
 
-    const authorized = typeof options.isSessionAuthorized === 'function'
-      ? options.isSessionAuthorized(req, adminToken, 'inbound')
-      : (() => {
-        const authorization = req.get('authorization') || '';
-        const suppliedToken = authorization.startsWith('Bearer ')
-          ? authorization.slice('Bearer '.length)
-          : '';
-        const expectedBuffer = Buffer.from(adminToken);
-        const suppliedBuffer = Buffer.from(suppliedToken);
-        return expectedBuffer.length === suppliedBuffer.length &&
-          crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
-      })();
+    const authorized =
+      typeof options.isSessionAuthorized === 'function'
+        ? options.isSessionAuthorized(req, adminToken, 'inbound')
+        : (() => {
+            const authorization = req.get('authorization') || '';
+            const suppliedToken = authorization.startsWith('Bearer ')
+              ? authorization.slice('Bearer '.length)
+              : '';
+            const expectedBuffer = Buffer.from(adminToken);
+            const suppliedBuffer = Buffer.from(suppliedToken);
+            return (
+              expectedBuffer.length === suppliedBuffer.length &&
+              crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)
+            );
+          })();
 
     if (!authorized) {
       return sendError(res, 401, '沒有權限使用入庫服務。');
@@ -122,7 +124,11 @@ function createInboundRouter(supabase, options = {}) {
     console.error(`${operation} Supabase RPC 失敗：`, error);
 
     if (error && MISSING_RPC_CODES.has(error.code)) {
-      return sendError(res, 503, '入庫資料庫遷移尚未執行，請先套用入庫對賬及商品效期批次 migration。');
+      return sendError(
+        res,
+        503,
+        '入庫資料庫遷移尚未執行，請先套用入庫對賬及商品效期批次 migration。'
+      );
     }
 
     if (error && error.code === 'P0002') {
@@ -161,7 +167,7 @@ function createInboundRouter(supabase, options = {}) {
       const { data, error } = await supabase.rpc('record_product_receipt', {
         p_product_id: productId,
         p_quantity: quantity,
-        p_best_before_date: bestBeforeDate.value
+        p_best_before_date: bestBeforeDate.value,
       });
 
       if (error) {
@@ -176,7 +182,7 @@ function createInboundRouter(supabase, options = {}) {
       return res.status(200).json({
         success: true,
         data,
-        message: '入庫已記錄，庫存及相關訂單明細已在資料庫交易中更新。'
+        message: '入庫已記錄，庫存及相關訂單明細已在資料庫交易中更新。',
       });
     } catch (error) {
       console.error('處理入庫時發生未預期錯誤：', error);
@@ -216,7 +222,7 @@ function createInboundRouter(supabase, options = {}) {
         return sendError(res, 413, '近效期庫存警示超過安全顯示上限，請先分批查看。');
       }
 
-      const productIds = [...new Set(batches.map(batch => batch.product_id))];
+      const productIds = [...new Set(batches.map((batch) => batch.product_id))];
       let products = [];
       if (productIds.length > 0) {
         const { data, error: productError } = await supabase
@@ -234,21 +240,24 @@ function createInboundRouter(supabase, options = {}) {
         products = data;
       }
 
-      const namesById = new Map(products.map(product => [
-        String(product.id),
-        String(product.product_name || product.name || '未命名商品')
-      ]));
+      const namesById = new Map(
+        products.map((product) => [
+          String(product.id),
+          String(product.product_name || product.name || '未命名商品'),
+        ])
+      );
       const alerts = batches
-        .filter(batch => (
-          Number.isSafeInteger(batch.quantity_remaining) &&
-          batch.quantity_remaining > 0 &&
-          typeof batch.best_before_date === 'string' &&
-          batch.best_before_date <= endDate
-        ))
-        .map(batch => ({
+        .filter(
+          (batch) =>
+            Number.isSafeInteger(batch.quantity_remaining) &&
+            batch.quantity_remaining > 0 &&
+            typeof batch.best_before_date === 'string' &&
+            batch.best_before_date <= endDate
+        )
+        .map((batch) => ({
           ...batch,
           product_name: namesById.get(String(batch.product_id)) || '未命名商品',
-          is_expired: batch.best_before_date < today
+          is_expired: batch.best_before_date < today,
         }));
 
       return res.json({
@@ -256,9 +265,9 @@ function createInboundRouter(supabase, options = {}) {
         data: {
           alerts,
           today,
-          through_date: endDate
+          through_date: endDate,
         },
-        message: '近效期庫存警示已載入。'
+        message: '近效期庫存警示已載入。',
       });
     } catch (error) {
       console.error('處理近效期庫存查詢時發生未預期錯誤：', error);
@@ -296,7 +305,11 @@ function createInboundRouter(supabase, options = {}) {
       if (batchError) {
         console.error('讀取商品收貨批次時發生 Supabase 錯誤：', batchError);
         if (batchError.code === '42P01' || batchError.code === 'PGRST205') {
-          return sendError(res, 503, '批次資料庫 migration 尚未執行，請先套用商品效期批次 migration。');
+          return sendError(
+            res,
+            503,
+            '批次資料庫 migration 尚未執行，請先套用商品效期批次 migration。'
+          );
         }
         return sendError(res, 500, '讀取商品收貨批次失敗，請稍後再試。');
       }
@@ -310,9 +323,9 @@ function createInboundRouter(supabase, options = {}) {
         data: {
           product_id: product.id,
           current_stock: Number.isSafeInteger(product.stock) ? product.stock : 0,
-          batches
+          batches,
         },
-        message: '商品收貨批次讀取成功。'
+        message: '商品收貨批次讀取成功。',
       });
     } catch (error) {
       console.error('讀取商品收貨批次時發生未預期錯誤：', error);
@@ -333,9 +346,13 @@ function createInboundRouter(supabase, options = {}) {
         typeof body !== 'object' ||
         Array.isArray(body) ||
         !Object.hasOwn(body, 'best_before_date') ||
-        Object.keys(body).some(key => key !== 'best_before_date')
+        Object.keys(body).some((key) => key !== 'best_before_date')
       ) {
-        return sendError(res, 400, '只可提交 best_before_date 日期欄位；留空或傳入 null 可清除日期。');
+        return sendError(
+          res,
+          400,
+          '只可提交 best_before_date 日期欄位；留空或傳入 null 可清除日期。'
+        );
       }
 
       const bestBeforeDate = parseBestBeforeDate(body.best_before_date);
@@ -363,10 +380,7 @@ function createInboundRouter(supabase, options = {}) {
       if (!data) {
         return sendError(res, 404, '找不到指定收貨批次。');
       }
-      if (
-        String(data.batch_id) !== batchId ||
-        data.best_before_date !== bestBeforeDate.value
-      ) {
+      if (String(data.batch_id) !== batchId || data.best_before_date !== bestBeforeDate.value) {
         console.error('更新批次最佳使用日期後回傳資料不符：', data);
         return sendError(res, 500, '資料庫未回傳預期的批次日期更新結果。');
       }
@@ -374,9 +388,10 @@ function createInboundRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data,
-        message: bestBeforeDate.value === null
-          ? '批次最佳使用日期已清除，現標示為無最佳使用日期。'
-          : '批次最佳使用日期更新成功。'
+        message:
+          bestBeforeDate.value === null
+            ? '批次最佳使用日期已清除，現標示為無最佳使用日期。'
+            : '批次最佳使用日期更新成功。',
       });
     } catch (error) {
       console.error('更新批次最佳使用日期時發生未預期錯誤：', error);
@@ -400,7 +415,7 @@ function createInboundRouter(supabase, options = {}) {
       }
 
       const { data, error } = await supabase.rpc('reconcile_inbound_orders', {
-        p_order_id: orderId
+        p_order_id: orderId,
       });
 
       if (error) {
@@ -415,7 +430,7 @@ function createInboundRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data,
-        message: `齊貨對賬完成，共檢查 ${data.length} 張訂單。`
+        message: `齊貨對賬完成，共檢查 ${data.length} 張訂單。`,
       });
     } catch (error) {
       console.error('執行齊貨對賬時發生未預期錯誤：', error);

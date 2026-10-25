@@ -4,14 +4,14 @@ const {
   SESSION_TTL_SECONDS,
   createCustomerSession,
   getCustomerSession,
-  setCustomerCookie
+  setCustomerCookie,
 } = require('../middleware/customer-session');
 
 const MISSING_RPC_CODES = new Set(['42883', 'PGRST202']);
 const MISSING_SCHEMA_CODES = new Set(['42P01', '42703', 'PGRST204', 'PGRST205']);
 const MAX_CUSTOMER_PAGE_SIZE = 100;
-const MAX_CUSTOMER_ORDER_ITEMS = 5000;
-const PRODUCT_ID_PATTERN = /^(?:[1-9]\d{0,18}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
+const PRODUCT_ID_PATTERN =
+  /^(?:[1-9]\d{0,18}|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i;
 const WISHLIST_PRODUCT_FIELDS = new Set([
   'id',
   'product_id',
@@ -28,14 +28,14 @@ const WISHLIST_PRODUCT_FIELDS = new Set([
   'status',
   'discount_rule',
   'cutoff_datetime',
-  'created_at'
+  'created_at',
 ]);
 
 function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
@@ -53,13 +53,9 @@ function getPhoneVariants(value) {
     return [];
   }
   const rawPhone = normalized.replace(/^852/, '');
-  return [...new Set([
-    normalized,
-    rawPhone,
-    `852${rawPhone}`,
-    `+${normalized}`,
-    `+852${rawPhone}`
-  ])];
+  return [
+    ...new Set([normalized, rawPhone, `852${rawPhone}`, `+${normalized}`, `+852${rawPhone}`]),
+  ];
 }
 
 function parseInteger(value, minimum, maximum, defaultValue) {
@@ -70,9 +66,7 @@ function parseInteger(value, minimum, maximum, defaultValue) {
     return null;
   }
   const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum
-    ? parsed
-    : null;
+  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum ? parsed : null;
 }
 
 function normalizeProductId(value) {
@@ -94,10 +88,7 @@ function getRateLimitKey(remoteAddress, secret) {
     return null;
   }
 
-  return crypto
-    .createHmac('sha256', secret)
-    .update(remoteAddress)
-    .digest('hex');
+  return crypto.createHmac('sha256', secret).update(remoteAddress).digest('hex');
 }
 
 function isSameOriginRequest(req) {
@@ -152,9 +143,9 @@ function createCustomerRouter(supabase, options = {}) {
       success: true,
       data: {
         supabaseUrl: process.env.SUPABASE_URL || 'https://wteditztyndkfvnzkpvn.supabase.co',
-        supabaseAnonKey: process.env.SUPABASE_ANON_KEY || ''
+        supabaseAnonKey: process.env.SUPABASE_ANON_KEY || '',
       },
-      message: '取得前端配置成功。'
+      message: '取得前端配置成功。',
     });
   });
 
@@ -169,11 +160,17 @@ function createCustomerRouter(supabase, options = {}) {
     const limit = parseInteger(req.query.limit, 1, MAX_CUSTOMER_PAGE_SIZE, MAX_CUSTOMER_PAGE_SIZE);
     const offset = parseInteger(req.query.offset, 0, 2147483647, 0);
     if (limit === null || offset === null) {
-      return sendError(res, 400, `limit 必須是 1 至 ${MAX_CUSTOMER_PAGE_SIZE} 的整數，offset 必須是非負整數。`);
+      return sendError(
+        res,
+        400,
+        `limit 必須是 1 至 ${MAX_CUSTOMER_PAGE_SIZE} 的整數，offset 必須是非負整數。`
+      );
     }
 
     try {
-      let query = supabase.from('customer_wishlists').select('id,product_id,created_at', { count: 'exact' });
+      let query = supabase
+        .from('customer_wishlists')
+        .select('id,product_id,created_at', { count: 'exact' });
       if (session.phone && session.phone.includes('|google|')) {
         const [email] = session.phone.split('|google|');
         query = query.eq('customer_email', email);
@@ -181,9 +178,11 @@ function createCustomerRouter(supabase, options = {}) {
         query = query.eq('customer_phone', session.phone);
       }
 
-      const { data: savedItems, error, count } = await query
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      const {
+        data: savedItems,
+        error,
+        count,
+      } = await query.order('created_at', { ascending: false }).range(offset, offset + limit - 1);
 
       if (error) {
         console.error('讀取會員收藏清單失敗：', error);
@@ -193,7 +192,7 @@ function createCustomerRouter(supabase, options = {}) {
         return sendError(res, 500, '讀取會員收藏清單失敗，請稍後再試。');
       }
 
-      const productIds = (savedItems || []).map(item => String(item.product_id));
+      const productIds = (savedItems || []).map((item) => String(item.product_id));
       let products = [];
       if (productIds.length > 0) {
         const { data, error: productsError } = await supabase
@@ -205,12 +204,14 @@ function createCustomerRouter(supabase, options = {}) {
         }
       }
 
-      const productsById = new Map(products.map(p => [String(p.id ?? p.product_id), filterWishlistProductFields(p)]));
-      const wishlist = (savedItems || []).map(item => ({
+      const productsById = new Map(
+        products.map((p) => [String(p.id ?? p.product_id), filterWishlistProductFields(p)])
+      );
+      const wishlist = (savedItems || []).map((item) => ({
         id: item.id,
         product_id: String(item.product_id),
         created_at: item.created_at,
-        product: productsById.get(String(item.product_id)) || null
+        product: productsById.get(String(item.product_id)) || null,
       }));
 
       return res.json({
@@ -219,9 +220,9 @@ function createCustomerRouter(supabase, options = {}) {
           wishlist,
           total_count: Number.isSafeInteger(count) ? count : wishlist.length,
           limit,
-          offset
+          offset,
         },
-        message: '會員收藏清單載入完成。'
+        message: '會員收藏清單載入完成。',
       });
     } catch (error) {
       console.error('處理會員收藏清單時發生未預期錯誤：', error);
@@ -272,8 +273,12 @@ function createCustomerRouter(supabase, options = {}) {
 
       return res.status(201).json({
         success: true,
-        data: { id: savedItem.id, product_id: String(savedItem.product_id), created_at: savedItem.created_at },
-        message: '商品已加入收藏。'
+        data: {
+          id: savedItem.id,
+          product_id: String(savedItem.product_id),
+          created_at: savedItem.created_at,
+        },
+        message: '商品已加入收藏。',
       });
     } catch (error) {
       console.error('加入會員收藏失敗：', error);
@@ -305,7 +310,7 @@ function createCustomerRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data: { product_id: String(data.product_id) },
-        message: '商品已從收藏清單移除。'
+        message: '商品已從收藏清單移除。',
       });
     } catch (error) {
       return sendError(res, 500, '移除收藏時發生錯誤，請稍後再試。');
@@ -340,7 +345,7 @@ function createCustomerRouter(supabase, options = {}) {
       const { data, error } = await supabase.rpc('link_customer_phone_orders', {
         p_google_email: email,
         p_phone: phone,
-        p_sample_order_number: orderNumber
+        p_sample_order_number: orderNumber,
       });
 
       if (error) {
@@ -348,12 +353,12 @@ function createCustomerRouter(supabase, options = {}) {
         return sendError(res, 400, error.message || '核對失敗，請確認電話號碼與訂單編號是否匹配。');
       }
 
-      const updatedCount = Array.isArray(data) && data[0] ? (data[0].updated_count || data[0]) : data;
+      const updatedCount = Array.isArray(data) && data[0] ? data[0].updated_count || data[0] : data;
 
       return res.json({
         success: true,
         data: { updated_count: updatedCount },
-        message: `成功核對並認領 ${updatedCount || 0} 筆歷史訂單！過往訂單已永久綁定至您的 Google 帳號。`
+        message: `成功核對並認領 ${updatedCount || 0} 筆歷史訂單！過往訂單已永久綁定至您的 Google 帳號。`,
       });
     } catch (error) {
       console.error('認領歷史訂單發生未預期錯誤：', error);
@@ -374,7 +379,10 @@ function createCustomerRouter(supabase, options = {}) {
 
     const token = authHeader.split(' ')[1];
     try {
-      const { data: { user }, error } = await supabase.auth.getUser(token);
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser(token);
       if (error || !user || !user.email) {
         return sendError(res, 401, '無效的 Google 身份證明文件或存取權限。');
       }
@@ -383,7 +391,7 @@ function createCustomerRouter(supabase, options = {}) {
       const customerSession = createCustomerSession(sessionPayload, sessionSecret);
       setCustomerCookie(res, customerSession, {
         maxAge: SESSION_TTL_SECONDS,
-        secure: secureCookie && req.protocol === 'https'
+        secure: secureCookie && req.protocol === 'https',
       });
 
       return res.json({
@@ -393,9 +401,11 @@ function createCustomerRouter(supabase, options = {}) {
           auth_provider: 'google',
           email: user.email,
           user_metadata: user.user_metadata,
-          expires_at: new Date((Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS) * 1000).toISOString()
+          expires_at: new Date(
+            (Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS) * 1000
+          ).toISOString(),
         },
-        message: 'Google 驗證成功，順利登入會員中心。'
+        message: 'Google 驗證成功，順利登入會員中心。',
       });
     } catch (error) {
       console.error('Google Session 驗證失敗：', error);
@@ -420,7 +430,10 @@ function createCustomerRouter(supabase, options = {}) {
     }
 
     try {
-      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(orderInput);
+      const isUuid =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          orderInput
+        );
       let query = supabase.from('orders').select('order_id, order_number, customer_phone');
 
       if (isUuid) {
@@ -433,7 +446,10 @@ function createCustomerRouter(supabase, options = {}) {
       if (error) return sendError(res, 500, '會員身份驗證暫時無法完成，請稍後再試。');
 
       const storedPhone = order ? normalizePhone(order.customer_phone) : null;
-      const isPhoneMatch = storedPhone && phone && (storedPhone === phone || storedPhone.slice(-8) === phone.slice(-8));
+      const isPhoneMatch =
+        storedPhone &&
+        phone &&
+        (storedPhone === phone || storedPhone.slice(-8) === phone.slice(-8));
 
       if (!order || !isPhoneMatch) {
         return sendError(res, 401, '手機號碼或訂單編號不正確。');
@@ -442,16 +458,18 @@ function createCustomerRouter(supabase, options = {}) {
       const customerSession = createCustomerSession(phone, sessionSecret);
       setCustomerCookie(res, customerSession, {
         maxAge: SESSION_TTL_SECONDS,
-        secure: secureCookie && req.protocol === 'https'
+        secure: secureCookie && req.protocol === 'https',
       });
 
       return res.json({
         success: true,
         data: {
           authenticated: true,
-          expires_at: new Date((Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS) * 1000).toISOString()
+          expires_at: new Date(
+            (Math.floor(Date.now() / 1000) + SESSION_TTL_SECONDS) * 1000
+          ).toISOString(),
         },
-        message: '會員驗證成功。'
+        message: '會員驗證成功。',
       });
     } catch (error) {
       console.error('會員身份驗證錯誤：', error);
@@ -466,7 +484,11 @@ function createCustomerRouter(supabase, options = {}) {
 
     const session = getCustomerSession(req, sessionSecret);
     if (!session) {
-      return res.json({ success: true, data: { authenticated: false }, message: '尚未驗證會員身份。' });
+      return res.json({
+        success: true,
+        data: { authenticated: false },
+        message: '尚未驗證會員身份。',
+      });
     }
 
     const isGoogle = session.phone && session.phone.includes('|google|');
@@ -478,9 +500,9 @@ function createCustomerRouter(supabase, options = {}) {
           authenticated: true,
           auth_provider: 'google',
           email,
-          display_info: email
+          display_info: email,
         },
-        message: '會員工作階段有效。'
+        message: '會員工作階段有效。',
       });
     }
 
@@ -490,9 +512,9 @@ function createCustomerRouter(supabase, options = {}) {
         authenticated: true,
         auth_provider: 'phone',
         phone: `••••${session.phone.slice(-4)}`,
-        display_info: `••••${session.phone.slice(-4)}`
+        display_info: `••••${session.phone.slice(-4)}`,
       },
-      message: '會員工作階段有效。'
+      message: '會員工作階段有效。',
     });
   });
 
@@ -500,14 +522,14 @@ function createCustomerRouter(supabase, options = {}) {
   router.post('/member/logout', (req, res) => {
     res.set('Cache-Control', 'no-store');
     if (!isSameOriginRequest(req)) return sendError(res, 403, '登出要求必須來自同一網站。');
-    setCustomerCookie(res, '', { 
-      maxAge: 0, 
-      secure: secureCookie && req.protocol === 'https' 
+    setCustomerCookie(res, '', {
+      maxAge: 0,
+      secure: secureCookie && req.protocol === 'https',
     });
     return res.json({
       success: true,
       data: { authenticated: false },
-      message: '已安全登出會員中心。'
+      message: '已安全登出會員中心。',
     });
   });
 
@@ -527,7 +549,10 @@ function createCustomerRouter(supabase, options = {}) {
     try {
       let ordersQuery = supabase
         .from('orders')
-        .select('order_id, order_number, order_date, total_amount, status, payment_status, shipping_status', { count: 'exact' });
+        .select(
+          'order_id, order_number, order_date, total_amount, status, payment_status, shipping_status',
+          { count: 'exact' }
+        );
 
       const isGoogle = session.phone && session.phone.includes('|google|');
       let googleEmail = null;
@@ -539,7 +564,11 @@ function createCustomerRouter(supabase, options = {}) {
         ordersQuery = ordersQuery.in('customer_phone', getPhoneVariants(session.phone));
       }
 
-      let { data: orders, error, count } = await ordersQuery
+      let {
+        data: orders,
+        error,
+        count,
+      } = await ordersQuery
         .order('order_date', { ascending: false })
         .range(offset, offset + limit - 1);
 
@@ -575,7 +604,10 @@ function createCustomerRouter(supabase, options = {}) {
 
           const phoneOrdersResult = await supabase
             .from('orders')
-            .select('order_id, order_number, order_date, total_amount, status, payment_status, shipping_status', { count: 'exact' })
+            .select(
+              'order_id, order_number, order_date, total_amount, status, payment_status, shipping_status',
+              { count: 'exact' }
+            )
             .in('customer_phone', phoneVariants)
             .order('order_date', { ascending: false })
             .range(offset, offset + limit - 1);
@@ -593,14 +625,14 @@ function createCustomerRouter(supabase, options = {}) {
         }
       }
 
-      const orderIds = (orders || []).map(o => o.order_id);
+      const orderIds = (orders || []).map((o) => o.order_id);
       let items = [];
       if (orderIds.length > 0) {
         const { data: itemsData, error: itemsErr } = await supabase
           .from('order_items')
           .select('*')
           .in('order_id', orderIds);
-        
+
         if (itemsErr) {
           console.error('撈取訂單明細失敗：', itemsErr);
         }
@@ -609,7 +641,7 @@ function createCustomerRouter(supabase, options = {}) {
         }
       }
 
-      const productIds = [...new Set(items.map(item => String(item.product_id)).filter(Boolean))];
+      const productIds = [...new Set(items.map((item) => String(item.product_id)).filter(Boolean))];
       let products = [];
       if (productIds.length > 0) {
         const { data: prodData } = await supabase
@@ -620,7 +652,7 @@ function createCustomerRouter(supabase, options = {}) {
       }
 
       const productNames = new Map();
-      products.forEach(p => {
+      products.forEach((p) => {
         const pId = String(p.id);
         const pName = p.product_name || p.name || '商品';
         productNames.set(pId, pName);
@@ -630,10 +662,11 @@ function createCustomerRouter(supabase, options = {}) {
       for (const item of items) {
         const key = String(item.order_id);
         const orderItems = itemsByOrder.get(key) || [];
-        const prodName = productNames.get(String(item.product_id)) || item.product_name || '精選商品';
+        const prodName =
+          productNames.get(String(item.product_id)) || item.product_name || '精選商品';
         orderItems.push({
           ...item,
-          product_name: prodName
+          product_name: prodName,
         });
         itemsByOrder.set(key, orderItems);
       }
@@ -641,16 +674,16 @@ function createCustomerRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data: {
-          orders: (orders || []).map(order => ({
+          orders: (orders || []).map((order) => ({
             ...order,
-            items: itemsByOrder.get(String(order.order_id)) || []
+            items: itemsByOrder.get(String(order.order_id)) || [],
           })),
           total_count: Number.isSafeInteger(count) ? count : (orders || []).length,
           need_link_phone: isGoogle && (!orders || orders.length === 0),
           limit,
-          offset
+          offset,
         },
-        message: '會員歷史訂單載入完成。'
+        message: '會員歷史訂單載入完成。',
       });
     } catch (error) {
       console.error('處理會員歷史訂單時發生未預期錯誤：', error);
@@ -675,13 +708,15 @@ function createCustomerRouter(supabase, options = {}) {
     }
 
     const rawPhone = customerPhone.replace(/^852/, '');
-    const phoneVariants = [...new Set([
-      customerPhone,
-      rawPhone,
-      `852${rawPhone}`,
-      `+${customerPhone}`,
-      `+852${rawPhone}`
-    ])];
+    const phoneVariants = [
+      ...new Set([
+        customerPhone,
+        rawPhone,
+        `852${rawPhone}`,
+        `+${customerPhone}`,
+        `+852${rawPhone}`,
+      ]),
+    ];
 
     try {
       const { data, error } = await supabase
@@ -705,13 +740,13 @@ function createCustomerRouter(supabase, options = {}) {
 
       return res.json({
         success: true,
-        data: data.map(order => ({
+        data: data.map((order) => ({
           order_number: order.order_number,
           order_date: order.order_date,
           total_amount: order.total_amount,
-          payment_status: order.payment_status
+          payment_status: order.payment_status,
         })),
-        message: '最近訂單編號已載入。'
+        message: '最近訂單編號已載入。',
       });
     } catch (error) {
       console.error('找回訂單編號時發生未預期錯誤：', error);
@@ -728,21 +763,34 @@ function createCustomerRouter(supabase, options = {}) {
 
       const customerPhone = normalizePhone(body.customer_phone);
       const orderNumber = typeof body.order_number === 'string' ? body.order_number.trim() : '';
-      if (!customerPhone || !orderNumber || orderNumber.length > 100 || body.order_id !== undefined) {
-        return sendError(res, 400, '為保障個人私隱，必須同時提供有效的 customer_phone 及 order_number。');
+      if (
+        !customerPhone ||
+        !orderNumber ||
+        orderNumber.length > 100 ||
+        body.order_id !== undefined
+      ) {
+        return sendError(
+          res,
+          400,
+          '為保障個人私隱，必須同時提供有效的 customer_phone 及 order_number。'
+        );
       }
 
       const rawPhone = customerPhone.replace(/^852/, '');
-      const phoneVariants = [...new Set([
-        customerPhone,
-        rawPhone,
-        `852${rawPhone}`,
-        `+${customerPhone}`,
-        `+852${rawPhone}`
-      ])];
+      const phoneVariants = [
+        ...new Set([
+          customerPhone,
+          rawPhone,
+          `852${rawPhone}`,
+          `+${customerPhone}`,
+          `+852${rawPhone}`,
+        ]),
+      ];
       const { data: order, error } = await supabase
         .from('orders')
-        .select('order_id, order_number, customer_phone, shipping_status, shipping_method, shipping_carrier, tracking_number, payment_proof_url, payment_proof_status')
+        .select(
+          'order_id, order_number, customer_phone, shipping_status, shipping_method, shipping_carrier, tracking_number, payment_proof_url, payment_proof_status'
+        )
         .in('customer_phone', phoneVariants)
         .eq('order_number', orderNumber.toUpperCase())
         .maybeSingle();
@@ -755,7 +803,7 @@ function createCustomerRouter(supabase, options = {}) {
         return res.json({
           success: true,
           data: [],
-          message: '若資料相符，訂單資料將會顯示。'
+          message: '若資料相符，訂單資料將會顯示。',
         });
       }
 
@@ -768,11 +816,14 @@ function createCustomerRouter(supabase, options = {}) {
       );
       if (!rateLimitKey) return sendError(res, 503, '無法安全驗證請求，請稍後再試。');
 
-      const { data: lookupResult, error: lookupError } = await supabase.rpc('lookup_customer_orders', {
-        p_customer_phone: null,
-        p_order_id: order.order_id,
-        p_rate_limit_key: rateLimitKey
-      });
+      const { data: lookupResult, error: lookupError } = await supabase.rpc(
+        'lookup_customer_orders',
+        {
+          p_customer_phone: null,
+          p_order_id: order.order_id,
+          p_rate_limit_key: rateLimitKey,
+        }
+      );
       if (lookupError) {
         console.error('查詢單筆訂單資料失敗：', lookupError);
         if (MISSING_RPC_CODES.has(lookupError.code) || MISSING_SCHEMA_CODES.has(lookupError.code)) {
@@ -794,8 +845,8 @@ function createCustomerRouter(supabase, options = {}) {
       }
 
       const formattedOrders = lookupResult.orders
-        .filter(item => item && String(item.order_id) === String(order.order_id))
-        .map(item => ({
+        .filter((item) => item && String(item.order_id) === String(order.order_id))
+        .map((item) => ({
           ...item,
           order_number: order.order_number,
           customer_phone: order.customer_phone,
@@ -804,15 +855,14 @@ function createCustomerRouter(supabase, options = {}) {
           shipping_carrier: order.shipping_carrier,
           tracking_number: order.tracking_number,
           payment_proof_submitted: Boolean(order.payment_proof_url),
-          payment_proof_status: order.payment_proof_status
+          payment_proof_status: order.payment_proof_status,
         }));
 
       return res.json({
         success: true,
         data: formattedOrders,
-        message: '查詢完成。'
+        message: '查詢完成。',
       });
-
     } catch (error) {
       console.error('查詢訂單未預期錯誤：', error);
       return sendError(res, 500, '查詢訂單時發生未預期錯誤。');

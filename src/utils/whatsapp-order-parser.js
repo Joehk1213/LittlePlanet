@@ -13,7 +13,7 @@ function failure(message, code) {
     success: false,
     data: null,
     message,
-    error: { code }
+    error: { code },
   };
 }
 
@@ -53,7 +53,7 @@ function parseWhatsAppOrderMessage(message, products) {
       .trim();
     const segments = normalizedMessage
       .split(ITEM_SEPARATOR_PATTERN)
-      .map(segment => segment.trim())
+      .map((segment) => segment.trim())
       .filter(Boolean);
 
     if (segments.length === 0) {
@@ -107,14 +107,14 @@ function parseWhatsAppOrderMessage(message, products) {
 
       items.push({
         product_code: product.product_code,
-        quantity
+        quantity,
       });
     }
 
     return {
       success: true,
       data: { items },
-      message: '落單內容已驗證，尚未建立訂單。'
+      message: '落單內容已驗證，尚未建立訂單。',
     };
   } catch (error) {
     console.error('解析 WhatsApp 落單訊息時發生未預期錯誤：', error);
@@ -124,5 +124,5 @@ function parseWhatsAppOrderMessage(message, products) {
 
 module.exports = {
   MAX_ORDER_QUANTITY,
-  parseWhatsAppOrderMessage
+  parseWhatsAppOrderMessage,
 };
