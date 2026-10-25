@@ -31,6 +31,15 @@ function errorHandler(error, req, res, next) {
   if (error.type === 'entity.too.large') {
     return sendError(res, 413, '請求資料超出大小限制。');
   }
+  if (error.type === 'encoding.unsupported') {
+    return sendError(res, 415, '不支援此請求內容編碼。');
+  }
+  if (error.type === 'request.aborted') {
+    return sendError(res, 400, '請求資料未能完整接收。');
+  }
+  if (Number.isInteger(error.status) && error.status >= 400 && error.status < 500) {
+    return sendError(res, error.status, '請求無效或不受支援。');
+  }
 
   return sendError(res, 500, '伺服器發生錯誤，請稍後再試。');
 }

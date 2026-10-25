@@ -350,7 +350,7 @@ function createCustomerRouter(supabase, options = {}) {
 
       if (error) {
         console.error('認領歷史訂單 RPC 失敗：', error);
-        return sendError(res, 400, error.message || '核對失敗，請確認電話號碼與訂單編號是否匹配。');
+        return sendError(res, 400, '核對失敗，請確認電話號碼與訂單編號是否匹配。');
       }
 
       const updatedCount = Array.isArray(data) && data[0] ? data[0].updated_count || data[0] : data;

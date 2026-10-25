@@ -135,6 +135,8 @@ app.post('/api/customer/orders/forgot', sensitiveRateLimiters.customerLookup);
 app.post('/api/orders/:id/payment-proof', sensitiveRateLimiters.paymentProofUpload);
 app.post('/api/admin-auth/login', sensitiveRateLimiters.adminLogin);
 app.post('/api/customer/member/session', sensitiveRateLimiters.customerAuth);
+app.post('/api/customer/member/google-session', sensitiveRateLimiters.customerAuth);
+app.post('/api/customer/member/link-phone', sensitiveRateLimiters.customerAuth);
 app.get('/api/customer/orders', sensitiveRateLimiters.customerOrders);
 app.get('/api/customer/wishlist', sensitiveRateLimiters.customerWishlistRead);
 app.post('/api/customer/wishlist', sensitiveRateLimiters.customerWishlistWrite);

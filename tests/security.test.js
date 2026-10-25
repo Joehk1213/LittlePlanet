@@ -74,3 +74,19 @@ test('API CORS allows same-origin and configured origins, rejects others', async
     assert.equal(preflight.headers.get('access-control-allow-methods'), 'GET, POST, PATCH, OPTIONS');
   });
 });
+
+test('API CORS rejects unconfigured development and lookalike origins', async () => {
+  const middleware = createApiProtection();
+  await withServer(middleware, async baseUrl => {
+    for (const origin of [
+      'https://shop.localhost.attacker.example',
+      'https://attacker.devtunnels.ms'
+    ]) {
+      const response = await fetch(`${baseUrl}/api/ping`, {
+        headers: { Origin: origin }
+      });
+      assert.equal(response.status, 403);
+      assert.equal(response.headers.get('access-control-allow-origin'), null);
+    }
+  });
+});

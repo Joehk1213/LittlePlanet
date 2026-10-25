@@ -31,13 +31,7 @@ function createApiProtection(options = {}) {
 
       const requestOrigin = `${req.protocol}://${req.get('host')}`;
 
-      // 檢查是否為同源、是否在手動白名單中、或是來自 devtunnels / localhost 開發環境
-      const isDevTunnel =
-        parsedOrigin.endsWith('.devtunnels.ms') ||
-        parsedOrigin.includes('localhost') ||
-        parsedOrigin.includes('127.0.0.1');
-
-      if (parsedOrigin !== requestOrigin && !allowedOrigins.has(parsedOrigin) && !isDevTunnel) {
+      if (parsedOrigin !== requestOrigin && !allowedOrigins.has(parsedOrigin)) {
         return res.status(403).json({
           success: false,
           data: null,
