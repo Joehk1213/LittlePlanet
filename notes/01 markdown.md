@@ -19,10 +19,9 @@
 LittlePlanet/
 ├── index.js                           # Express 後端主入口點 (路由掛載、安全中間件、Supabase/WhatsApp 初始化)
 ├── package.json                       # 依賴套件配置 (Express, Supabase, Helmet, Rate Limit 等)
-├── DEPLOYMENT.md                      # 生產環境部署指南 (環境變數、Supabase Migration 執行順序)
-├── backup-data.js                     # 資料庫本地 JSON 備份指令腳本
-├── bundle_to_md.py                    # 專案程式碼打包腳本 (生成 project_summary.md)
-├── middleware/                        # 中間件目錄
+├── docs/                              # 部署、錯誤記錄與專案文件
+├── scripts/                           # 維護與備份指令腳本
+├── src/middleware/                    # 中間件目錄
 │   ├── admin-sessions.js              # 管理員 Session 與 Token 簽署驗證
 │   ├── api-protection.js              # API CORS 與全域 Rate Limit 防護
 │   ├── error-handler.js               # 統一 JSON 錯誤處理與 404 處理
@@ -120,24 +119,24 @@ LittlePlanet/
 - **原子出貨 (RPC)**：ship_order 交易同時更新訂單狀態、物流單號，並排入 shipping_notifications 佇列。
 - **自動運送通知**：成功出貨後自動觸發 WhatsApp 物流通知，失敗時提供重試機制。
 
-**7. FR006** **客戶自助訂單查詢 (routes/customer.js & public/track.html)**
+**7. FR006** **客戶自助訂單查詢 (src/routes/customer.js & public/track.html)**
 
 - **公開查詢頁面**：買家可輸入 UUID 訂單編號或手機號碼查詢付款、到貨與物流狀態。
 - **隱私與防爬蟲**：採用 HMAC 匿名化 IP 限流（每 15 分鐘最多 10 次），查無資料傳回通用提示。
 
-**8. FR007** **營收報表與數據視覺化 (routes/analytics.js & public/admin.html)**
+**8. FR007** **營收報表與數據視覺化 (src/routes/Routes-Analytics-Fixed.js & public/admin.html)**
 
 - **統計 API**：提供香港時區 (Asia/Hong_Kong) 營業額、訂單數、付款與出貨佔比統計。
 - **Chart.js** **整合**：後台整合 Chart.js，呈現銷售趨勢折線圖與每日訂單數柱狀圖。
 
-**9. P8 WhatsApp Webhook** **接收端 (routes/webhook.js)**
+**9. P8 WhatsApp Webhook** **接收端 (src/routes/webhooks.js)**
 
 - **Meta Webhook** **驗證**：實作 GET Challenge 校驗與 POST HMAC-SHA256 簽名驗證。
 - **買家互動處理**：自動解析買家傳送的「查詢訂單」與「付款回報」（寫入待人工核實紀錄）。
 
 **10.** **生產環境部署準備 (Production Readiness)**
 
-- **安全中間件 (middleware/api-protection.js)**：整合 CORS 白名單、Helmet 安全標頭與 Rate Limiting。
+- **安全中間件 (src/middleware/api-protection.js)**：整合 CORS 白名單、Helmet 安全標頭與 Rate Limiting。
 - **健康檢查**：提供 /health 端點供 Render / Railway 等雲端平台進行健康探針檢測。
 - **文件與依賴**：完善 package.json、.env.example 與 DEPLOYMENT.md。
 
@@ -186,7 +185,7 @@ LittlePlanet/
 
 ### 1. 專案起步與基礎設施建立
 
-- **架構確立**：建立基於 Express 的後端路由結構，採用模組化設計（如 `routes/products.js`、`middleware/admin-sessions.js`）。
+- **架構確立**：建立基於 Express 的後端路由結構，採用模組化設計（如 `src/routes/products.js`、`src/middleware/admin-sessions.js`）。
     
 - **API 標準化**：規定所有 API 回應必須嚴格遵循 `{ success, data, message }` 的統一格式，確保前後端溝通穩定。
     

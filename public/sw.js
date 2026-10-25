@@ -1,13 +1,13 @@
 'use strict';
 
-const CACHE_NAME = 'littleplanet-shell-v1';
+const CACHE_NAME = 'littleplanet-shell-v2';
 const APP_SHELL = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/image/pwa-icon.svg',
-  '/image/pwa-icon-192.png',
-  '/image/pwa-icon-512.png'
+  '/assets/images/pwa-icon.svg',
+  '/assets/images/pwa-icon-192.png',
+  '/assets/images/pwa-icon-512.png'
 ];
 
 self.addEventListener('install', event => {

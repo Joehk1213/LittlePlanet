@@ -6,7 +6,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const { apiNotFound, errorHandler } = require('../middleware/error-handler');
+const { apiNotFound, errorHandler } = require('../src/middleware/error-handler');
 
 async function withServer(app, run) {
   const server = http.createServer(app);

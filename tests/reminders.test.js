@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createReminderRouter = require('../routes/reminders');
+const createReminderRouter = require('../src/routes/reminders');
 
 const CRON_TOKEN = 'r'.repeat(40);
 const NOW = new Date('2026-10-23T08:00:00.000Z');

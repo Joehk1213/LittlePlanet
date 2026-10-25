@@ -4,14 +4,14 @@ const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
 
-const createProductsRouter = require('../routes/products');
-const createOrdersRouter = require('../routes/orders');
-const createReminderRouter = require('../routes/reminders');
-const createInboundRouter = require('../routes/inbound');
-const createShippingRouter = require('../routes/shipping');
-const createCustomerRouter = require('../routes/customer');
-const createAnalyticsRouter = require('../routes/analytics');
-const createWebhookRouter = require('../routes/webhook');
+const createProductsRouter = require('../src/routes/products');
+const createOrdersRouter = require('../src/routes/orders');
+const createReminderRouter = require('../src/routes/reminders');
+const createInboundRouter = require('../src/routes/inbound');
+const createShippingRouter = require('../src/routes/shipping');
+const createCustomerRouter = require('../src/routes/customer');
+const createAnalyticsRouter = require('../src/routes/Routes-Analytics-Fixed');
+const createWebhookRouter = require('../src/routes/webhooks');
 
 const TOKENS = {
   reminder: 'r'.repeat(40),

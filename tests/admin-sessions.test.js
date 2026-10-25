@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createAdminSessions = require('../middleware/admin-sessions');
-const createProductsRouter = require('../routes/products');
+const createAdminSessions = require('../src/middleware/admin-sessions');
+const createProductsRouter = require('../src/routes/products');
 
 const SHIPPING_TOKEN = 'shipping-session-test-token-0123456789abcdef';
 const ANALYTICS_TOKEN = 'analytics-session-test-token-0123456789abcdef';

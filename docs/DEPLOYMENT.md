@@ -21,7 +21,7 @@
 
 ## 2. Configure environment variables
 
-Use [.env.example](./.env.example) as the variable checklist. On Render or Railway, enter values in the service's environment-variable dashboard rather than uploading `.env`.
+Use [.env.example](../.env.example) as the variable checklist. On Render or Railway, enter values in the service's environment-variable dashboard rather than uploading `.env`.
 
 Required core settings:
 
@@ -71,7 +71,7 @@ shipping any order that is not fully paid.
 
 Analytics overview, sales trend, top products, reconciliation, summary, and profit responses are cached in process memory for 60 seconds. Cache keys include all validated date, filter, and pagination parameters; failed database responses are never cached. A successful write can therefore take up to 60 seconds to appear in reports. The cache is per application instance and is cleared on restart; use shared Redis caching if the service is scaled and cross-instance consistency is required.
 
-Run [`supabase/diagnostics/performance_review.sql`](./supabase/diagnostics/performance_review.sql) in Supabase SQL Editor to inspect current index definitions, sizes, scan counts, and table sequential scans. Review the results with realistic traffic before adding indexes; indexes consume storage and slow writes.
+Run [`supabase/diagnostics/performance_review.sql`](../supabase/diagnostics/performance_review.sql) in Supabase SQL Editor to inspect current index definitions, sizes, scan counts, and table sequential scans. Review the results with realistic traffic before adding indexes; indexes consume storage and slow writes.
 
 The repository already defines `orders_customer_lookup_idx` on `(customer_phone, order_date DESC, order_id DESC)`, `order_items_pending_product_idx` on `(product_id, order_id, item_id)` for pending inbound items, and partial indexes for reminders and pending shipping notifications. Customer lookup normalizes an optional leading `+` on `orders.customer_phone`, so the existing raw-phone index may not accelerate that expression; consider the expression index below if lookup scans are costly. `orders.customer_id` is currently an integer foreign key when that legacy customer table exists; customer order lookup uses the phone number or the UUID `orders.order_id`, not a customer UUID. No SKU index is recommended: product code/SKU is not currently used as a database filter.
 

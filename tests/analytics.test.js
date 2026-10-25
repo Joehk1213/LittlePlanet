@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createAnalyticsRouter = require('../routes/analytics');
+const createAnalyticsRouter = require('../src/routes/Routes-Analytics-Fixed');
 
 const ADMIN_TOKEN = 'fedcba9876543210fedcba9876543210';
 

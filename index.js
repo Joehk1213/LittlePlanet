@@ -1,23 +1,13 @@
 const express = require('express');
 const crypto = require('node:crypto');
 require('express-async-errors');
-const { apiNotFound, errorHandler } = require('./middleware/error-handler');
-const createAdminSessions = require('./middleware/admin-sessions');
+const { apiNotFound, errorHandler } = require('./src/middleware/error-handler');
+const createAdminSessions = require('./src/middleware/admin-sessions');
 const { createClient } = require('@supabase/supabase-js');
-const createProductsRouter = require('./routes/products');
-const createOrdersRouter = require('./routes/orders');
-const createCustomersRouter = require('./routes/customers');
-const createReminderRouter = require('./routes/reminders');
-const createInboundRouter = require('./routes/inbound');
-const createShippingRouter = require('./routes/shipping');
-const createCustomerRouter = require('./routes/customer');
-const createReviewsRouter = require('./routes/reviews');
-const createAnalyticsRouter = require('./routes/analytics');
-const createWebhookRouter = require('./routes/webhook');
-const createWhatsAppSender = require('./utils/whatsapp-cloud-api');
-const createPaymentProofRouter = require('./routes/payment-proofs');
-const createApiProtection = require('./middleware/api-protection');
-const createSensitiveRateLimiters = require('./middleware/sensitive-rate-limits');
+const registerRoutes = require('./src/routes');
+const createWhatsAppSender = require('./src/utils/whatsapp-cloud-api');
+const createApiProtection = require('./src/middleware/api-protection');
+const createSensitiveRateLimiters = require('./src/middleware/sensitive-rate-limits');
 const helmet = require('helmet');
 require('dotenv').config();
 
@@ -232,85 +222,22 @@ const adminSessions = createAdminSessions({
   ]
 });
 
-app.use('/api/admin-auth', adminSessions.router);
-
-app.use('/api/products', createProductsRouter(adminSupabase, {
-  adminToken: productAdminToken,
-  isSessionAuthorized: adminSessions.isAuthorized,
-  stockWriteEnabled: supabaseServiceRoleKey.length > 0
-}));
-
-app.use('/api', createReviewsRouter(adminSupabase, {
+registerRoutes(app, {
+  adminSessions,
+  adminSupabase,
+  supabase,
+  supabaseAnonKey,
+  supabaseServiceRoleKey,
+  shippingAdminToken,
+  productAdminToken,
+  analyticsAdminToken,
+  inboundAdminToken,
+  paymentProofReceiptRecipients,
+  whatsappSender,
+  customerLookupRateSecret: process.env.CUSTOMER_LOOKUP_RATE_SECRET,
   customerSessionSecret: process.env.CUSTOMER_SESSION_SECRET || 'temp-secret',
-  isSessionAuthorized: adminSessions.isSessionAuthorized,
-  readEnabled: Boolean(supabaseServiceRoleKey),
-  writeEnabled: Boolean(supabaseServiceRoleKey)
-}));
-app.use('/api/orders', createOrdersRouter(adminSupabase, {
-  serviceRoleAvailable: supabaseServiceRoleKey.length > 0,
-  isSessionAuthorized: adminSessions.isSessionAuthorized
-}));
-app.use('/api/orders', createPaymentProofRouter(adminSupabase, {
-  serviceRoleAvailable: supabaseServiceRoleKey.length > 0,
-  isSessionAuthorized: adminSessions.isSessionAuthorized,
-  enableAdmin: false
-}));
-app.use('/api/admin/orders', createPaymentProofRouter(adminSupabase, {
-  serviceRoleAvailable: supabaseServiceRoleKey.length > 0,
-  isSessionAuthorized: adminSessions.isSessionAuthorized,
-  enableUpload: false
-}));
-app.use('/api/admin/customers', createCustomersRouter(adminSupabase, {
-  serviceRoleAvailable: supabaseServiceRoleKey.length > 0,
-  isSessionAuthorized: adminSessions.isSessionAuthorized
-}));
-app.use('/api/customer', createCustomerRouter(adminSupabase, {
-  rateLimitSecret: process.env.CUSTOMER_LOOKUP_RATE_SECRET,
-  sessionSecret: process.env.CUSTOMER_SESSION_SECRET || 'temp-secret',
-  secureCookie: app.get('env') === 'production',
-  readEnabled: supabaseServiceRoleKey.length > 0
-}));
-app.use('/api/admin/analytics', createAnalyticsRouter(adminSupabase, {
-  adminToken: analyticsAdminToken,
-  isSessionAuthorized: adminSessions.isSessionAuthorized,
-  requireSession: true,
-  readEnabled: Boolean(supabaseAnonKey),
-  profitDetailsEnabled: process.env.ANALYTICS_PROFIT_DETAILS_ENABLED === 'true'
-}));
-app.use('/api/analytics', createAnalyticsRouter(adminSupabase, {
-  adminToken: analyticsAdminToken,
-  isSessionAuthorized: adminSessions.isAuthorized,
-  readEnabled: Boolean(supabaseAnonKey),
-  useTableFallback: !supabaseServiceRoleKey,
-  profitDetailsEnabled: process.env.ANALYTICS_PROFIT_DETAILS_ENABLED === 'true'
-}));
-app.use('/api/inbound', createInboundRouter(adminSupabase, {
-  adminToken: inboundAdminToken,
-  isSessionAuthorized: adminSessions.isAuthorized,
-  writeEnabled: supabaseServiceRoleKey.length > 0
-}));
-
-app.use('/api/webhook', createWebhookRouter(adminSupabase, {
-  verifyToken: process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN,
-  appSecret: process.env.WHATSAPP_APP_SECRET,
-  writeEnabled: supabaseServiceRoleKey.length > 0,
-  sendWhatsApp: whatsappSender,
-  receiptRecipients: paymentProofReceiptRecipients
-}));
-
-app.use('/api/shipping', createShippingRouter(adminSupabase, {
-  adminToken: shippingAdminToken,
-  isSessionAuthorized: adminSessions.isAuthorized,
-  writeEnabled: supabaseServiceRoleKey.length > 0,
-  readEnabled: Boolean(supabaseAnonKey),
-  sendWhatsApp: null
-}));
-
-app.use('/api/reminders', createReminderRouter(supabase, {
-  cronToken: process.env.REMINDER_CRON_TOKEN,
-  recipients: [],
-  sendWhatsApp: null
-}));
+  reminderCronToken: process.env.REMINDER_CRON_TOKEN
+});
 
 app.get('/health', (req, res) => {
   res.set('Cache-Control', 'no-store');

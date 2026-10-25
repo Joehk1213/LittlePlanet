@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createProductsRouter = require('../routes/products');
+const createProductsRouter = require('../src/routes/products');
 
 const ADMIN_TOKEN = 'product-stock-admin-token-for-tests-000000';
 

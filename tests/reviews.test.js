@@ -4,9 +4,9 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createAdminSessions = require('../middleware/admin-sessions');
-const { createCustomerSession } = require('../middleware/customer-session');
-const createReviewsRouter = require('../routes/reviews');
+const createAdminSessions = require('../src/middleware/admin-sessions');
+const { createCustomerSession } = require('../src/middleware/customer-session');
+const createReviewsRouter = require('../src/routes/reviews');
 
 const SESSION_SECRET = 'customer-session-signing-secret-0123456789';
 const PHONE = '85212345678';

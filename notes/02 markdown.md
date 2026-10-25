@@ -24,24 +24,23 @@
 LittlePlanet/
 ├── index.js                           # Express 後端主入口點 (路由掛載、安全中間件、Supabase/WhatsApp 初始化，含 EADDRINUSE 埠佔用防護)
 ├── package.json                       # 依賴套件與執行指令配置
-├── DEPLOYMENT.md                      # 生產環境部署指南 (環境變數、Supabase Migration 執行順序)
+├── docs/                              # 部署與專案文件
 ├── PROJECT_CHECKPOINT.md              # 專案階段性檢查點與驗證紀錄
-├── backup-data.js                     # 資料庫本地 JSON 備份指令腳本
-├── bundle_to_md.py                    # 專案程式碼打包腳本 (生成 project_summary.md)
-├── middleware/                        # 系統中間件
+├── scripts/                           # 維護與備份指令腳本
+├── src/middleware/                    # 系統中間件
 │   ├── admin-sessions.js              # 管理員 Session 與 Token 簽署驗證
 │   ├── api-protection.js              # API CORS 與全域 Rate Limit 防護
 │   ├── error-handler.js               # 統一 JSON 錯誤處理與 404 處理
 │   └── sensitive-rate-limits.js       # 敏感操作 (結帳/庫存/登入) 獨立 Rate Limit
-├── routes/                            # 業務路由模組
+├── src/routes/                        # 業務路由模組
 │   ├── products.js                    # 商品管理、狀態篩選、CRUD 與刪除 API
 │   ├── orders.js                      # 持久化訂單與原子化結帳
 │   ├── reminders.js                   # 截單提醒系統與樂觀鎖
 │   ├── inbound.js                     # 入庫管理與 FIFO 齊貨對賬 (含批次效期管理)
 │   ├── shipping.js                    # 出貨管理與執貨清單 (Pick List)
 │   ├── customer.js                    # 客戶自助訂單查詢 API
-│   ├── analytics.js                   # 營收報表與數據視覺化統計
-│   └── webhook.js                     # WhatsApp 訊息與付款回報接收端
+│   ├── Routes-Analytics-Fixed.js      # 營收報表與數據視覺化統計
+│   └── webhooks.js                    # WhatsApp 訊息與付款回報接收端
 ├── public/                            # 前後台靜態網頁
 │   ├── index.html                     # 網店前台首頁 (商品瀏覽、分類、優惠碼、結帳 Modal)
 │   ├── product.html                   # 產品現代化網格管理介面 (支援批次、效期與刪除)
@@ -83,11 +82,11 @@ LittlePlanet/
     
       
     
-- **出貨與客戶查詢**：實作執貨清單 (`routes/shipping.js`)、原子出貨 RPC 與 WhatsApp 自動運送通知；建立買家自助訂單查詢 (`routes/customer.js`)，搭配 HMAC 匿名化 IP 限流保護隱私。
+- **出貨與客戶查詢**：實作執貨清單 (`src/routes/shipping.js`)、原子出貨 RPC 與 WhatsApp 自動運送通知；建立買家自助訂單查詢 (`src/routes/customer.js`)，搭配 HMAC 匿名化 IP 限流保護隱私。
     
       
     
-- **數據視覺化**：整合營收報表 API 與 Chart.js 銷售趨勢折線圖 (`routes/analytics.js` 與 `admin.html`)。
+- **數據視覺化**：整合營收報表 API 與 Chart.js 銷售趨勢折線圖 (`src/routes/Routes-Analytics-Fixed.js` 與 `public/admin.html`)。
     
       
     
@@ -390,7 +389,7 @@ status: "開發中 / MVP 疊代期"
       
     
 
-## 三、 後端 API 架構 (`routes/customer.js`)
+## 三、 後端 API 架構 (`src/routes/customer.js`)
 
 後端採用 Node.js / Express，所有敏感金鑰（如 Service Role Key、Session Secret）均嚴格鎖在 `.env` 檔案中，絕不外洩。
 

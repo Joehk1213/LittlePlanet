@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createSensitiveRateLimiters = require('../middleware/sensitive-rate-limits');
+const createSensitiveRateLimiters = require('../src/middleware/sensitive-rate-limits');
 
 async function withServer(app, run) {
   const server = http.createServer(app);

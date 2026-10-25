@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createWebhookRouter = require('../routes/webhook');
+const createWebhookRouter = require('../src/routes/webhooks');
 
 const APP_SECRET = 'whatsapp-order-webhook-test-secret-0123456789';
 const PHONE = '85291234567';

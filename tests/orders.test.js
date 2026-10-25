@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createOrdersRouter = require('../routes/orders');
+const createOrdersRouter = require('../src/routes/orders');
 
 const ORDER_UUID = 'e1da0bac-9021-4e87-920b-2f5bf5381f32';
 

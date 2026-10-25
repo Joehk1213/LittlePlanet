@@ -10,7 +10,7 @@
     
       
     
-- **Session 驗證中介軟體**：`middleware/customer-session.js`（負責 Cookie 簽章驗證與登入身份格式檢查）。
+- **Session 驗證中介軟體**：`src/middleware/customer-session.js`（負責 Cookie 簽章驗證與登入身份格式檢查）。
     
       
     
@@ -34,7 +34,7 @@
 
 ### 2. Session 驗證格式過嚴（卡住 Google 身份字串）
 
-- **問題**：`middleware/customer-session.js` 原本僅允許 8-15 位純數字的手機號碼格式，導致 Google 登入回傳的 `email|google|id` 格式被拒絕。
+- **問題**：`src/middleware/customer-session.js` 原本僅允許 8-15 位純數字的手機號碼格式，導致 Google 登入回傳的 `email|google|id` 格式被拒絕。
     
       
     
@@ -99,10 +99,10 @@
 
 ### 3. 程式碼相容性調整
 
-- 確保 `middleware/customer-session.js` 的驗證條件未來可順暢支援 Facebook 的身份字串格式（例如包含 `|facebook|`）。
+- 確保 `src/middleware/customer-session.js` 的驗證條件未來可順暢支援 Facebook 的身份字串格式（例如包含 `|facebook|`）。
     
       
-e.g這代表在貼上程式碼時，routes/customer.js 裡面的 try 和 catch 區塊大括號（{}）發生了錯位或漏掉了 catch。
+e.g這代表在貼上程式碼時，`src/routes/customer.js` 裡面的 try 和 catch 區塊大括號（{}）發生了錯位或漏掉了 catch。
 
 我成日都見到 俾D CODE 
 try 和 catch 區塊大括號（{}）發生了錯位或漏掉了 catch。

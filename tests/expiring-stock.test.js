@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createInboundRouter = require('../routes/inbound');
+const createInboundRouter = require('../src/routes/inbound');
 
 const ADMIN_TOKEN = '0123456789abcdef0123456789abcdef';
 const TODAY = '2026-10-22';

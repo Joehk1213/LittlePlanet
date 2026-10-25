@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createCustomerRouter = require('../routes/customer');
-const { createCustomerSession } = require('../middleware/customer-session');
+const createCustomerRouter = require('../src/routes/customer');
+const { createCustomerSession } = require('../src/middleware/customer-session');
 
 const PHONE = '85212345678';
 const SECRET = 'wishlist-customer-session-secret-0123456789';

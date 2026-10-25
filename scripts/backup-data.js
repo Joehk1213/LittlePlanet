@@ -16,7 +16,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function backupDatabase() {
     console.log('🔄 開始備份 LittlePlanet 資料庫...');
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const backupDir = path.join(__dirname, 'backups');
+    const backupDir = path.join(__dirname, '..', 'backups');
 
     if (!fs.existsSync(backupDir)) {
         fs.mkdirSync(backupDir, { recursive: true });

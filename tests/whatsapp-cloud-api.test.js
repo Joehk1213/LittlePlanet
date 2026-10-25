@@ -2,7 +2,7 @@
 
 const assert = require('node:assert/strict');
 const test = require('node:test');
-const createWhatsAppSender = require('../utils/whatsapp-cloud-api');
+const createWhatsAppSender = require('../src/utils/whatsapp-cloud-api');
 
 const CONFIG = {
   apiVersion: 'v23.0',

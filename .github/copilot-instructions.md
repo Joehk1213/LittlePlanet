@@ -52,4 +52,4 @@
 - [商品上架 SOP](../notes/SOP.md)
 - [專案規格摘要](../notes/大崗規格書.md)
 - Supabase migrations：`supabase/migrations/`
-- 目前 webhook 行為：`routes/webhook.js`
+- 目前 webhook 行為：`src/routes/webhooks.js`

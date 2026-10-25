@@ -5,7 +5,7 @@ const crypto = require('node:crypto');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createWebhookRouter = require('../routes/webhook');
+const createWebhookRouter = require('../src/routes/webhooks');
 
 const APP_SECRET = 'whatsapp-payment-proof-test-secret-0123456789';
 const ORDER_ID = 'e1da0bac-9021-4e87-920b-2f5bf5381f32';

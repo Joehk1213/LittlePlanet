@@ -2,7 +2,7 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createApiProtection = require('../middleware/api-protection');
+const createApiProtection = require('../src/middleware/api-protection');
 
 async function withServer(middleware, run) {
   const app = express();

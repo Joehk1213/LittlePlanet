@@ -3,7 +3,7 @@ const crypto = require('node:crypto');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createCustomerRouter = require('../routes/customer');
+const createCustomerRouter = require('../src/routes/customer');
 
 const RATE_SECRET = '0123456789abcdef0123456789abcdef';
 const ORDER_UUID = 'e1da0bac-9021-4e87-920b-2f5bf5381f32';

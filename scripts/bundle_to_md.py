@@ -1,7 +1,7 @@
 import os
 
 # 設定要排除的資料夾
-EXCLUDE_DIRS = {'node_modules', '.git', 'dist', 'build', '.next'}
+EXCLUDE_DIRS = {'node_modules', '.git', 'dist', 'build', '.next', 'backups', 'docs'}
 # 設定要排除的副檔名或敏感檔案（保護 .env 不外洩）
 EXCLUDE_EXTS = {'.png', '.jpg', '.jpeg', '.gif', '.ico', '.pdf', '.zip'}
 EXCLUDE_FILES = {'.env', '.env.example', 'package-lock.json'}
@@ -40,4 +40,5 @@ def generate_project_markdown(root_dir, output_file):
 
 
 if __name__ == '__main__':
-  generate_project_markdown('.', 'project_summary.md')
+  project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+  generate_project_markdown(project_root, os.path.join(project_root, 'project_summary.md'))

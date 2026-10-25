@@ -3,8 +3,8 @@ const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
 const XLSX = require('xlsx');
-const createShippingRouter = require('../routes/shipping');
-const createOrdersRouter = require('../routes/orders');
+const createShippingRouter = require('../src/routes/shipping');
+const createOrdersRouter = require('../src/routes/orders');
 
 const ADMIN_TOKEN = '0123456789abcdef0123456789abcdef';
 

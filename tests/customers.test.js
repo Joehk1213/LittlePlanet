@@ -4,8 +4,8 @@ const assert = require('node:assert/strict');
 const http = require('node:http');
 const test = require('node:test');
 const express = require('express');
-const createAdminSessions = require('../middleware/admin-sessions');
-const createCustomersRouter = require('../routes/customers');
+const createAdminSessions = require('../src/middleware/admin-sessions');
+const createCustomersRouter = require('../src/routes/customers');
 
 const CUSTOMER_ID = '3fa85f64-5717-4562-b3fc-2c963f66afa6';
 const ADMIN_TOKEN = 'customer-crm-admin-token-for-tests-0123456789';

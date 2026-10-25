@@ -5,7 +5,7 @@ const test = require('node:test');
 const {
   MAX_ORDER_QUANTITY,
   parseWhatsAppOrderMessage
-} = require('../utils/whatsapp-order-parser');
+} = require('../src/utils/whatsapp-order-parser');
 
 const PRODUCTS = [
   { product_code: 'B款', name: 'B 款商品' },

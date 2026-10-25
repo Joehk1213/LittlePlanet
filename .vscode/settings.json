@@ -1,10 +1,25 @@
 {
-  "github.copilot.chat.workspaceExcludePatterns": [
-    "**/backups/**",
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/.git": true,
+    "**/backups": true,
+    "**/2023-04 to 2024-03": true,
+    "**/.continue": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/backups": true,
+    "**/.git": true,
+    "**/2023-04 to 2024-03": true,
+    "**/dist": true,
+    "**/OneDrive - Personal/2023-04 to 2024-03/**": true
+  },
+  "github.【entity-copilot¦canonical_name=Copilot】.chat.workspaceExcludePatterns": [
     "**/node_modules/**",
-    "**/project_summary.md",
+    "**/backups/**",
     "**/.git/**",
-    "**/OneDrive/**"
+    "**/2023-04 to 2024-03/**"
   ],
-  "github.copilot.chat.scope": "files"
+  "github.copilot.chat.scope": "files",
+  "continue.telemetryEnabled": false
 }
