@@ -12,7 +12,7 @@ const MAX_PAGE_SIZE = 100;
 const MAX_TOP_PRODUCTS = 50;
 const MAX_FALLBACK_ORDERS = 5000;
 const MAX_FALLBACK_ITEMS = 20000;
-const ORDER_ITEM_COLUMNS = 'order_id, product_id, quantity, price_at_purchase';
+const ORDER_ITEM_COLUMNS = 'order_id, product_id, quantity, unit_price';
 
 function sendError(res, status, message) {
   return res.status(status).json({
@@ -303,7 +303,7 @@ function createAnalyticsRouter(supabase, options = {}) {
           order_id: item && item.order_id,
           product_id: item && item.product_id,
           quantity: Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 0,
-          unit_price: normalizeOrderAmount(item && item.price_at_purchase),
+          unit_price: normalizeOrderAmount(item && (item.unit_price ?? item.price_at_purchase)),
           item_id: null,
           item_status: null
         };
@@ -623,7 +623,8 @@ function createAnalyticsRouter(supabase, options = {}) {
           console.error('商品利潤報表遇到無效訂單商品資料。');
           return sendError(res, 500, '訂單商品資料格式無效。');
         }
-        const salesAmount = quantity * (product ? product.unit_price : 0);
+        const itemUnitPrice = Number(item.unit_price) || (product ? product.unit_price : 0);
+        const salesAmount = quantity * itemUnitPrice;
         const knownCost = Boolean(product);
         const costAmount = knownCost ? quantity * product.cost_price : null;
         const total = totalsByProduct.get(key) || {

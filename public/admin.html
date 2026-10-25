@@ -71,6 +71,7 @@
         .crm-search { display: flex; gap: 8px; flex-wrap: wrap; }
         .crm-search input { flex: 1; min-width: 220px; }
         .crm-status-select { min-width: 180px; }
+        .crm-bind-google-button { display: block; margin-top: 6px; padding: 4px 8px; font-size: .78rem; }
         .crm-table-wrap { overflow-x: auto; }
         .crm-empty { text-align: center; color: #64748b; }
         .expiring-alert { border-color: #f59e0b; }
@@ -3264,7 +3265,18 @@
                 for (const customer of customers) {
                     const row = document.createElement('tr');
                     const phoneCell = document.createElement('td');
-                    phoneCell.textContent = String(customer.customer_phone ?? '—');
+                    const customerPhone = String(customer.customer_phone ?? '');
+                    phoneCell.textContent = customerPhone || '—';
+                    if (customerPhone) {
+                        const bindGoogleButton = document.createElement('button');
+                        bindGoogleButton.type = 'button';
+                        bindGoogleButton.className = 'crm-bind-google-button';
+                        bindGoogleButton.textContent = '綁 Google';
+                        bindGoogleButton.addEventListener('click', () =>
+                            bindCustomerGoogleAccount(customerPhone, bindGoogleButton)
+                        );
+                        phoneCell.append(bindGoogleButton);
+                    }
                     const nameCell = document.createElement('td');
                     nameCell.textContent = String(customer.customer_name || '—');
                     const ordersCell = document.createElement('td');
@@ -3390,6 +3402,51 @@
                 showToast(error.message || '更新信用評級失敗，請稍後再試。');
             } finally {
                 select.disabled = false;
+            }
+        }
+
+        async function bindCustomerGoogleAccount(customerPhone, button) {
+            const submittedEmail = window.prompt('請輸入要綁定的 Gmail 地址：');
+            if (submittedEmail === null) {
+                return;
+            }
+            const googleEmail = submittedEmail.trim().toLowerCase();
+            if (!/^[^\s@]+@gmail\.com$/.test(googleEmail)) {
+                showToast('請輸入有效的 Gmail 地址。');
+                return;
+            }
+
+            button.disabled = true;
+            try {
+                const response = await adminFetch(
+                    `/api/admin/customers/${encodeURIComponent(customerPhone)}/bind-google`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ google_email: googleEmail })
+                    }
+                );
+                const result = await response.json();
+                const linkedOrders = result && (
+                    result.linked_orders ?? (result.data && result.data.linked_orders)
+                );
+                if (
+                    !response.ok ||
+                    !result ||
+                    result.success !== true ||
+                    !Number.isSafeInteger(linkedOrders) ||
+                    linkedOrders < 0
+                ) {
+                    throw new Error(result && result.message
+                        ? result.message
+                        : `Google 帳號綁定失敗（HTTP ${response.status}）。`);
+                }
+                showToast(`已綁 ${linkedOrders} 張單`);
+            } catch (error) {
+                console.error('綁定客戶 Google 帳號失敗：', error);
+                showToast(error.message || '綁定 Google 帳號失敗，請稍後再試。');
+            } finally {
+                button.disabled = false;
             }
         }
 

@@ -4,6 +4,7 @@ const express = require('express');
 
 const CREDIT_STATUSES = new Set(['normal', 'require_deposit', 'blacklisted']);
 const CUSTOMER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const MISSING_SCHEMA_CODES = new Set(['42P01', '42703', 'PGRST204', 'PGRST205']);
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
 
@@ -24,6 +25,29 @@ function parsePageValue(value, fallback, maximum) {
   }
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed <= maximum ? parsed : null;
+}
+
+function normalizePhone(value) {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const normalized = value.trim().replace(/^\+/, '');
+  return /^\d{8,15}$/.test(normalized) ? normalized : null;
+}
+
+function getPhoneVariants(phone) {
+  const normalized = normalizePhone(phone);
+  if (!normalized) {
+    return [];
+  }
+  const rawPhone = normalized.replace(/^852/, '');
+  return [...new Set([
+    normalized,
+    rawPhone,
+    `852${rawPhone}`,
+    `+${normalized}`,
+    `+852${rawPhone}`
+  ])];
 }
 
 function createCustomersRouter(supabase, options = {}) {
@@ -89,6 +113,70 @@ function createCustomersRouter(supabase, options = {}) {
     } catch (error) {
       console.error('讀取管理員客戶列表時發生未預期錯誤：', error);
       return sendError(res, 500, '讀取客戶列表時發生錯誤，請稍後再試。');
+    }
+  });
+
+  router.post('/:customerPhone/bind-google', async (req, res) => {
+    if (!authorizeCustomers(req, res)) {
+      return;
+    }
+
+    const customerPhone = normalizePhone(req.params.customerPhone);
+    const submittedEmail = req.body && req.body.google_email;
+    const googleEmail = typeof submittedEmail === 'string'
+      ? submittedEmail.trim().toLowerCase()
+      : '';
+    if (!customerPhone || googleEmail.length > 254 || !/^[^\s@]+@gmail\.com$/.test(googleEmail)) {
+      return sendError(res, 400, '請提供有效電話號碼及 Gmail 地址。');
+    }
+
+    try {
+      const phoneVariants = getPhoneVariants(customerPhone);
+      const { count, error: ordersError } = await supabase
+        .from('orders')
+        .select('order_id', { count: 'exact', head: true })
+        .in('customer_phone', phoneVariants);
+
+      if (ordersError) {
+        console.error('綁定 Google 帳號時查詢訂單失敗：', ordersError);
+        if (MISSING_SCHEMA_CODES.has(ordersError.code)) {
+          return sendError(res, 503, '訂單資料表或欄位尚未完成設定。');
+        }
+        return sendError(res, 500, '查詢客戶訂單失敗，未能綁定 Google 帳號。');
+      }
+      if (!Number.isSafeInteger(count) || count < 0) {
+        console.error('綁定 Google 帳號時收到無效訂單數量：', count);
+        return sendError(res, 500, '訂單數量回傳格式無效，未能綁定 Google 帳號。');
+      }
+
+      const { error: customerError } = await supabase
+        .from('customers')
+        .upsert({
+          customer_phone: customerPhone,
+          google_email: googleEmail,
+          customer_name: googleEmail
+        }, { onConflict: 'customer_phone' });
+
+      if (customerError) {
+        console.error('綁定客戶 Google 帳號失敗：', customerError);
+        if (customerError.code === '23505') {
+          return sendError(res, 409, '此 Google 帳號已綁定其他客戶。');
+        }
+        if (MISSING_SCHEMA_CODES.has(customerError.code)) {
+          return sendError(res, 503, '客戶 Google 綁定欄位尚未完成設定。');
+        }
+        return sendError(res, 500, '綁定 Google 帳號失敗，請稍後再試。');
+      }
+
+      return res.json({
+        success: true,
+        data: { linked_orders: count },
+        linked_orders: count,
+        message: `已綁定 Google 帳號及 ${count} 張訂單。`
+      });
+    } catch (error) {
+      console.error('綁定客戶 Google 帳號時發生未預期錯誤：', error);
+      return sendError(res, 500, '綁定 Google 帳號失敗，請稍後再試。');
     }
   });
 

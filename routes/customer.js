@@ -47,6 +47,21 @@ function normalizePhone(value) {
   return /^\d{8,15}$/.test(normalized) ? normalized : null;
 }
 
+function getPhoneVariants(value) {
+  const normalized = normalizePhone(value);
+  if (!normalized) {
+    return [];
+  }
+  const rawPhone = normalized.replace(/^852/, '');
+  return [...new Set([
+    normalized,
+    rawPhone,
+    `852${rawPhone}`,
+    `+${normalized}`,
+    `+852${rawPhone}`
+  ])];
+}
+
 function parseInteger(value, minimum, maximum, defaultValue) {
   if (value === undefined) {
     return defaultValue;
@@ -515,28 +530,67 @@ function createCustomerRouter(supabase, options = {}) {
         .select('order_id, order_number, order_date, total_amount, status, payment_status, shipping_status', { count: 'exact' });
 
       const isGoogle = session.phone && session.phone.includes('|google|');
+      let googleEmail = null;
       if (isGoogle) {
         const [email] = session.phone.split('|google|');
-        ordersQuery = ordersQuery.eq('customer_email', email);
+        googleEmail = email.toLowerCase();
+        ordersQuery = ordersQuery.eq('customer_email', googleEmail);
       } else {
-        const rawPhone = session.phone.replace(/^\+/, '').replace(/^852/, '');
-        const phoneVariants = [
-          rawPhone,
-          `852${rawPhone}`,
-          `+852${rawPhone}`,
-          `+${rawPhone}`
-        ];
-        const uniquePhones = [...new Set(phoneVariants)];
-        ordersQuery = ordersQuery.in('customer_phone', uniquePhones);
+        ordersQuery = ordersQuery.in('customer_phone', getPhoneVariants(session.phone));
       }
 
-      const { data: orders, error, count } = await ordersQuery
+      let { data: orders, error, count } = await ordersQuery
         .order('order_date', { ascending: false })
         .range(offset, offset + limit - 1);
 
       if (error) {
         console.error('讀取會員歷史訂單失敗：', error);
+        if (MISSING_SCHEMA_CODES.has(error.code)) {
+          return sendError(res, 503, '會員訂單資料表或欄位尚未完成設定。');
+        }
         return sendError(res, 500, '讀取會員歷史訂單失敗，請稍後再試。');
+      }
+
+      if (isGoogle && (!Array.isArray(orders) || orders.length === 0)) {
+        const { data: customer, error: customerError } = await supabase
+          .from('customers')
+          .select('customer_phone')
+          .eq('google_email', googleEmail)
+          .maybeSingle();
+
+        if (customerError) {
+          console.error('透過 Google 電郵尋找會員電話失敗：', customerError);
+          if (MISSING_SCHEMA_CODES.has(customerError.code)) {
+            return sendError(res, 503, 'Google 帳號綁定資料尚未完成設定。');
+          }
+          return sendError(res, 500, '讀取 Google 帳號綁定資料失敗，請稍後再試。');
+        }
+
+        if (customer && customer.customer_phone) {
+          const phoneVariants = getPhoneVariants(customer.customer_phone);
+          if (phoneVariants.length === 0) {
+            console.error('Google 綁定資料中的客戶電話格式無效。');
+            return sendError(res, 500, 'Google 帳號綁定資料格式無效。');
+          }
+
+          const phoneOrdersResult = await supabase
+            .from('orders')
+            .select('order_id, order_number, order_date, total_amount, status, payment_status, shipping_status', { count: 'exact' })
+            .in('customer_phone', phoneVariants)
+            .order('order_date', { ascending: false })
+            .range(offset, offset + limit - 1);
+
+          if (phoneOrdersResult.error) {
+            console.error('透過 Google 綁定電話讀取會員訂單失敗：', phoneOrdersResult.error);
+            if (MISSING_SCHEMA_CODES.has(phoneOrdersResult.error.code)) {
+              return sendError(res, 503, '會員訂單資料表或欄位尚未完成設定。');
+            }
+            return sendError(res, 500, '讀取會員訂單失敗，請稍後再試。');
+          }
+
+          orders = phoneOrdersResult.data;
+          count = phoneOrdersResult.count;
+        }
       }
 
       const orderIds = (orders || []).map(o => o.order_id);
@@ -601,6 +655,67 @@ function createCustomerRouter(supabase, options = {}) {
     } catch (error) {
       console.error('處理會員歷史訂單時發生未預期錯誤：', error);
       return sendError(res, 500, '讀取會員歷史訂單時發生錯誤，請稍後再試。');
+    }
+  });
+
+  router.post('/orders/forgot', async (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    if (!readEnabled || !supabase) {
+      return sendError(res, 503, '訂單查詢服務尚未設定權限。');
+    }
+
+    const body = req.body;
+    if (!body || typeof body !== 'object') {
+      return sendError(res, 400, '查詢資料格式無效。');
+    }
+
+    const customerPhone = normalizePhone(body.customer_phone);
+    if (!customerPhone || body.order_id !== undefined) {
+      return sendError(res, 400, '請提供有效的 customer_phone。');
+    }
+
+    const rawPhone = customerPhone.replace(/^852/, '');
+    const phoneVariants = [...new Set([
+      customerPhone,
+      rawPhone,
+      `852${rawPhone}`,
+      `+${customerPhone}`,
+      `+852${rawPhone}`
+    ])];
+
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('order_number, order_date, total_amount, payment_status')
+        .in('customer_phone', phoneVariants)
+        .order('order_date', { ascending: false })
+        .limit(10);
+
+      if (error) {
+        console.error('找回訂單編號查詢失敗：', error);
+        if (MISSING_SCHEMA_CODES.has(error.code)) {
+          return sendError(res, 503, '訂單查詢資料庫尚未完成設定。');
+        }
+        return sendError(res, 500, '找回訂單編號失敗，請稍後再試。');
+      }
+      if (!Array.isArray(data)) {
+        console.error('找回訂單編號查詢回傳格式無效。');
+        return sendError(res, 500, '訂單查詢結果格式無效。');
+      }
+
+      return res.json({
+        success: true,
+        data: data.map(order => ({
+          order_number: order.order_number,
+          order_date: order.order_date,
+          total_amount: order.total_amount,
+          payment_status: order.payment_status
+        })),
+        message: '最近訂單編號已載入。'
+      });
+    } catch (error) {
+      console.error('找回訂單編號時發生未預期錯誤：', error);
+      return sendError(res, 500, '找回訂單編號失敗，請稍後再試。');
     }
   });
 

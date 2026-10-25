@@ -174,8 +174,8 @@ test('profit analytics reports revenue, per-product profit, margin and cost cove
       { order_id: 'profit-2', order_date: '2026-09-11T10:00:00+08:00', total_amount: 50 }
     ],
     order_items: [
-      { order_id: 'profit-1', product_id: 'p1', quantity: 2 },
-      { order_id: 'profit-2', product_id: 'p2', quantity: 1 }
+      { order_id: 'profit-1', product_id: 'p1', quantity: 2, price_at_purchase: 50 },
+      { order_id: 'profit-2', product_id: 'p2', quantity: 1, price_at_purchase: 50 }
     ],
     products: [
       { id: 'p1', name: '星球手帳', cost_price: 20, price: 50 },
@@ -211,13 +211,14 @@ test('profit analytics treats null, blank and omitted costs as zero', async () =
       { order_id: 'empty-cost-1', order_date: '2026-09-10T10:00:00+08:00', total_amount: 100 }
     ],
     order_items: [
-      { order_id: 'empty-cost-1', product_id: 4268, quantity: 1 },
+      { order_id: 'empty-cost-1', product_id: 4268, quantity: 1, price_at_purchase: 20 },
       {
         order_id: 'empty-cost-1',
         product_id: '4c260c94-2cb3-4de4-a71e-5b0f5cf53d87',
-        quantity: 1
+        quantity: 1,
+        price_at_purchase: 30
       },
-      { order_id: 'empty-cost-1', product_id: 4270, quantity: 1 }
+      { order_id: 'empty-cost-1', product_id: 4270, quantity: 1, price_at_purchase: 50 }
     ],
     products: [
       { id: 4268, name: '未填成本商品', cost_price: null, price: 20 },
@@ -250,8 +251,13 @@ test('profit analytics treats malformed product amounts as zero', async () => {
       { order_id: 'invalid-amounts', order_date: '2026-09-10T10:00:00+08:00', total_amount: 'not-a-number' }
     ],
     order_items: [
-      { order_id: 'invalid-amounts', product_id: 'bad-cost', quantity: 1 },
-      { order_id: 'invalid-amounts', product_id: 'bad-price', quantity: 2 }
+      { order_id: 'invalid-amounts', product_id: 'bad-cost', quantity: 1, price_at_purchase: 50 },
+      {
+        order_id: 'invalid-amounts',
+        product_id: 'bad-price',
+        quantity: 2,
+        price_at_purchase: 'not-a-number'
+      }
     ],
     products: [
       { id: 'bad-cost', name: '錯誤成本商品', cost_price: 'not-a-number', price: 50 },
@@ -291,7 +297,7 @@ test('profit analytics reports a missing cost column as an unapplied migration',
       order_id: 'missing-cost-column-1',
       product_id: 4268,
       quantity: 1,
-      unit_price: 40
+      price_at_purchase: 40
     }],
     products: [{ id: 4268, name: '成本欄位尚未建立' }]
   }, {
@@ -337,8 +343,8 @@ test('profit analytics safely degrades when an order item column is missing', as
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 40);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, 40);
-    assert.equal(response.body.data.details_available, true);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.equal(response.body.data.details_available, false);
     assert.equal(response.body.data.top_products.length, 0);
     assert.equal(response.body.data.details_message, null);
   });
@@ -364,8 +370,8 @@ test('profit analytics safely degrades when the order_items table is unavailable
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 75);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.cost_coverage_percentage, 100);
-    assert.equal(response.body.data.details_available, true);
+    assert.equal(response.body.data.cost_coverage_percentage, 0);
+    assert.equal(response.body.data.details_available, false);
     assert.deepEqual(response.body.data.top_products, []);
   });
 });
@@ -395,7 +401,8 @@ test('profit analytics safely degrades when order_items encounters JWT clock ske
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 75);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.details_available, true);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.equal(response.body.data.details_available, false);
     assert.deepEqual(response.body.data.top_products, []);
   });
 });
@@ -428,9 +435,9 @@ test('profit analytics skips order_items entirely when details are not enabled',
     assert.equal(response.body.success, true);
     assert.equal(response.body.data.total_revenue, 125.5);
     assert.equal(response.body.data.total_cost, 0);
-    assert.equal(response.body.data.gross_profit, 125.5);
-    assert.equal(response.body.data.cost_coverage_percentage, 100);
-    assert.equal(response.body.data.details_available, true);
+    assert.equal(response.body.data.gross_profit, null);
+    assert.equal(response.body.data.cost_coverage_percentage, 0);
+    assert.equal(response.body.data.details_available, false);
     assert.deepEqual(response.body.data.top_products, []);
     assert.equal(response.body.data.details_message, null);
   });
@@ -461,12 +468,14 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
       {
         order_id: 'a123',
         product_id: 'p001',
-        quantity: 1
+        quantity: 1,
+        price_at_purchase: 150
       },
       {
         order_id: 'b456',
         product_id: 'p001',
-        quantity: 2
+        quantity: 2,
+        price_at_purchase: 150
       }
     ],
     products: [{ id: 'p001', name: 'LittlePlanet 星球筆記本' }]
@@ -496,7 +505,7 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
     assert.equal(ranking.status, 200);
     assert.equal(ranking.body.data[0].product_id, 'p001');
     assert.equal(ranking.body.data[0].quantity_sold, 3);
-    assert.equal(ranking.body.data[0].sales_amount, 0);
+    assert.equal(ranking.body.data[0].sales_amount, 450);
 
     const reconciliation = await request(
       baseUrl,
@@ -506,7 +515,7 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
     assert.equal(reconciliation.body.data.total_count, 2);
     assert.equal(reconciliation.body.data.rows[0].order_id, 'a123');
     assert.equal(reconciliation.body.data.rows[0].items[0].item_id, null);
-    assert.equal(reconciliation.body.data.rows[0].items[0].line_total, 0);
+    assert.equal(reconciliation.body.data.rows[0].items[0].line_total, 150);
     assert.equal(reconciliation.body.data.rows[0].items[0].received_quantity, null);
   });
 

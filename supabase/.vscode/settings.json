@@ -1,0 +1,10 @@
+{
+  "github.copilot.chat.workspaceExcludePatterns": [
+    "**/backups/**",
+    "**/node_modules/**",
+    "**/project_summary.md",
+    "**/.git/**",
+    "**/OneDrive/**"
+  ],
+  "github.copilot.chat.scope": "files"
+}

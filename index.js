@@ -141,6 +141,7 @@ app.get('/api/products/inventory-alerts', sensitiveRateLimiters.adminWrite);
 app.get('/api/products/adjustments', sensitiveRateLimiters.adminWrite);
 app.post('/api/products/:productId/adjustments', sensitiveRateLimiters.adminWrite);
 app.post('/api/customer/orders/lookup', sensitiveRateLimiters.customerLookup);
+app.post('/api/customer/orders/forgot', sensitiveRateLimiters.customerLookup);
 app.post('/api/orders/:id/payment-proof', sensitiveRateLimiters.paymentProofUpload);
 app.post('/api/admin-auth/login', sensitiveRateLimiters.adminLogin);
 app.post('/api/customer/member/session', sensitiveRateLimiters.customerAuth);
