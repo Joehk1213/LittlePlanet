@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "SOP.md",
+                "file": "file:C:/Users/JOE/Desktop/LittlePlanet-CONTEXT.md",
                 "mode": "source",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "SOP"
+              "title": "LittlePlanet-CONTEXT"
             }
           }
         ]
@@ -185,7 +185,7 @@
       "bases:建立新的 base": false
     }
   },
-  "active": "1d5061d698808921",
+  "active": "7fa5591ea54d1d4f",
   "lastOpenFiles": [
     "05 markdown.md",
     "01 markdown.md",
