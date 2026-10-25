@@ -295,7 +295,10 @@ function createAnalyticsRouter(supabase, options = {}) {
         .select(ORDER_ITEM_COLUMNS)
         .in('order_id', orderIds);
       if (error || !Array.isArray(data)) {
-        return [];
+        if (error) {
+          logSupabaseError('讀取訂單商品明細失敗', error);
+        }
+        return null;
       }
       return data.map(item => {
         const quantity = Number(item && item.quantity);
@@ -308,8 +311,9 @@ function createAnalyticsRouter(supabase, options = {}) {
           item_status: null
         };
       });
-    } catch (_error) {
-      return [];
+    } catch (error) {
+      logSupabaseError('讀取訂單商品明細時發生錯誤', error);
+      return null;
     }
   }
 
@@ -566,10 +570,11 @@ function createAnalyticsRouter(supabase, options = {}) {
         dateRange,
         'order_id,total_amount'
       );
-      const items = profitDetailsEnabled
+      const fetchedItems = profitDetailsEnabled
         ? await fetchItemsForOrders(orders.map(order => order.order_id))
-        : [];
-      const detailsAvailable = true;
+        : null;
+      const detailsAvailable = Array.isArray(fetchedItems);
+      const items = fetchedItems || [];
       const detailsMessage = null;
       const productIds = [...new Set(items.map(item => String(item.product_id)))];
       const productInfo = new Map();
@@ -651,7 +656,7 @@ function createAnalyticsRouter(supabase, options = {}) {
         totalsByProduct.set(key, total);
       }
 
-      const completeCostCoverage = unknownCostItems === 0;
+      const completeCostCoverage = detailsAvailable && unknownCostItems === 0;
       const rankedProducts = [...totalsByProduct.values()]
         .sort((left, right) => (
           (right.cost_known ? right.net_profit : Number.NEGATIVE_INFINITY) -
@@ -687,7 +692,9 @@ function createAnalyticsRouter(supabase, options = {}) {
         gross_margin_percentage: completeCostCoverage && roundedRevenue > 0
           ? Math.round((grossProfit / roundedRevenue) * 10000) / 100
           : null,
-        cost_coverage_percentage: unitsSold > 0
+        cost_coverage_percentage: !detailsAvailable
+          ? 0
+          : unitsSold > 0
           ? Math.round((unitsWithKnownCost / unitsSold) * 10000) / 100
           : 100,
         cost_data_complete: completeCostCoverage,
@@ -833,7 +840,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       let data;
       if (useTableFallback) {
         const orders = await fetchOrdersInRange(dateRange, 'order_id');
-        const items = await fetchItemsForOrders(orders.map(order => order.order_id));
+        const items = (await fetchItemsForOrders(orders.map(order => order.order_id))) || [];
         const productIds = [...new Set(items.map(item => item.product_id))];
         const productNames = await fetchProductNames(productIds);
         const totals = new Map();
@@ -847,7 +854,7 @@ function createAnalyticsRouter(supabase, options = {}) {
             product_id: item.product_id,
             product_name: productNames.get(key) || '未命名商品',
             quantity_sold: 0,
-            sales_amount: itemSalesAmount
+            sales_amount: 0
           };
           current.quantity_sold += Number(item.quantity || 0);
           if (current.sales_amount !== null && itemSalesAmount !== null) {
@@ -968,7 +975,7 @@ function createAnalyticsRouter(supabase, options = {}) {
           throw new Error('Supabase 財務對賬訂單查詢回傳格式無效。');
         }
 
-        const items = await fetchItemsForOrders(orders.map(order => order.order_id));
+        const items = (await fetchItemsForOrders(orders.map(order => order.order_id))) || [];
         const productIds = [...new Set(items.map(item => item.product_id))];
         const productNames = await fetchProductNames(productIds);
         const itemsByOrderId = new Map();
