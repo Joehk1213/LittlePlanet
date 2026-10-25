@@ -2,6 +2,14 @@
 
 > 以下是供排查及交接使用的常見情境範本；除非另有事故紀錄，不代表每次出現都已確認為正式環境事故。
 
+## 重構後程式位置
+
+- 服務入口是根目錄 `index.js`；API 路由集中於 `src/routes/`，middleware 位於 `src/middleware/`，共用工具位於 `src/utils/`。
+- `/api/customer` 會員路由在 `src/routes/customer.js`；`/api/admin/customers` CRM 管理路由在 `src/routes/customers.js`，不可因檔名相似而混用。
+- 付款憑證路由使用 `src/routes/payments.js`（舊名 `payment-proofs.js`）；Webhook 使用 `src/routes/webhooks.js`（舊名 `webhook.js`）。
+- 前台圖片目錄為 `public/assets/images/`，不再使用 `public/image/`。
+- 部署與本機啟動方式見 [`DEPLOYMENT.md`](./DEPLOYMENT.md)。
+
 ## Port 3000 佔用（`EADDRINUSE`）
 
 - **症狀：** Node.js 啟動失敗，錯誤包含 `listen EADDRINUSE` 或 `address already in use :::3000`。
