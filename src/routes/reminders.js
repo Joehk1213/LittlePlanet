@@ -16,14 +16,14 @@ const PUBLIC_REMINDER_FIELDS = [
   'retail_price',
   'cutoff_datetime',
   'remind_status',
-  'status'
+  'status',
 ];
 
 function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
@@ -53,14 +53,13 @@ function parseWindowHours(value) {
     return 24;
   }
 
-  const hours = typeof value === 'number'
-    ? value
-    : typeof value === 'string' && /^\d+$/.test(value)
-      ? Number(value)
-      : null;
-  return Number.isSafeInteger(hours) && hours >= 1 && hours <= MAX_WINDOW_HOURS
-    ? hours
-    : null;
+  const hours =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && /^\d+$/.test(value)
+        ? Number(value)
+        : null;
+  return Number.isSafeInteger(hours) && hours >= 1 && hours <= MAX_WINDOW_HOURS ? hours : null;
 }
 
 function createReminderRouter(supabase, options = {}) {
@@ -110,10 +109,7 @@ function createReminderRouter(supabase, options = {}) {
       throw new Error('Supabase 截單商品查詢回傳格式無效。');
     }
 
-    return data.filter(product => (
-      product.is_active !== false &&
-      product.status !== '已下架'
-    ));
+    return data.filter((product) => product.is_active !== false && product.status !== '已下架');
   }
 
   async function releaseClaim(productIdColumn, productId, claimedAt) {
@@ -140,12 +136,16 @@ function createReminderRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data: products.map(filterReminderFields),
-        message: `未來 ${hours} 小時內有 ${products.length} 件商品即將截單。`
+        message: `未來 ${hours} 小時內有 ${products.length} 件商品即將截單。`,
       });
     } catch (error) {
       console.error('查詢即將截單商品失敗：', error);
       if (error && ['42703', 'PGRST204'].includes(error.code)) {
-        return sendError(res, 503, 'products.cutoff_datetime、products.remind_status 或提醒鎖定欄位尚未建立，請先執行資料庫遷移。');
+        return sendError(
+          res,
+          503,
+          'products.cutoff_datetime、products.remind_status 或提醒鎖定欄位尚未建立，請先執行資料庫遷移。'
+        );
       }
       return sendError(res, 500, '查詢即將截單商品時發生錯誤。');
     }
@@ -173,9 +173,9 @@ function createReminderRouter(supabase, options = {}) {
         const productId = getProductId(product);
         const claimNow = new Date();
         const claimedAt = claimNow.toISOString();
-        const staleClaimBefore = new Date(
-          claimNow.getTime() - CLAIM_LEASE_MINUTES * 60 * 1000
-        ).toISOString().replace(/\.\d{3}Z$/, 'Z');
+        const staleClaimBefore = new Date(claimNow.getTime() - CLAIM_LEASE_MINUTES * 60 * 1000)
+          .toISOString()
+          .replace(/\.\d{3}Z$/, 'Z');
 
         const { data: claimedRows, error: claimError } = await supabase
           .from('products')
@@ -192,7 +192,12 @@ function createReminderRouter(supabase, options = {}) {
         }
 
         if (!Array.isArray(claimedRows) || claimedRows.length !== 1) {
-          results.push({ product_id: productId, success: false, skipped: true, message: '商品提醒已由其他工作程序處理。' });
+          results.push({
+            product_id: productId,
+            success: false,
+            skipped: true,
+            message: '商品提醒已由其他工作程序處理。',
+          });
           continue;
         }
 
@@ -200,8 +205,10 @@ function createReminderRouter(supabase, options = {}) {
         const message = [
           `截單提醒：${getProductName(product)}`,
           `截單時間：${cutoff.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })}`,
-          product.product_code ? `產品代號：${product.product_code}` : ''
-        ].filter(Boolean).join('\n');
+          product.product_code ? `產品代號：${product.product_code}` : '',
+        ]
+          .filter(Boolean)
+          .join('\n');
         const sentRecipients = [];
         const failedRecipients = [];
 
@@ -213,7 +220,7 @@ function createReminderRouter(supabase, options = {}) {
             console.error('WhatsApp 截單提醒發送失敗：', {
               productId,
               recipient,
-              error
+              error,
             });
             failedRecipients.push(recipient);
           }
@@ -227,7 +234,7 @@ function createReminderRouter(supabase, options = {}) {
             claimReleased = false;
             console.error('釋放失敗提醒鎖定時發生錯誤：', {
               productId,
-              error
+              error,
             });
           }
 
@@ -238,7 +245,7 @@ function createReminderRouter(supabase, options = {}) {
             failed_recipients: failedRecipients,
             message: claimReleased
               ? '部分或全部 WhatsApp 提醒發送失敗；提醒狀態未標記為已發送，重試時已送達對象可能收到重複提醒。'
-              : '部分或全部 WhatsApp 提醒發送失敗；提醒鎖定暫未釋放，請檢查資料庫及發送紀錄。'
+              : '部分或全部 WhatsApp 提醒發送失敗；提醒鎖定暫未釋放，請檢查資料庫及發送紀錄。',
           });
           continue;
         }
@@ -249,7 +256,7 @@ function createReminderRouter(supabase, options = {}) {
           .update({
             remind_status: REMINDER_STATUS_SENT,
             remind_claimed_at: null,
-            remind_sent_at: sentAt
+            remind_sent_at: sentAt,
           })
           .eq(productIdColumn, productId)
           .eq('remind_status', REMINDER_STATUS_PENDING)
@@ -259,13 +266,13 @@ function createReminderRouter(supabase, options = {}) {
         if (updateError || !Array.isArray(updatedRows) || updatedRows.length !== 1) {
           console.error('提醒已發送但更新 remind_status 失敗：', {
             productId,
-            error: updateError || new Error('資料庫沒有更新到預期商品。')
+            error: updateError || new Error('資料庫沒有更新到預期商品。'),
           });
           results.push({
             product_id: productId,
             success: false,
             sent: true,
-            message: '提醒已發送，但提醒狀態更新失敗；請檢查資料庫以免重複發送。'
+            message: '提醒已發送，但提醒狀態更新失敗；請檢查資料庫以免重複發送。',
           });
           continue;
         }
@@ -274,21 +281,25 @@ function createReminderRouter(supabase, options = {}) {
           product_id: productId,
           success: true,
           sent_recipients: recipients.length,
-          remind_status: REMINDER_STATUS_SENT
+          remind_status: REMINDER_STATUS_SENT,
         });
       }
 
-      const failedCount = results.filter(result => !result.success).length;
+      const failedCount = results.filter((result) => !result.success).length;
       const responseStatus = failedCount > 0 ? 207 : 200;
       return res.status(responseStatus).json({
         success: failedCount === 0,
         data: results,
-        message: `截單提醒處理完成：成功 ${results.length - failedCount} 件，失敗或略過 ${failedCount} 件。`
+        message: `截單提醒處理完成：成功 ${results.length - failedCount} 件，失敗或略過 ${failedCount} 件。`,
       });
     } catch (error) {
       console.error('執行截單提醒失敗：', error);
       if (error && ['42703', 'PGRST204'].includes(error.code)) {
-        return sendError(res, 503, 'products.cutoff_datetime、products.remind_status 或提醒鎖定欄位尚未建立，請先執行資料庫遷移。');
+        return sendError(
+          res,
+          503,
+          'products.cutoff_datetime、products.remind_status 或提醒鎖定欄位尚未建立，請先執行資料庫遷移。'
+        );
       }
       return sendError(res, 500, '執行截單提醒時發生錯誤。');
     }

@@ -1,5 +1,14 @@
 # LittlePlanet 專案控制清單
 
+## 重構後檔案位置
+
+- 顧客會員功能：[`src/routes/customer.js`](../src/routes/customer.js)，掛載於 `/api/customer`。
+- 管理員顧客 CRM：[`src/routes/customers.js`](../src/routes/customers.js)，掛載於 `/api/admin/customers`；兩個檔案用途不同，請勿合併或互換。
+- 付款憑證路由：[`src/routes/payments.js`](../src/routes/payments.js)（原 `payment-proofs.js`）。
+- Webhook 路由：[`src/routes/webhooks.js`](../src/routes/webhooks.js)（原 `webhook.js`）。
+- 前台圖片：[`public/assets/images/`](../public/assets/images/)（原 `public/image/`）。
+- 部署說明：[`DEPLOYMENT.md`](./DEPLOYMENT.md)；錯誤排查範本：[`ERROR_LOG.md`](./ERROR_LOG.md)。
+
 ## 已完成
 
 - [x] 基礎架構：Node.js、Express、Supabase 與靜態前台。

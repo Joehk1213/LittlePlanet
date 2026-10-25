@@ -13,17 +13,12 @@ function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
 function getImageType(buffer) {
-  if (
-    buffer.length >= 3 &&
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
-  ) {
+  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
     return { mimeType: 'image/jpeg', extension: 'jpg' };
   }
   if (
@@ -48,13 +43,9 @@ function getPhoneVariants(phone) {
     return null;
   }
   const rawPhone = normalized.replace(/^852/, '');
-  return [...new Set([
-    normalized,
-    rawPhone,
-    `852${rawPhone}`,
-    `+${normalized}`,
-    `+852${rawPhone}`
-  ])];
+  return [
+    ...new Set([normalized, rawPhone, `852${rawPhone}`, `+${normalized}`, `+852${rawPhone}`]),
+  ];
 }
 
 function createPaymentProofRouter(supabase, options = {}) {
@@ -78,121 +69,125 @@ function createPaymentProofRouter(supabase, options = {}) {
 
   if (options.enableUpload !== false) {
     router.post(
-    '/:id/payment-proof',
-    express.raw({
-      type: ['image/jpeg', 'image/png', 'image/webp'],
-      limit: MAX_PROOF_BYTES
-    }),
-    async (req, res) => {
-      res.set('Cache-Control', 'no-store');
-      if (!supabase || !serviceRoleAvailable) {
-        return sendError(res, 503, '付款憑證服務尚未設定資料庫服務權限。');
-      }
-
-      const orderNumber = typeof req.params.id === 'string'
-        ? req.params.id.trim().toUpperCase()
-        : '';
-      const phoneVariants = getPhoneVariants(req.get('x-customer-phone') || '');
-      const file = req.body;
-      const imageType = Buffer.isBuffer(file) ? getImageType(file) : null;
-
-      if (
-        !orderNumber ||
-        !ORDER_NUMBER_PATTERN.test(orderNumber) ||
-        UUID_PATTERN.test(orderNumber) ||
-        !phoneVariants
-      ) {
-        return sendError(res, 400, '必須提供正式訂單編號及有效聯絡電話。');
-      }
-      if (!Buffer.isBuffer(file) || file.length === 0 || file.length > MAX_PROOF_BYTES || !imageType) {
-        return sendError(res, 400, '請上傳有效的 JPG、PNG 或 WEBP 圖片（最多 5 MB）。');
-      }
-      if (req.get('content-type') !== imageType.mimeType) {
-        return sendError(res, 400, '上傳檔案格式與圖片內容不符。');
-      }
-
-      try {
-        const { data: order, error: orderError } = await supabase
-          .from('orders')
-          .select('order_id,order_number,customer_phone,payment_proof_url,payment_proof_status')
-          .in('customer_phone', phoneVariants)
-          .eq('order_number', orderNumber)
-          .maybeSingle();
-
-        if (orderError) {
-          console.error('付款憑證訂單驗證失敗：', orderError);
-          return sendError(res, 500, '驗證訂單失敗，請稍後再試。');
-        }
-        if (!order) {
-          return sendError(res, 404, '找不到符合電話及訂單編號的訂單。');
-        }
-        if (order.payment_proof_status === 'verified') {
-          return sendError(res, 409, '此訂單付款憑證已核實，不能重新提交。');
+      '/:id/payment-proof',
+      express.raw({
+        type: ['image/jpeg', 'image/png', 'image/webp'],
+        limit: MAX_PROOF_BYTES,
+      }),
+      async (req, res) => {
+        res.set('Cache-Control', 'no-store');
+        if (!supabase || !serviceRoleAvailable) {
+          return sendError(res, 503, '付款憑證服務尚未設定資料庫服務權限。');
         }
 
-        const objectPath = `${order.order_id}/${crypto.randomUUID()}.${imageType.extension}`;
-        const { error: uploadError } = await supabase.storage
-          .from(PAYMENT_PROOF_BUCKET)
-          .upload(objectPath, file, {
-            contentType: imageType.mimeType,
-            cacheControl: '300',
-            upsert: false
-          });
-        if (uploadError) {
-          console.error('儲存付款憑證失敗：', uploadError);
-          return sendError(res, 500, '付款憑證上傳失敗，請稍後再試。');
-        }
-
-        const { data, error: updateError } = await supabase
-          .from('orders')
-          .update({
-            payment_proof_url: objectPath,
-            payment_proof_status: 'pending'
-          })
-          .eq('order_id', order.order_id)
-          .select('order_number,payment_proof_status')
-          .maybeSingle();
-
-        if (updateError || !data) {
-          if (updateError) {
-            console.error('儲存付款憑證資料失敗：', updateError);
-          }
-          const { error: cleanupError } = await supabase.storage
-            .from(PAYMENT_PROOF_BUCKET)
-            .remove([objectPath]);
-          if (cleanupError) {
-            console.error('清理未關聯的付款憑證失敗：', cleanupError);
-          }
-          return sendError(res, 500, '付款憑證未能連結至訂單，請稍後再試。');
-        }
+        const orderNumber =
+          typeof req.params.id === 'string' ? req.params.id.trim().toUpperCase() : '';
+        const phoneVariants = getPhoneVariants(req.get('x-customer-phone') || '');
+        const file = req.body;
+        const imageType = Buffer.isBuffer(file) ? getImageType(file) : null;
 
         if (
-          typeof order.payment_proof_url === 'string' &&
-          order.payment_proof_url &&
-          order.payment_proof_url !== objectPath
+          !orderNumber ||
+          !ORDER_NUMBER_PATTERN.test(orderNumber) ||
+          UUID_PATTERN.test(orderNumber) ||
+          !phoneVariants
         ) {
-          try {
-            const { error: oldProofError } = await supabase.storage
-              .from(PAYMENT_PROOF_BUCKET)
-              .remove([order.payment_proof_url]);
-            if (oldProofError) {
-              console.error('移除已替換的付款憑證失敗：', oldProofError);
-            }
-          } catch (cleanupError) {
-            console.error('移除已替換的付款憑證時發生錯誤：', cleanupError);
-          }
+          return sendError(res, 400, '必須提供正式訂單編號及有效聯絡電話。');
+        }
+        if (
+          !Buffer.isBuffer(file) ||
+          file.length === 0 ||
+          file.length > MAX_PROOF_BYTES ||
+          !imageType
+        ) {
+          return sendError(res, 400, '請上傳有效的 JPG、PNG 或 WEBP 圖片（最多 5 MB）。');
+        }
+        if (req.get('content-type') !== imageType.mimeType) {
+          return sendError(res, 400, '上傳檔案格式與圖片內容不符。');
         }
 
-        return res.status(201).json({
-          success: true,
-          data,
-          message: '付款憑證已收到，管理員核對後會更新付款狀態。'
-        });
-      } catch (error) {
-        console.error('處理付款憑證時發生未預期錯誤：', error);
-        return sendError(res, 500, '處理付款憑證時發生錯誤，請稍後再試。');
+        try {
+          const { data: order, error: orderError } = await supabase
+            .from('orders')
+            .select('order_id,order_number,customer_phone,payment_proof_url,payment_proof_status')
+            .in('customer_phone', phoneVariants)
+            .eq('order_number', orderNumber)
+            .maybeSingle();
+
+          if (orderError) {
+            console.error('付款憑證訂單驗證失敗：', orderError);
+            return sendError(res, 500, '驗證訂單失敗，請稍後再試。');
+          }
+          if (!order) {
+            return sendError(res, 404, '找不到符合電話及訂單編號的訂單。');
+          }
+          if (order.payment_proof_status === 'verified') {
+            return sendError(res, 409, '此訂單付款憑證已核實，不能重新提交。');
+          }
+
+          const objectPath = `${order.order_id}/${crypto.randomUUID()}.${imageType.extension}`;
+          const { error: uploadError } = await supabase.storage
+            .from(PAYMENT_PROOF_BUCKET)
+            .upload(objectPath, file, {
+              contentType: imageType.mimeType,
+              cacheControl: '300',
+              upsert: false,
+            });
+          if (uploadError) {
+            console.error('儲存付款憑證失敗：', uploadError);
+            return sendError(res, 500, '付款憑證上傳失敗，請稍後再試。');
+          }
+
+          const { data, error: updateError } = await supabase
+            .from('orders')
+            .update({
+              payment_proof_url: objectPath,
+              payment_proof_status: 'pending',
+            })
+            .eq('order_id', order.order_id)
+            .select('order_number,payment_proof_status')
+            .maybeSingle();
+
+          if (updateError || !data) {
+            if (updateError) {
+              console.error('儲存付款憑證資料失敗：', updateError);
+            }
+            const { error: cleanupError } = await supabase.storage
+              .from(PAYMENT_PROOF_BUCKET)
+              .remove([objectPath]);
+            if (cleanupError) {
+              console.error('清理未關聯的付款憑證失敗：', cleanupError);
+            }
+            return sendError(res, 500, '付款憑證未能連結至訂單，請稍後再試。');
+          }
+
+          if (
+            typeof order.payment_proof_url === 'string' &&
+            order.payment_proof_url &&
+            order.payment_proof_url !== objectPath
+          ) {
+            try {
+              const { error: oldProofError } = await supabase.storage
+                .from(PAYMENT_PROOF_BUCKET)
+                .remove([order.payment_proof_url]);
+              if (oldProofError) {
+                console.error('移除已替換的付款憑證失敗：', oldProofError);
+              }
+            } catch (cleanupError) {
+              console.error('移除已替換的付款憑證時發生錯誤：', cleanupError);
+            }
+          }
+
+          return res.status(201).json({
+            success: true,
+            data,
+            message: '付款憑證已收到，管理員核對後會更新付款狀態。',
+          });
+        } catch (error) {
+          console.error('處理付款憑證時發生未預期錯誤：', error);
+          return sendError(res, 500, '處理付款憑證時發生錯誤，請稍後再試。');
+        }
       }
-    }
     );
   }
 
@@ -250,9 +245,8 @@ function createPaymentProofRouter(supabase, options = {}) {
         return res.json({
           success: true,
           data,
-          message: paymentProofStatus === 'verified'
-            ? '付款憑證已核實。'
-            : '付款憑證已標記為不通過。'
+          message:
+            paymentProofStatus === 'verified' ? '付款憑證已核實。' : '付款憑證已標記為不通過。',
         });
       } catch (error) {
         console.error('審核付款憑證時發生未預期錯誤：', error);

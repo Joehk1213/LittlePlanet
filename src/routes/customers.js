@@ -3,7 +3,8 @@
 const express = require('express');
 
 const CREDIT_STATUSES = new Set(['normal', 'require_deposit', 'blacklisted']);
-const CUSTOMER_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const CUSTOMER_ID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MISSING_SCHEMA_CODES = new Set(['42P01', '42703', 'PGRST204', 'PGRST205']);
 const DEFAULT_PAGE_SIZE = 50;
 const MAX_PAGE_SIZE = 100;
@@ -12,7 +13,7 @@ function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
@@ -41,13 +42,9 @@ function getPhoneVariants(phone) {
     return [];
   }
   const rawPhone = normalized.replace(/^852/, '');
-  return [...new Set([
-    normalized,
-    rawPhone,
-    `852${rawPhone}`,
-    `+${normalized}`,
-    `+852${rawPhone}`
-  ])];
+  return [
+    ...new Set([normalized, rawPhone, `852${rawPhone}`, `+${normalized}`, `+852${rawPhone}`]),
+  ];
 }
 
 function createCustomersRouter(supabase, options = {}) {
@@ -76,12 +73,7 @@ function createCustomersRouter(supabase, options = {}) {
     const limit = parsePageValue(req.query.limit, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE);
     const offset = parsePageValue(req.query.offset, 0, 2147483647);
     const search = typeof req.query.search === 'string' ? req.query.search.trim() : '';
-    if (
-      limit === null ||
-      limit < 1 ||
-      offset === null ||
-      search.length > 100
-    ) {
+    if (limit === null || limit < 1 || offset === null || search.length > 100) {
       return sendError(res, 400, '客戶搜尋或分頁參數無效。');
     }
 
@@ -89,7 +81,7 @@ function createCustomersRouter(supabase, options = {}) {
       const { data, error } = await supabase.rpc('list_admin_customers', {
         p_search: search || null,
         p_limit: limit,
-        p_offset: offset
+        p_offset: offset,
       });
 
       if (error) {
@@ -106,9 +98,9 @@ function createCustomersRouter(supabase, options = {}) {
         data: {
           customers: data,
           limit,
-          offset
+          offset,
         },
-        message: '客戶列表載入完成。'
+        message: '客戶列表載入完成。',
       });
     } catch (error) {
       console.error('讀取管理員客戶列表時發生未預期錯誤：', error);
@@ -123,9 +115,8 @@ function createCustomersRouter(supabase, options = {}) {
 
     const customerPhone = normalizePhone(req.params.customerPhone);
     const submittedEmail = req.body && req.body.google_email;
-    const googleEmail = typeof submittedEmail === 'string'
-      ? submittedEmail.trim().toLowerCase()
-      : '';
+    const googleEmail =
+      typeof submittedEmail === 'string' ? submittedEmail.trim().toLowerCase() : '';
     if (!customerPhone || googleEmail.length > 254 || !/^[^\s@]+@gmail\.com$/.test(googleEmail)) {
       return sendError(res, 400, '請提供有效電話號碼及 Gmail 地址。');
     }
@@ -149,13 +140,14 @@ function createCustomersRouter(supabase, options = {}) {
         return sendError(res, 500, '訂單數量回傳格式無效，未能綁定 Google 帳號。');
       }
 
-      const { error: customerError } = await supabase
-        .from('customers')
-        .upsert({
+      const { error: customerError } = await supabase.from('customers').upsert(
+        {
           customer_phone: customerPhone,
           google_email: googleEmail,
-          customer_name: googleEmail
-        }, { onConflict: 'customer_phone' });
+          customer_name: googleEmail,
+        },
+        { onConflict: 'customer_phone' }
+      );
 
       if (customerError) {
         console.error('綁定客戶 Google 帳號失敗：', customerError);
@@ -172,7 +164,7 @@ function createCustomersRouter(supabase, options = {}) {
         success: true,
         data: { linked_orders: count },
         linked_orders: count,
-        message: `已綁定 Google 帳號及 ${count} 張訂單。`
+        message: `已綁定 Google 帳號及 ${count} 張訂單。`,
       });
     } catch (error) {
       console.error('綁定客戶 Google 帳號時發生未預期錯誤：', error);
@@ -213,7 +205,7 @@ function createCustomersRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data,
-        message: '客戶信用評級已更新。'
+        message: '客戶信用評級已更新。',
       });
     } catch (error) {
       console.error('更新客戶信用評級時發生未預期錯誤：', error);

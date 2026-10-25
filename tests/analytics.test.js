@@ -174,8 +174,8 @@ test('profit analytics reports revenue, per-product profit, margin and cost cove
       { order_id: 'profit-2', order_date: '2026-09-11T10:00:00+08:00', total_amount: 50 }
     ],
     order_items: [
-      { order_id: 'profit-1', product_id: 'p1', quantity: 2, price_at_purchase: 50 },
-      { order_id: 'profit-2', product_id: 'p2', quantity: 1, price_at_purchase: 50 }
+      { order_id: 'profit-1', product_id: 'p1', quantity: 2, unit_price: 50 },
+      { order_id: 'profit-2', product_id: 'p2', quantity: 1, unit_price: 50 }
     ],
     products: [
       { id: 'p1', name: '星球手帳', cost_price: 20, price: 50 },
@@ -183,7 +183,7 @@ test('profit analytics reports revenue, per-product profit, margin and cost cove
     ]
   }, {
     schemas: {
-      order_items: ['order_id', 'product_id', 'quantity', 'price_at_purchase'],
+      order_items: ['order_id', 'product_id', 'quantity', 'unit_price'],
       products: ['id', 'name', 'cost_price', 'price']
     }
   }));
@@ -211,14 +211,14 @@ test('profit analytics treats null, blank and omitted costs as zero', async () =
       { order_id: 'empty-cost-1', order_date: '2026-09-10T10:00:00+08:00', total_amount: 100 }
     ],
     order_items: [
-      { order_id: 'empty-cost-1', product_id: 4268, quantity: 1, price_at_purchase: 20 },
+      { order_id: 'empty-cost-1', product_id: 4268, quantity: 1, unit_price: 20 },
       {
         order_id: 'empty-cost-1',
         product_id: '4c260c94-2cb3-4de4-a71e-5b0f5cf53d87',
         quantity: 1,
-        price_at_purchase: 30
+        unit_price: 30
       },
-      { order_id: 'empty-cost-1', product_id: 4270, quantity: 1, price_at_purchase: 50 }
+      { order_id: 'empty-cost-1', product_id: 4270, quantity: 1, unit_price: 50 }
     ],
     products: [
       { id: 4268, name: '未填成本商品', cost_price: null, price: 20 },
@@ -251,12 +251,12 @@ test('profit analytics treats malformed product amounts as zero', async () => {
       { order_id: 'invalid-amounts', order_date: '2026-09-10T10:00:00+08:00', total_amount: 'not-a-number' }
     ],
     order_items: [
-      { order_id: 'invalid-amounts', product_id: 'bad-cost', quantity: 1, price_at_purchase: 50 },
+      { order_id: 'invalid-amounts', product_id: 'bad-cost', quantity: 1, unit_price: 50 },
       {
         order_id: 'invalid-amounts',
         product_id: 'bad-price',
         quantity: 2,
-        price_at_purchase: 'not-a-number'
+        unit_price: 'not-a-number'
       }
     ],
     products: [
@@ -265,7 +265,7 @@ test('profit analytics treats malformed product amounts as zero', async () => {
     ]
   }, {
     schemas: {
-      order_items: ['order_id', 'product_id', 'quantity', 'price_at_purchase'],
+      order_items: ['order_id', 'product_id', 'quantity', 'unit_price'],
       products: ['id', 'name', 'cost_price', 'price']
     }
   }));
@@ -469,13 +469,13 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
         order_id: 'a123',
         product_id: 'p001',
         quantity: 1,
-        price_at_purchase: 150
+        unit_price: 150
       },
       {
         order_id: 'b456',
         product_id: 'p001',
         quantity: 2,
-        price_at_purchase: 150
+        unit_price: 150
       }
     ],
     products: [{ id: 'p001', name: 'LittlePlanet 星球筆記本' }]
@@ -520,8 +520,8 @@ test('table fallback reports live orders and UUID-keyed product totals', async (
   });
 
   assert.deepEqual(selectedOrderItemColumns, [
-    'order_id, product_id, quantity, price_at_purchase',
-    'order_id, product_id, quantity, price_at_purchase'
+    'order_id, product_id, quantity, unit_price',
+    'order_id, product_id, quantity, unit_price'
   ]);
 });
 

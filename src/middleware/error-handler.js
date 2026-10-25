@@ -4,7 +4,7 @@ function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
@@ -22,7 +22,7 @@ function errorHandler(error, req, res, next) {
     method: req.method,
     path: req.path,
     message: error.message,
-    ...(environment === 'production' ? {} : { stack: error.stack })
+    ...(environment === 'production' ? {} : { stack: error.stack }),
   });
 
   if (error.type === 'entity.parse.failed') {
@@ -37,5 +37,5 @@ function errorHandler(error, req, res, next) {
 
 module.exports = {
   apiNotFound,
-  errorHandler
+  errorHandler,
 };

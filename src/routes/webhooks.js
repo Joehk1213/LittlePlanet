@@ -3,7 +3,8 @@ const express = require('express');
 const { parseWhatsAppOrderMessage } = require('../utils/whatsapp-order-parser');
 
 const MISSING_RPC_CODES = new Set(['42883', 'PGRST202']);
-const INTENT_TOKEN_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const INTENT_TOKEN_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PAYMENT_PROOF_BUCKET = 'payment-proofs';
 const MAX_PAYMENT_PROOF_BYTES = 5 * 1024 * 1024;
 
@@ -11,7 +12,7 @@ function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
@@ -27,8 +28,10 @@ function constantTimeStringEquals(expected, supplied) {
 
   const expectedBuffer = Buffer.from(expected);
   const suppliedBuffer = Buffer.from(supplied);
-  return expectedBuffer.length === suppliedBuffer.length &&
-    crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
+  return (
+    expectedBuffer.length === suppliedBuffer.length &&
+    crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)
+  );
 }
 
 function normalizePhone(value) {
@@ -51,9 +54,7 @@ function parseOrderId(value) {
 }
 
 function parseIntentToken(value) {
-  return typeof value === 'string' && INTENT_TOKEN_PATTERN.test(value)
-    ? value.toLowerCase()
-    : null;
+  return typeof value === 'string' && INTENT_TOKEN_PATTERN.test(value) ? value.toLowerCase() : null;
 }
 
 function getMessageText(message) {
@@ -61,9 +62,7 @@ function getMessageText(message) {
     return '';
   }
 
-  return typeof message.text.body === 'string'
-    ? message.text.body.trim()
-    : '';
+  return typeof message.text.body === 'string' ? message.text.body.trim() : '';
 }
 
 function getImageType(buffer) {
@@ -91,10 +90,9 @@ function createWebhookRouter(supabase, options = {}) {
   const verifyToken = options.verifyToken || '';
   const appSecret = options.appSecret || '';
   const sendWhatsApp = options.sendWhatsApp;
-  const downloadWhatsAppMedia = options.downloadWhatsAppMedia ||
-    (sendWhatsApp && sendWhatsApp.downloadMedia);
-  const sendWhatsAppImage = options.sendWhatsAppImage ||
-    (sendWhatsApp && sendWhatsApp.sendImage);
+  const downloadWhatsAppMedia =
+    options.downloadWhatsAppMedia || (sendWhatsApp && sendWhatsApp.downloadMedia);
+  const sendWhatsAppImage = options.sendWhatsAppImage || (sendWhatsApp && sendWhatsApp.sendImage);
   const receiptRecipients = options.receiptRecipients || [];
   const writeEnabled = options.writeEnabled === true;
 
@@ -141,14 +139,13 @@ function createWebhookRouter(supabase, options = {}) {
       `sha256=${crypto.createHmac('sha256', appSecret).update(req.rawBody).digest('hex')}`
     );
     const supplied = Buffer.from(signature.toLowerCase());
-    return expected.length === supplied.length &&
-      crypto.timingSafeEqual(expected, supplied);
+    return expected.length === supplied.length && crypto.timingSafeEqual(expected, supplied);
   }
 
   async function getOrderStatus(phone, orderId) {
     const { data, error } = await supabase.rpc('lookup_whatsapp_order', {
       p_customer_phone: phone,
-      p_order_id: orderId
+      p_order_id: orderId,
     });
 
     if (error) {
@@ -170,7 +167,7 @@ function createWebhookRouter(supabase, options = {}) {
       p_customer_phone: phone,
       p_order_id: orderId,
       p_payment_reference: reference,
-      p_provider_message_id: providerMessageId
+      p_provider_message_id: providerMessageId,
     });
 
     if (error) {
@@ -206,7 +203,7 @@ function createWebhookRouter(supabase, options = {}) {
       'fail_whatsapp_payment_proof',
       {
         p_message_id: messageId,
-        p_error: error instanceof Error ? error.message.slice(0, 500) : '付款憑證處理失敗'
+        p_error: error instanceof Error ? error.message.slice(0, 500) : '付款憑證處理失敗',
       },
       '記錄付款憑證處理失敗'
     );
@@ -221,7 +218,7 @@ function createWebhookRouter(supabase, options = {}) {
       {
         p_message_id: messageId,
         p_status: status,
-        p_error: errorMessage
+        p_error: errorMessage,
       },
       '更新付款憑證內部通知狀態'
     );
@@ -232,20 +229,18 @@ function createWebhookRouter(supabase, options = {}) {
 
   async function handlePaymentProofImage(message, phone) {
     const mediaId = message.image && message.image.id;
-    const caption = typeof message.image.caption === 'string'
-      ? message.image.caption
-      : '';
+    const caption = typeof message.image.caption === 'string' ? message.image.caption : '';
     const orderMatch = caption.toUpperCase().match(/\b(LP-[A-Z0-9][A-Z0-9-]{0,96})\b/);
     if (!orderMatch) {
       await sendWhatsApp({
         to: phone,
-        text: '請重新傳送付款截圖，並在圖片說明加入正式訂單編號，例如：付款 LP-YYYYMMDD-0003。'
+        text: '請重新傳送付款截圖，並在圖片說明加入正式訂單編號，例如：付款 LP-YYYYMMDD-0003。',
       });
       return {
         processed: true,
         action: 'payment_proof',
         success: false,
-        reason: 'order_number_required'
+        reason: 'order_number_required',
       };
     }
     if (typeof mediaId !== 'string' || !/^[A-Za-z0-9_-]{1,256}$/.test(mediaId)) {
@@ -261,20 +256,20 @@ function createWebhookRouter(supabase, options = {}) {
       {
         p_message_id: message.id,
         p_customer_phone: phone,
-        p_order_number: orderNumber
+        p_order_number: orderNumber,
       },
       '驗證付款憑證訂單'
     );
     if (!claim.success) {
       await sendWhatsApp({
         to: phone,
-        text: claim.message || '找不到符合此電話及訂單編號的訂單，憑證未有保存。'
+        text: claim.message || '找不到符合此電話及訂單編號的訂單，憑證未有保存。',
       });
       return {
         processed: true,
         action: 'payment_proof',
         success: false,
-        reason: claim.code || 'order_not_found'
+        reason: claim.code || 'order_not_found',
       };
     }
     const claimData = claim.data;
@@ -284,14 +279,14 @@ function createWebhookRouter(supabase, options = {}) {
     if (claimData.duplicate) {
       await sendWhatsApp({
         to: phone,
-        text: '此付款截圖訊息已收到，管理員核對後會更新付款狀態。'
+        text: '此付款截圖訊息已收到，管理員核對後會更新付款狀態。',
       });
       return {
         processed: true,
         action: 'payment_proof',
         duplicate: true,
         success: true,
-        order_number: orderNumber
+        order_number: orderNumber,
       };
     }
 
@@ -318,7 +313,7 @@ function createWebhookRouter(supabase, options = {}) {
         .upload(objectPath, downloaded.media, {
           contentType: imageType.mimeType,
           cacheControl: '300',
-          upsert: false
+          upsert: false,
         });
       if (uploadError) {
         console.error('WhatsApp 付款憑證儲存失敗：', uploadError);
@@ -329,21 +324,21 @@ function createWebhookRouter(supabase, options = {}) {
         'complete_whatsapp_payment_proof',
         {
           p_message_id: message.id,
-          p_object_path: objectPath
+          p_object_path: objectPath,
         },
         '關聯 WhatsApp 付款憑證'
       );
-      if (!completed.success || !completed.data || typeof completed.data.order_number !== 'string') {
+      if (
+        !completed.success ||
+        !completed.data ||
+        typeof completed.data.order_number !== 'string'
+      ) {
         throw new Error(completed.message || '未能將付款憑證連結至訂單。');
       }
       finalized = true;
 
       const oldProofPath = completed.data.old_proof_path;
-      if (
-        typeof oldProofPath === 'string' &&
-        oldProofPath &&
-        oldProofPath !== objectPath
-      ) {
+      if (typeof oldProofPath === 'string' && oldProofPath && oldProofPath !== objectPath) {
         const { error: removeError } = await supabase.storage
           .from(PAYMENT_PROOF_BUCKET)
           .remove([oldProofPath]);
@@ -362,7 +357,7 @@ function createWebhookRouter(supabase, options = {}) {
               to: recipient,
               media: downloaded.media,
               mimeType: imageType.mimeType,
-              caption: `付款憑證待審核｜${completed.data.order_number}｜客戶 ${phone}`
+              caption: `付款憑證待審核｜${completed.data.order_number}｜客戶 ${phone}`,
             });
           } catch (error) {
             forwardingErrors.push(error);
@@ -370,9 +365,7 @@ function createWebhookRouter(supabase, options = {}) {
           }
         }
         notificationStatus = forwardingErrors.length === 0 ? 'sent' : 'failed';
-        notificationError = forwardingErrors.length > 0
-          ? '一個或多個內部收件人轉發失敗。'
-          : null;
+        notificationError = forwardingErrors.length > 0 ? '一個或多個內部收件人轉發失敗。' : null;
       }
       try {
         await setPaymentProofNotification(message.id, notificationStatus, notificationError);
@@ -384,16 +377,17 @@ function createWebhookRouter(supabase, options = {}) {
 
       await sendWhatsApp({
         to: phone,
-        text: notificationStatus === 'failed'
-          ? `已收到訂單 ${completed.data.order_number} 的付款截圖，惟內部自動通知未完成，管理員仍需到後台核對。付款狀態尚未更改。`
-          : `已收到訂單 ${completed.data.order_number} 的付款截圖，現正等待管理員核對。核實前付款狀態不會更改。`
+        text:
+          notificationStatus === 'failed'
+            ? `已收到訂單 ${completed.data.order_number} 的付款截圖，惟內部自動通知未完成，管理員仍需到後台核對。付款狀態尚未更改。`
+            : `已收到訂單 ${completed.data.order_number} 的付款截圖，現正等待管理員核對。核實前付款狀態不會更改。`,
       });
       return {
         processed: true,
         action: 'payment_proof',
         success: true,
         order_number: completed.data.order_number,
-        notification_status: notificationStatus
+        notification_status: notificationStatus,
       };
     } catch (error) {
       if (!finalized && objectPath) {
@@ -419,36 +413,35 @@ function createWebhookRouter(supabase, options = {}) {
       }
       throw new Error('WhatsApp 商品目錄查詢失敗。');
     }
-    if (!Array.isArray(data) || data.some(product => !product || typeof product !== 'object')) {
+    if (!Array.isArray(data) || data.some((product) => !product || typeof product !== 'object')) {
       throw new Error('WhatsApp 商品目錄回傳格式無效。');
     }
     return data;
   }
 
   function isOrderCandidate(text) {
-    return /(?:^|[,，、;；\n])\s*.+?\s*(?:x|×|\*)\s*\d+/i
-      .test(text.normalize('NFKC'));
+    return /(?:^|[,，、;；\n])\s*.+?\s*(?:x|×|\*)\s*\d+/i.test(text.normalize('NFKC'));
   }
 
   async function handleOrderConfirmation(phone, confirmationToken, message) {
     const { data, error } = await supabase.rpc('confirm_whatsapp_order_intent', {
       p_customer_phone: phone,
       p_intent_token: confirmationToken,
-      p_confirmation_message_id: message.id
+      p_confirmation_message_id: message.id,
     });
 
     if (error) {
       if (error.message === 'STOCK_UNAVAILABLE') {
         await sendWhatsApp({
           to: phone,
-          text: '確認失敗：部分商品庫存不足，未有建立訂單或扣減庫存，請重新落單。'
+          text: '確認失敗：部分商品庫存不足，未有建立訂單或扣減庫存，請重新落單。',
         });
         return { processed: true, action: 'order_confirmation', success: false };
       }
       if (error.message === 'PRODUCT_UNAVAILABLE') {
         await sendWhatsApp({
           to: phone,
-          text: '確認失敗：部分商品已下架或截單，未有建立訂單，請重新落單。'
+          text: '確認失敗：部分商品已下架或截單，未有建立訂單，請重新落單。',
         });
         return { processed: true, action: 'order_confirmation', success: false };
       }
@@ -473,7 +466,7 @@ function createWebhookRouter(supabase, options = {}) {
         processed: true,
         action: 'order_confirmation',
         success: false,
-        reason: data.code || 'confirmation_rejected'
+        reason: data.code || 'confirmation_rejected',
       };
     }
 
@@ -482,7 +475,7 @@ function createWebhookRouter(supabase, options = {}) {
         processed: true,
         action: 'order_confirmation',
         duplicate: data.data.duplicate === true,
-        success: false
+        success: false,
       };
     }
 
@@ -490,13 +483,13 @@ function createWebhookRouter(supabase, options = {}) {
       to: phone,
       text: data.data.duplicate
         ? `此訂單已確認：${data.data.order_number}。付款狀態仍為未付款，出貨前需付清。`
-        : `訂單已確認：${data.data.order_number}。付款狀態為未付款；貨到後付款，出貨前需付清。`
+        : `訂單已確認：${data.data.order_number}。付款狀態為未付款；貨到後付款，出貨前需付清。`,
     });
     return {
       processed: true,
       action: 'order_confirmation',
       duplicate: data.data.duplicate === true,
-      order_number: data.data.order_number
+      order_number: data.data.order_number,
     };
   }
 
@@ -513,42 +506,43 @@ function createWebhookRouter(supabase, options = {}) {
         processed: true,
         action: 'order_intent',
         success: false,
-        reason: parsed.error && parsed.error.code
+        reason: parsed.error && parsed.error.code,
       };
     }
 
     const normalizedCatalog = new Map(
-      catalog.map(product => [
+      catalog.map((product) => [
         product.product_code.normalize('NFKC').trim().toLocaleLowerCase('en'),
-        product
+        product,
       ])
     );
-    const intentItems = parsed.data.items.map(item => {
+    const intentItems = parsed.data.items.map((item) => {
       const product = normalizedCatalog.get(
         item.product_code.normalize('NFKC').trim().toLocaleLowerCase('en')
       );
-      if (!product || typeof product.id !== 'string' && typeof product.id !== 'number') {
+      if (!product || (typeof product.id !== 'string' && typeof product.id !== 'number')) {
         throw new Error('WhatsApp 解析商品缺少有效資料庫識別碼。');
       }
       return {
         product_id: String(product.id),
         product_code: product.product_code,
-        quantity: item.quantity
+        quantity: item.quantity,
       };
     });
 
     const { data, error } = await supabase.rpc('create_whatsapp_order_intent', {
       p_customer_phone: phone,
       p_source_message_id: message.id,
-      p_items: intentItems
+      p_items: intentItems,
     });
     if (error) {
       if (error.message === 'STOCK_UNAVAILABLE' || error.message === 'PRODUCT_UNAVAILABLE') {
         await sendWhatsApp({
           to: phone,
-          text: error.message === 'STOCK_UNAVAILABLE'
-            ? '商品庫存不足，暫時未能建立訂單預覽，請調整數量後再試。'
-            : '商品已下架或截單，未能建立訂單預覽。'
+          text:
+            error.message === 'STOCK_UNAVAILABLE'
+              ? '商品庫存不足，暫時未能建立訂單預覽，請調整數量後再試。'
+              : '商品已下架或截單，未能建立訂單預覽。',
         });
         return { processed: true, action: 'order_intent', success: false };
       }
@@ -573,7 +567,7 @@ function createWebhookRouter(supabase, options = {}) {
         processed: true,
         action: 'order_intent',
         success: false,
-        reason: data.code || 'intent_rejected'
+        reason: data.code || 'intent_rejected',
       };
     }
 
@@ -583,7 +577,7 @@ function createWebhookRouter(supabase, options = {}) {
         processed: true,
         action: 'order_intent',
         duplicate: intent.duplicate === true,
-        success: intent.status === 'confirmed'
+        success: intent.status === 'confirmed',
       };
     }
 
@@ -598,19 +592,20 @@ function createWebhookRouter(supabase, options = {}) {
     if (expiry.getTime() <= Date.now()) {
       await sendWhatsApp({
         to: phone,
-        text: '此訂單預覽已過期，請重新發送商品代號及數量。'
+        text: '此訂單預覽已過期，請重新發送商品代號及數量。',
       });
       return {
         processed: true,
         action: 'order_intent',
         duplicate: intent.duplicate === true,
         success: false,
-        reason: 'INTENT_EXPIRED'
+        reason: 'INTENT_EXPIRED',
       };
     }
 
-    const lines = intent.items.map(item =>
-      `${item.product_name}（${item.product_code}）× ${item.quantity}：HK$${Number(item.subtotal).toFixed(2)}`
+    const lines = intent.items.map(
+      (item) =>
+        `${item.product_name}（${item.product_code}）× ${item.quantity}：HK$${Number(item.subtotal).toFixed(2)}`
     );
 
     await sendWhatsApp({
@@ -620,15 +615,15 @@ function createWebhookRouter(supabase, options = {}) {
         ...lines,
         `合計：HK$${Number(intent.total_amount).toFixed(2)}`,
         `如確認，請於 ${expiry.toLocaleString('zh-HK', { timeZone: 'Asia/Hong_Kong' })} 前回覆：確認 ${intent.intent_token}`,
-        '確認後訂單付款狀態為未付款；貨到後付款，出貨前需付清。'
-      ].join('\n')
+        '確認後訂單付款狀態為未付款；貨到後付款，出貨前需付清。',
+      ].join('\n'),
     });
     return {
       processed: true,
       action: 'order_intent',
       duplicate: intent.duplicate === true,
       success: true,
-      intent_token: intent.intent_token
+      intent_token: intent.intent_token,
     };
   }
 
@@ -647,9 +642,7 @@ function createWebhookRouter(supabase, options = {}) {
       return { processed: false, reason: 'unsupported_message_type' };
     }
 
-    const confirmationMatch = text.match(
-      /^(?:確認|confirm)\s+([0-9a-f-]{36})$/i
-    );
+    const confirmationMatch = text.match(/^(?:確認|confirm)\s+([0-9a-f-]{36})$/i);
     if (confirmationMatch) {
       const intentToken = parseIntentToken(confirmationMatch[1]);
       if (!intentToken) {
@@ -669,19 +662,25 @@ function createWebhookRouter(supabase, options = {}) {
       const order = await getOrderStatus(phone, orderId);
       const reply = order.found
         ? [
-          `訂單 #${order.order_id}`,
-          `付款狀態：${order.payment_status}`,
-          `出貨狀態：${order.shipping_status}`,
-          `出貨方式：${order.shipping_method || '未安排'}`,
-          `運單號碼：${order.tracking_number || '未提供'}`,
-          ...(Array.isArray(order.items)
-            ? order.items.map(item => `${item.product_name} × ${item.quantity}：${item.reconciliation_status}`)
-            : [])
-        ].join('\n')
+            `訂單 #${order.order_id}`,
+            `付款狀態：${order.payment_status}`,
+            `出貨狀態：${order.shipping_status}`,
+            `出貨方式：${order.shipping_method || '未安排'}`,
+            `運單號碼：${order.tracking_number || '未提供'}`,
+            ...(Array.isArray(order.items)
+              ? order.items.map(
+                  (item) => `${item.product_name} × ${item.quantity}：${item.reconciliation_status}`
+                )
+              : []),
+          ].join('\n')
         : '未找到與此 WhatsApp 號碼相符的訂單。';
 
       await sendWhatsApp({ to: phone, text: reply });
-      return { processed: true, action: 'order_lookup', order_id: order.found ? order.order_id : null };
+      return {
+        processed: true,
+        action: 'order_lookup',
+        order_id: order.found ? order.order_id : null,
+      };
     }
 
     const paymentMatch = text.match(/^(?:付款回報|付款)\s+([0-9a-f-]{36})\s+(.+)$/i);
@@ -702,7 +701,7 @@ function createWebhookRouter(supabase, options = {}) {
         processed: true,
         action: 'payment_report',
         order_id: result.found ? orderId : null,
-        duplicate: result.duplicate === true
+        duplicate: result.duplicate === true,
       };
     }
 
@@ -713,7 +712,7 @@ function createWebhookRouter(supabase, options = {}) {
 
     await sendWhatsApp({
       to: phone,
-      text: 'LittlePlanet 指令：查詢訂單 <UUID訂單編號>、付款回報 <UUID訂單編號> <交易參考編號>，或以「商品代號 x 數量」格式落單。'
+      text: 'LittlePlanet 指令：查詢訂單 <UUID訂單編號>、付款回報 <UUID訂單編號> <交易參考編號>，或以「商品代號 x 數量」格式落單。',
     });
     return { processed: true, action: 'help' };
   }
@@ -744,9 +743,7 @@ function createWebhookRouter(supabase, options = {}) {
         }
         for (const change of entry.changes) {
           const value = change && change.value;
-          const changeMessages = value && Array.isArray(value.messages)
-            ? value.messages
-            : [];
+          const changeMessages = value && Array.isArray(value.messages) ? value.messages : [];
           incomingMessages.push(...changeMessages);
         }
       }
@@ -755,7 +752,7 @@ function createWebhookRouter(supabase, options = {}) {
         return sendError(res, 503, 'WhatsApp 回覆發送器尚未設定。');
       }
       if (
-        incomingMessages.some(message => message && message.type === 'image') &&
+        incomingMessages.some((message) => message && message.type === 'image') &&
         (typeof downloadWhatsAppMedia !== 'function' || typeof sendWhatsAppImage !== 'function')
       ) {
         return sendError(res, 503, 'WhatsApp 付款憑證媒體服務尚未設定。');
@@ -769,11 +766,11 @@ function createWebhookRouter(supabase, options = {}) {
       return res.status(200).json({
         success: true,
         data: {
-          processed_count: results.filter(result => result.processed).length,
-          ignored_count: results.filter(result => !result.processed).length,
-          results
+          processed_count: results.filter((result) => result.processed).length,
+          ignored_count: results.filter((result) => !result.processed).length,
+          results,
         },
-        message: 'WhatsApp webhook 已處理。'
+        message: 'WhatsApp webhook 已處理。',
       });
     } catch (error) {
       console.error('處理 WhatsApp webhook 時發生錯誤：', error);

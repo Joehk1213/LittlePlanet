@@ -1,9 +1,11 @@
 'use strict';
 
 function hasRealConfiguration(value) {
-  return typeof value === 'string' &&
+  return (
+    typeof value === 'string' &&
     value.trim() !== '' &&
-    !/^(?:your-|replace-with-|vXX)/i.test(value.trim());
+    !/^(?:your-|replace-with-|vXX)/i.test(value.trim())
+  );
 }
 
 function createWhatsAppSender(options = {}) {
@@ -41,22 +43,20 @@ function createWhatsAppSender(options = {}) {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           messaging_product: 'whatsapp',
           recipient_type: 'individual',
           to,
           type: 'text',
-          text: { preview_url: false, body: text }
-        })
+          text: { preview_url: false, body: text },
+        }),
       }
     );
 
     if (!response || response.ok !== true) {
-      const status = response && Number.isInteger(response.status)
-        ? response.status
-        : 'unknown';
+      const status = response && Number.isInteger(response.status) ? response.status : 'unknown';
       throw new Error(`WhatsApp Cloud API 發送失敗（HTTP ${status}）。`);
     }
 
@@ -74,7 +74,7 @@ function createWhatsAppSender(options = {}) {
 }
 
 function parseJsonResponse(response, failureMessage) {
-  return response.json().catch(error => {
+  return response.json().catch((error) => {
     throw new Error(failureMessage, { cause: error });
   });
 }
@@ -82,15 +82,13 @@ function parseJsonResponse(response, failureMessage) {
 function isAllowedMediaUrl(value) {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' &&
+    return (
+      url.protocol === 'https:' &&
       !url.port &&
       !url.username &&
       !url.password &&
-      [
-        'graph.facebook.com',
-        'lookaside.fbsbx.com',
-        'lookaside.facebook.com'
-      ].includes(url.hostname);
+      ['graph.facebook.com', 'lookaside.fbsbx.com', 'lookaside.facebook.com'].includes(url.hostname)
+    );
   } catch (error) {
     return false;
   }
@@ -106,13 +104,14 @@ function createMediaMethods({ apiVersion, phoneNumberId, accessToken, fetchImpl 
       `https://graph.facebook.com/${apiVersion}/${encodeURIComponent(mediaId)}`,
       {
         headers: { Authorization: `Bearer ${accessToken}` },
-        redirect: 'error'
+        redirect: 'error',
       }
     );
     if (!metadataResponse || metadataResponse.ok !== true) {
-      const status = metadataResponse && Number.isInteger(metadataResponse.status)
-        ? metadataResponse.status
-        : 'unknown';
+      const status =
+        metadataResponse && Number.isInteger(metadataResponse.status)
+          ? metadataResponse.status
+          : 'unknown';
       throw new Error(`WhatsApp 媒體資料讀取失敗（HTTP ${status}）。`);
     }
 
@@ -132,12 +131,11 @@ function createMediaMethods({ apiVersion, phoneNumberId, accessToken, fetchImpl 
 
     const mediaResponse = await fetchImpl(metadata.url, {
       headers: { Authorization: `Bearer ${accessToken}` },
-      redirect: 'error'
+      redirect: 'error',
     });
     if (!mediaResponse || mediaResponse.ok !== true) {
-      const status = mediaResponse && Number.isInteger(mediaResponse.status)
-        ? mediaResponse.status
-        : 'unknown';
+      const status =
+        mediaResponse && Number.isInteger(mediaResponse.status) ? mediaResponse.status : 'unknown';
       throw new Error(`WhatsApp 付款憑證下載失敗（HTTP ${status}）。`);
     }
     const contentType = (mediaResponse.headers.get('content-type') || '')
@@ -147,7 +145,7 @@ function createMediaMethods({ apiVersion, phoneNumberId, accessToken, fetchImpl 
     const contentLength = Number(mediaResponse.headers.get('content-length'));
     if (
       !['image/jpeg', 'image/png', 'image/webp'].includes(contentType) ||
-      Number.isFinite(contentLength) && contentLength > 5 * 1024 * 1024
+      (Number.isFinite(contentLength) && contentLength > 5 * 1024 * 1024)
     ) {
       throw new Error('WhatsApp 下載的付款憑證格式或大小無效。');
     }
@@ -209,13 +207,14 @@ function createMediaMethods({ apiVersion, phoneNumberId, accessToken, fetchImpl 
       {
         method: 'POST',
         headers: { Authorization: `Bearer ${accessToken}` },
-        body: form
+        body: form,
       }
     );
     if (!uploadResponse || uploadResponse.ok !== true) {
-      const status = uploadResponse && Number.isInteger(uploadResponse.status)
-        ? uploadResponse.status
-        : 'unknown';
+      const status =
+        uploadResponse && Number.isInteger(uploadResponse.status)
+          ? uploadResponse.status
+          : 'unknown';
       throw new Error(`WhatsApp 圖片上傳失敗（HTTP ${status}）。`);
     }
     const uploaded = await parseJsonResponse(uploadResponse, 'WhatsApp 圖片上傳回應格式無效。');
@@ -228,7 +227,7 @@ function createMediaMethods({ apiVersion, phoneNumberId, accessToken, fetchImpl 
       recipient_type: 'individual',
       to,
       type: 'image',
-      image: { id: uploaded.id }
+      image: { id: uploaded.id },
     };
     if (typeof caption === 'string' && caption.trim()) {
       imageMessage.image.caption = caption.slice(0, 1024);
@@ -239,15 +238,14 @@ function createMediaMethods({ apiVersion, phoneNumberId, accessToken, fetchImpl 
         method: 'POST',
         headers: {
           Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify(imageMessage)
+        body: JSON.stringify(imageMessage),
       }
     );
     if (!sendResponse || sendResponse.ok !== true) {
-      const status = sendResponse && Number.isInteger(sendResponse.status)
-        ? sendResponse.status
-        : 'unknown';
+      const status =
+        sendResponse && Number.isInteger(sendResponse.status) ? sendResponse.status : 'unknown';
       throw new Error(`WhatsApp 收據轉發失敗（HTTP ${status}）。`);
     }
     const result = await parseJsonResponse(sendResponse, 'WhatsApp 收據轉發回應格式無效。');
@@ -270,7 +268,7 @@ module.exports = function createWhatsAppSenderWithMedia(options = {}) {
     apiVersion: options.apiVersion,
     phoneNumberId: options.phoneNumberId,
     accessToken: options.accessToken,
-    fetchImpl: options.fetchImpl || globalThis.fetch
+    fetchImpl: options.fetchImpl || globalThis.fetch,
   });
   sender.downloadMedia = mediaMethods.downloadMedia;
   sender.sendImage = mediaMethods.sendImage;

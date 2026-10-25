@@ -9,7 +9,9 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon --exec \"node --dns-result-order=ipv4first\" index.js",
-    "test": "node --test"
+    "test": "node --test",
+    "lint": "eslint \"src/**/*.js\" \"scripts/**/*.js\"",
+    "format": "prettier --write \"src/**/*.js\" \"scripts/**/*.js\""
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.43.0",
@@ -23,6 +25,10 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "nodemon": "^3.1.0"
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "nodemon": "^3.1.0",
+    "prettier": "^3.9.10"
   }
 }

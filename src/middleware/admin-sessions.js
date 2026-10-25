@@ -5,21 +5,30 @@ const express = require('express');
 
 const COOKIE_NAME = 'littleplanet_admin_session';
 const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60;
-const SESSION_SCOPES = new Set(['shipping', 'orders', 'products', 'analytics', 'inbound', 'reviews', 'customers']);
+const SESSION_SCOPES = new Set([
+  'shipping',
+  'orders',
+  'products',
+  'analytics',
+  'inbound',
+  'reviews',
+  'customers',
+]);
 
 function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
 function safeEqual(left, right) {
   const leftBuffer = Buffer.from(left);
   const rightBuffer = Buffer.from(right);
-  return leftBuffer.length === rightBuffer.length &&
-    crypto.timingSafeEqual(leftBuffer, rightBuffer);
+  return (
+    leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer)
+  );
 }
 
 function readCookie(req, cookieName) {
@@ -59,22 +68,24 @@ function createAdminSessions(options = {}) {
   const router = express.Router();
   const sessionSecret = options.sessionSecret;
   const secureCookie = options.secureCookie === true;
-  const ttlSeconds = Number.isSafeInteger(options.ttlSeconds) && options.ttlSeconds > 0
-    ? options.ttlSeconds
-    : DEFAULT_SESSION_TTL_SECONDS;
+  const ttlSeconds =
+    Number.isSafeInteger(options.ttlSeconds) && options.ttlSeconds > 0
+      ? options.ttlSeconds
+      : DEFAULT_SESSION_TTL_SECONDS;
   const credentials = (options.credentials || [])
-    .filter(credential => (
-      credential &&
-      typeof credential.token === 'string' &&
-      credential.token.length >= 32 &&
-      !credential.token.startsWith('replace-with-') &&
-      Array.isArray(credential.scopes)
-    ))
-    .map(credential => ({
+    .filter(
+      (credential) =>
+        credential &&
+        typeof credential.token === 'string' &&
+        credential.token.length >= 32 &&
+        !credential.token.startsWith('replace-with-') &&
+        Array.isArray(credential.scopes)
+    )
+    .map((credential) => ({
       token: credential.token,
-      scopes: [...new Set(credential.scopes.filter(scope => SESSION_SCOPES.has(scope)))]
+      scopes: [...new Set(credential.scopes.filter((scope) => SESSION_SCOPES.has(scope)))],
     }))
-    .filter(credential => credential.scopes.length > 0);
+    .filter((credential) => credential.scopes.length > 0);
 
   if (
     !Buffer.isBuffer(sessionSecret) &&
@@ -83,9 +94,7 @@ function createAdminSessions(options = {}) {
     throw new Error('管理員 session signing secret 必須至少 32 bytes。');
   }
 
-  const signingKey = Buffer.isBuffer(sessionSecret)
-    ? sessionSecret
-    : Buffer.from(sessionSecret);
+  const signingKey = Buffer.isBuffer(sessionSecret) ? sessionSecret : Buffer.from(sessionSecret);
   if (signingKey.length < 32) {
     throw new Error('管理員 session signing secret 必須至少 32 bytes。');
   }
@@ -96,12 +105,14 @@ function createAdminSessions(options = {}) {
 
   function createCookieValue(scopes) {
     const now = Math.floor(Date.now() / 1000);
-    const payload = Buffer.from(JSON.stringify({
-      version: 1,
-      issuedAt: now,
-      expiresAt: now + ttlSeconds,
-      scopes
-    })).toString('base64url');
+    const payload = Buffer.from(
+      JSON.stringify({
+        version: 1,
+        issuedAt: now,
+        expiresAt: now + ttlSeconds,
+        scopes,
+      })
+    ).toString('base64url');
     return `${payload}.${sign(payload)}`;
   }
 
@@ -134,7 +145,7 @@ function createAdminSessions(options = {}) {
         session.expiresAt - session.issuedAt > ttlSeconds ||
         !Array.isArray(session.scopes) ||
         session.scopes.length === 0 ||
-        session.scopes.some(scope => !SESSION_SCOPES.has(scope))
+        session.scopes.some((scope) => !SESSION_SCOPES.has(scope))
       ) {
         return null;
       }
@@ -150,7 +161,7 @@ function createAdminSessions(options = {}) {
       secure: secureCookie,
       sameSite: 'strict',
       path: '/api',
-      maxAge: ttlSeconds * 1000
+      maxAge: ttlSeconds * 1000,
     };
   }
 
@@ -159,7 +170,7 @@ function createAdminSessions(options = {}) {
       httpOnly: true,
       secure: secureCookie,
       sameSite: 'strict',
-      path: '/api'
+      path: '/api',
     });
   }
 
@@ -172,9 +183,10 @@ function createAdminSessions(options = {}) {
       return sendError(res, 503, '管理員登入尚未設定有效的管理 Token。');
     }
 
-    const token = req.body && !Array.isArray(req.body) && typeof req.body.token === 'string'
-      ? req.body.token
-      : '';
+    const token =
+      req.body && !Array.isArray(req.body) && typeof req.body.token === 'string'
+        ? req.body.token
+        : '';
     if (token.length === 0 || token.length > 512) {
       return sendError(res, 400, '請提供有效的管理員密鑰。');
     }
@@ -184,7 +196,7 @@ function createAdminSessions(options = {}) {
     for (const credential of credentials) {
       if (safeEqual(token, credential.token)) {
         matched = true;
-        credential.scopes.forEach(scope => scopes.add(scope));
+        credential.scopes.forEach((scope) => scopes.add(scope));
       }
     }
 
@@ -197,7 +209,7 @@ function createAdminSessions(options = {}) {
     return res.json({
       success: true,
       data: { authenticated: true, scopes: [...scopes] },
-      message: '管理員登入成功。'
+      message: '管理員登入成功。',
     });
   });
 
@@ -209,7 +221,7 @@ function createAdminSessions(options = {}) {
       data: session
         ? { authenticated: true, scopes: session.scopes }
         : { authenticated: false, scopes: [] },
-      message: session ? '管理員 session 有效。' : '尚未登入。'
+      message: session ? '管理員 session 有效。' : '尚未登入。',
     });
   });
 
@@ -222,7 +234,7 @@ function createAdminSessions(options = {}) {
     return res.json({
       success: true,
       data: { authenticated: false },
-      message: '已安全登出。'
+      message: '已安全登出。',
     });
   });
 
@@ -253,7 +265,7 @@ function createAdminSessions(options = {}) {
     isAuthorized,
     isSessionAuthorized,
     getSession,
-    cookieName: COOKIE_NAME
+    cookieName: COOKIE_NAME,
   };
 }
 

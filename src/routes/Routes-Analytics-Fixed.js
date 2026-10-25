@@ -11,14 +11,13 @@ const MAX_DATE_RANGE_DAYS = 3660;
 const MAX_PAGE_SIZE = 100;
 const MAX_TOP_PRODUCTS = 50;
 const MAX_FALLBACK_ORDERS = 5000;
-const MAX_FALLBACK_ITEMS = 20000;
 const ORDER_ITEM_COLUMNS = 'order_id, product_id, quantity, unit_price';
 
 function sendError(res, status, message) {
   return res.status(status).json({
     success: false,
     data: null,
-    message
+    message,
   });
 }
 
@@ -48,9 +47,7 @@ function parseInteger(value, minimum, maximum, defaultValue) {
   }
 
   const parsed = Number(value);
-  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum
-    ? parsed
-    : null;
+  return Number.isSafeInteger(parsed) && parsed >= minimum && parsed <= maximum ? parsed : null;
 }
 
 function validateDateRange(query) {
@@ -69,7 +66,7 @@ function validateDateRange(query) {
     startDate: query.start_date,
     endDate: query.end_date,
     startAt: `${query.start_date}T00:00:00+08:00`,
-    endAt: `${new Date(endDate.getTime() + 86400000).toISOString().slice(0, 10)}T00:00:00+08:00`
+    endAt: `${new Date(endDate.getTime() + 86400000).toISOString().slice(0, 10)}T00:00:00+08:00`,
   };
 }
 
@@ -91,12 +88,12 @@ function calculateOverview(orders, dateRange) {
     (sum, order) => sum + normalizeOrderAmount(order && order.total_amount),
     0
   );
-  const paidOrders = orders.filter(order => (
-    order.payment_status === '已付訂金' || order.payment_status === '已付清'
-  )).length;
-  const unpaidOrders = orders.filter(order => order.payment_status === '未付款').length;
-  const shippedOrders = orders.filter(order => order.shipping_status === '已出貨').length;
-  const unshippedOrders = orders.filter(order => order.shipping_status !== '已出貨').length;
+  const paidOrders = orders.filter(
+    (order) => order.payment_status === '已付訂金' || order.payment_status === '已付清'
+  ).length;
+  const unpaidOrders = orders.filter((order) => order.payment_status === '未付款').length;
+  const shippedOrders = orders.filter((order) => order.shipping_status === '已出貨').length;
+  const unshippedOrders = orders.filter((order) => order.shipping_status !== '已出貨').length;
 
   return {
     start_date: dateRange.startDate,
@@ -105,12 +102,18 @@ function calculateOverview(orders, dateRange) {
     total_orders: totalOrders,
     paid_orders: paidOrders,
     unpaid_orders: unpaidOrders,
-    paid_order_percentage: totalOrders ? Math.round(paidOrders * 10000 / totalOrders) / 100 : 0,
-    unpaid_order_percentage: totalOrders ? Math.round(unpaidOrders * 10000 / totalOrders) / 100 : 0,
+    paid_order_percentage: totalOrders ? Math.round((paidOrders * 10000) / totalOrders) / 100 : 0,
+    unpaid_order_percentage: totalOrders
+      ? Math.round((unpaidOrders * 10000) / totalOrders) / 100
+      : 0,
     shipped_orders: shippedOrders,
     unshipped_orders: unshippedOrders,
-    shipped_order_percentage: totalOrders ? Math.round(shippedOrders * 10000 / totalOrders) / 100 : 0,
-    unshipped_order_percentage: totalOrders ? Math.round(unshippedOrders * 10000 / totalOrders) / 100 : 0
+    shipped_order_percentage: totalOrders
+      ? Math.round((shippedOrders * 10000) / totalOrders) / 100
+      : 0,
+    unshipped_order_percentage: totalOrders
+      ? Math.round((unshippedOrders * 10000) / totalOrders) / 100
+      : 0,
   };
 }
 
@@ -119,9 +122,9 @@ function hongKongDate(value) {
     timeZone: 'Asia/Hong_Kong',
     year: 'numeric',
     month: '2-digit',
-    day: '2-digit'
+    day: '2-digit',
   }).formatToParts(new Date(value));
-  const dateParts = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  const dateParts = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${dateParts.year}-${dateParts.month}-${dateParts.day}`;
 }
 
@@ -129,11 +132,7 @@ function createDailySalesTrend(orders, dateRange) {
   const start = parseDate(dateRange.startDate);
   const end = parseDate(dateRange.endDate);
   const dailyTotals = new Map();
-  for (
-    let day = start.getTime();
-    day <= end.getTime();
-    day += 86400000
-  ) {
+  for (let day = start.getTime(); day <= end.getTime(); day += 86400000) {
     const date = new Date(day).toISOString().slice(0, 10);
     dailyTotals.set(date, { revenue: 0, order_count: 0 });
   }
@@ -149,10 +148,10 @@ function createDailySalesTrend(orders, dateRange) {
   }
 
   const labels = [...dailyTotals.keys()];
-  const revenue = labels.map(date => (
-    Math.round((dailyTotals.get(date).revenue + Number.EPSILON) * 100) / 100
-  ));
-  const orderCount = labels.map(date => dailyTotals.get(date).order_count);
+  const revenue = labels.map(
+    (date) => Math.round((dailyTotals.get(date).revenue + Number.EPSILON) * 100) / 100
+  );
+  const orderCount = labels.map((date) => dailyTotals.get(date).order_count);
 
   return {
     start_date: dateRange.startDate,
@@ -160,10 +159,9 @@ function createDailySalesTrend(orders, dateRange) {
     labels,
     revenue,
     order_count: orderCount,
-    total_revenue: Math.round(
-      (revenue.reduce((sum, value) => sum + value, 0) + Number.EPSILON) * 100
-    ) / 100,
-    total_orders: orderCount.reduce((sum, value) => sum + value, 0)
+    total_revenue:
+      Math.round((revenue.reduce((sum, value) => sum + value, 0) + Number.EPSILON) * 100) / 100,
+    total_orders: orderCount.reduce((sum, value) => sum + value, 0),
   };
 }
 
@@ -173,16 +171,18 @@ function createAnalyticsRouter(supabase, options = {}) {
   const readEnabled = options.readEnabled === true;
   const useTableFallback = options.useTableFallback === true;
   const profitDetailsEnabled = options.profitDetailsEnabled === true;
-  const cacheTtlSeconds = Number.isSafeInteger(options.cacheTtlSeconds) &&
-      options.cacheTtlSeconds > 0
-    ? options.cacheTtlSeconds
-    : 60;
-  const reportCache = options.cache || new NodeCache({
-    stdTTL: cacheTtlSeconds,
-    checkperiod: cacheTtlSeconds * 2,
-    maxKeys: 1000,
-    useClones: false
-  });
+  const cacheTtlSeconds =
+    Number.isSafeInteger(options.cacheTtlSeconds) && options.cacheTtlSeconds > 0
+      ? options.cacheTtlSeconds
+      : 60;
+  const reportCache =
+    options.cache ||
+    new NodeCache({
+      stdTTL: cacheTtlSeconds,
+      checkperiod: cacheTtlSeconds * 2,
+      maxKeys: 1000,
+      useClones: false,
+    });
 
   function createCacheKey(report, parameters) {
     return `analytics:${report}:${JSON.stringify(parameters)}`;
@@ -199,7 +199,7 @@ function createAnalyticsRouter(supabase, options = {}) {
     return res.json({
       success: true,
       data,
-      message
+      message,
     });
   }
 
@@ -216,23 +216,24 @@ function createAnalyticsRouter(supabase, options = {}) {
       return sendError(res, 503, '報表服務尚未設定 ANALYTICS_ADMIN_TOKEN。');
     }
 
-    const authorized = options.requireSession === true
-      ? (
-        typeof options.isSessionAuthorized === 'function' &&
-        options.isSessionAuthorized(req, 'analytics')
-      )
-      : typeof options.isSessionAuthorized === 'function'
-        ? options.isSessionAuthorized(req, adminToken, 'analytics')
-        : (() => {
-        const authorization = req.get('authorization') || '';
-        const suppliedToken = authorization.startsWith('Bearer ')
-          ? authorization.slice('Bearer '.length)
-          : '';
-        const expectedBuffer = Buffer.from(adminToken);
-        const suppliedBuffer = Buffer.from(suppliedToken);
-        return expectedBuffer.length === suppliedBuffer.length &&
-          crypto.timingSafeEqual(expectedBuffer, suppliedBuffer);
-      })();
+    const authorized =
+      options.requireSession === true
+        ? typeof options.isSessionAuthorized === 'function' &&
+          options.isSessionAuthorized(req, 'analytics')
+        : typeof options.isSessionAuthorized === 'function'
+          ? options.isSessionAuthorized(req, adminToken, 'analytics')
+          : (() => {
+              const authorization = req.get('authorization') || '';
+              const suppliedToken = authorization.startsWith('Bearer ')
+                ? authorization.slice('Bearer '.length)
+                : '';
+              const expectedBuffer = Buffer.from(adminToken);
+              const suppliedBuffer = Buffer.from(suppliedToken);
+              return (
+                expectedBuffer.length === suppliedBuffer.length &&
+                crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)
+              );
+            })();
 
     if (!authorized) {
       return sendError(res, 401, '沒有權限使用管理報表。');
@@ -295,9 +296,12 @@ function createAnalyticsRouter(supabase, options = {}) {
         .select(ORDER_ITEM_COLUMNS)
         .in('order_id', orderIds);
       if (error || !Array.isArray(data)) {
-        return [];
+        if (error) {
+          logSupabaseError('讀取訂單商品明細失敗', error);
+        }
+        return null;
       }
-      return data.map(item => {
+      return data.map((item) => {
         const quantity = Number(item && item.quantity);
         return {
           order_id: item && item.order_id,
@@ -305,11 +309,12 @@ function createAnalyticsRouter(supabase, options = {}) {
           quantity: Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 0,
           unit_price: normalizeOrderAmount(item && (item.unit_price ?? item.price_at_purchase)),
           item_id: null,
-          item_status: null
+          item_status: null,
         };
       });
-    } catch (_error) {
-      return [];
+    } catch (error) {
+      logSupabaseError('讀取訂單商品明細時發生錯誤', error);
+      return null;
     }
   }
 
@@ -318,10 +323,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       return new Map();
     }
 
-    const { data, error } = await supabase
-      .from('products')
-      .select('id, name')
-      .in('id', productIds);
+    const { data, error } = await supabase.from('products').select('id, name').in('id', productIds);
 
     if (error) {
       throw createSupabaseQueryError(error, queryContext);
@@ -329,10 +331,12 @@ function createAnalyticsRouter(supabase, options = {}) {
     if (!Array.isArray(data)) {
       throw new Error('Supabase 商品報表查詢回傳格式無效。');
     }
-    return new Map(data.map(product => [
-      String(product.id),
-      String(product.product_name || product.name || '未命名商品')
-    ]));
+    return new Map(
+      data.map((product) => [
+        String(product.id),
+        String(product.product_name || product.name || '未命名商品'),
+      ])
+    );
   }
 
   function handleFallbackError(res, error, operation) {
@@ -341,7 +345,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       console.warn('系統時間與雲端伺服器未同步，請校正電腦時間。', {
         code: error.code,
         message: error.message,
-        details: error.details
+        details: error.details,
       });
       return sendError(res, 503, '資料庫連線時間同步異常，請校正電腦時間後重試。');
     }
@@ -361,23 +365,21 @@ function createAnalyticsRouter(supabase, options = {}) {
     if (!error || typeof error !== 'object') {
       return false;
     }
-    const originalError = error.originalError &&
-        typeof error.originalError === 'object'
-      ? error.originalError
-      : error;
+    const originalError =
+      error.originalError && typeof error.originalError === 'object' ? error.originalError : error;
     const errorText = [error.message, originalError.message]
-      .filter(value => typeof value === 'string')
+      .filter((value) => typeof value === 'string')
       .join(' ');
-    return error.code === 'PGRST303' ||
+    return (
+      error.code === 'PGRST303' ||
       originalError.code === 'PGRST303' ||
-      /JWT issued at future/i.test(errorText);
+      /JWT issued at future/i.test(errorText)
+    );
   }
 
   function createSupabaseQueryError(error, queryContext) {
     const queryError = new Error(
-      error && error.message
-        ? error.message
-        : `Supabase 查詢失敗：${queryContext}`
+      error && error.message ? error.message : `Supabase 查詢失敗：${queryContext}`
     );
     queryError.code = error && error.code;
     queryError.details = error && error.details;
@@ -396,7 +398,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       details: error && error.details,
       hint: error && error.hint,
       status: error && error.status,
-      originalError: error && error.originalError ? error.originalError : error
+      originalError: error && error.originalError ? error.originalError : error,
     });
   }
 
@@ -404,8 +406,7 @@ function createAnalyticsRouter(supabase, options = {}) {
     const pageSize = 500;
     const rows = [];
     for (let offset = 0; offset <= maximumRows; offset += pageSize) {
-      const { data, error } = await createQuery()
-        .range(offset, offset + pageSize - 1);
+      const { data, error } = await createQuery().range(offset, offset + pageSize - 1);
       if (error) {
         throw createSupabaseQueryError(error, operation);
       }
@@ -441,10 +442,11 @@ function createAnalyticsRouter(supabase, options = {}) {
 
     try {
       const orders = await fetchSummaryRows(
-        () => supabase
-          .from('orders')
-          .select('order_id,order_date,total_amount')
-          .order('order_date', { ascending: false }),
+        () =>
+          supabase
+            .from('orders')
+            .select('order_id,order_date,total_amount')
+            .order('order_date', { ascending: false }),
         MAX_FALLBACK_ORDERS,
         'orders.select(order_id,order_date,total_amount)'
       );
@@ -461,41 +463,46 @@ function createAnalyticsRouter(supabase, options = {}) {
         const total = totalsByProduct.get(key) || {
           product_id: item.product_id,
           quantity_sold: 0,
-          sales_amount: null
+          sales_amount: null,
         };
         total.quantity_sold += quantity;
         totalsByProduct.set(key, total);
       }
 
       const rankedProducts = [...totalsByProduct.values()]
-        .sort((left, right) => (
-          right.quantity_sold - left.quantity_sold ||
-          (right.sales_amount ?? 0) - (left.sales_amount ?? 0) ||
-          String(left.product_id).localeCompare(String(right.product_id))
-        ))
+        .sort(
+          (left, right) =>
+            right.quantity_sold - left.quantity_sold ||
+            (right.sales_amount ?? 0) - (left.sales_amount ?? 0) ||
+            String(left.product_id).localeCompare(String(right.product_id))
+        )
         .slice(0, 10);
-      const productNames = rankedProducts.length === 0
-        ? new Map()
-        : await fetchProductNames(
-          rankedProducts.map(product => product.product_id),
-          'products.select(id,name)（營運分析商品名稱）'
-        );
+      const productNames =
+        rankedProducts.length === 0
+          ? new Map()
+          : await fetchProductNames(
+              rankedProducts.map((product) => product.product_id),
+              'products.select(id,name)（營運分析商品名稱）'
+            );
 
       const today = hongKongDate(new Date());
       const todayDate = parseDate(today);
-      const startDate = new Date(todayDate.getTime() - 6 * 86400000)
-        .toISOString()
-        .slice(0, 10);
-      const trendDates = Array.from({ length: 7 }, (_, index) => (
+      const startDate = new Date(todayDate.getTime() - 6 * 86400000).toISOString().slice(0, 10);
+      const trendDates = Array.from({ length: 7 }, (_, index) =>
         new Date(Date.parse(`${startDate}T00:00:00.000Z`) + index * 86400000)
           .toISOString()
           .slice(0, 10)
-      ));
-      const trend = new Map(trendDates.map(date => [date, {
-        date,
-        order_count: 0,
-        revenue: 0
-      }]));
+      );
+      const trend = new Map(
+        trendDates.map((date) => [
+          date,
+          {
+            date,
+            order_count: 0,
+            revenue: 0,
+          },
+        ])
+      );
       let totalRevenue = 0;
       for (const order of orders) {
         const amount = normalizeOrderAmount(order && order.total_amount);
@@ -514,23 +521,24 @@ function createAnalyticsRouter(supabase, options = {}) {
           ...product,
           product_name: productNames.get(String(product.product_id)) || '未命名商品',
           rank: index + 1,
-          sales_amount: product.sales_amount === null
-            ? null
-            : Math.round((product.sales_amount + Number.EPSILON) * 100) / 100
+          sales_amount:
+            product.sales_amount === null
+              ? null
+              : Math.round((product.sales_amount + Number.EPSILON) * 100) / 100,
         })),
-        order_trend: trendDates.map(date => {
+        order_trend: trendDates.map((date) => {
           const daily = trend.get(date);
           return {
             ...daily,
-            revenue: Math.round((daily.revenue + Number.EPSILON) * 100) / 100
+            revenue: Math.round((daily.revenue + Number.EPSILON) * 100) / 100,
           };
-        })
+        }),
       };
       storeCachedResponse(cacheKey, data);
       return res.json({
         success: true,
         data,
-        message: '營運分析摘要查詢完成。'
+        message: '營運分析摘要查詢完成。',
       });
     } catch (error) {
       return handleFallbackError(res, error, '取得營運分析摘要');
@@ -555,31 +563,26 @@ function createAnalyticsRouter(supabase, options = {}) {
       const cacheKey = createCacheKey('profit', {
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        limit
+        limit,
       });
       const cachedResponse = sendCachedResponse(res, cacheKey, '商品成本與利潤分析查詢完成。');
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      const orders = await fetchOrdersInRange(
-        dateRange,
-        'order_id,total_amount'
-      );
-      const items = profitDetailsEnabled
-        ? await fetchItemsForOrders(orders.map(order => order.order_id))
-        : [];
-      const detailsAvailable = true;
+      const orders = await fetchOrdersInRange(dateRange, 'order_id,total_amount');
+      const fetchedItems = profitDetailsEnabled
+        ? await fetchItemsForOrders(orders.map((order) => order.order_id))
+        : null;
+      const detailsAvailable = Array.isArray(fetchedItems);
+      const items = fetchedItems || [];
       const detailsMessage = null;
-      const productIds = [...new Set(items.map(item => String(item.product_id)))];
+      const productIds = [...new Set(items.map((item) => String(item.product_id)))];
       const productInfo = new Map();
       for (let offset = 0; offset < productIds.length; offset += 100) {
         const ids = productIds.slice(offset, offset + 100);
         const products = await fetchSummaryRows(
-          () => supabase
-            .from('products')
-            .select('id,name,cost_price,price')
-            .in('id', ids),
+          () => supabase.from('products').select('id,name,cost_price,price').in('id', ids),
           100,
           '商品成本報表查詢'
         );
@@ -597,7 +600,7 @@ function createAnalyticsRouter(supabase, options = {}) {
           productInfo.set(String(product.id), {
             product_name: product.name,
             cost_price: costPrice,
-            unit_price: unitPrice
+            unit_price: unitPrice,
           });
         }
       }
@@ -616,10 +619,7 @@ function createAnalyticsRouter(supabase, options = {}) {
         const quantity = Number(item.quantity);
         const key = String(item.product_id);
         const product = productInfo.get(key);
-        if (
-          !Number.isSafeInteger(quantity) ||
-          quantity < 0
-        ) {
+        if (!Number.isSafeInteger(quantity) || quantity < 0) {
           console.error('商品利潤報表遇到無效訂單商品資料。');
           return sendError(res, 500, '訂單商品資料格式無效。');
         }
@@ -634,7 +634,7 @@ function createAnalyticsRouter(supabase, options = {}) {
           sales_amount: 0,
           cost_amount: 0,
           net_profit: 0,
-          cost_known: true
+          cost_known: true,
         };
         total.quantity_sold += quantity;
         total.sales_amount += salesAmount;
@@ -651,14 +651,15 @@ function createAnalyticsRouter(supabase, options = {}) {
         totalsByProduct.set(key, total);
       }
 
-      const completeCostCoverage = unknownCostItems === 0;
+      const completeCostCoverage = detailsAvailable && unknownCostItems === 0;
       const rankedProducts = [...totalsByProduct.values()]
-        .sort((left, right) => (
-          (right.cost_known ? right.net_profit : Number.NEGATIVE_INFINITY) -
-            (left.cost_known ? left.net_profit : Number.NEGATIVE_INFINITY) ||
-          right.sales_amount - left.sales_amount ||
-          String(left.product_id).localeCompare(String(right.product_id))
-        ))
+        .sort(
+          (left, right) =>
+            (right.cost_known ? right.net_profit : Number.NEGATIVE_INFINITY) -
+              (left.cost_known ? left.net_profit : Number.NEGATIVE_INFINITY) ||
+            right.sales_amount - left.sales_amount ||
+            String(left.product_id).localeCompare(String(right.product_id))
+        )
         .slice(0, limit)
         .map((product, index) => ({
           product_id: product.product_id,
@@ -671,7 +672,7 @@ function createAnalyticsRouter(supabase, options = {}) {
           net_profit: product.cost_known
             ? Math.round((product.net_profit + Number.EPSILON) * 100) / 100
             : null,
-          rank: index + 1
+          rank: index + 1,
         }));
       const roundedRevenue = Math.round((totalRevenue + Number.EPSILON) * 100) / 100;
       const roundedCost = Math.round((totalCost + Number.EPSILON) * 100) / 100;
@@ -681,20 +682,22 @@ function createAnalyticsRouter(supabase, options = {}) {
         end_date: dateRange.endDate,
         total_revenue: roundedRevenue,
         total_cost: roundedCost,
-        gross_profit: grossProfit === null
-          ? null
-          : Math.round((grossProfit + Number.EPSILON) * 100) / 100,
-        gross_margin_percentage: completeCostCoverage && roundedRevenue > 0
-          ? Math.round((grossProfit / roundedRevenue) * 10000) / 100
-          : null,
-        cost_coverage_percentage: unitsSold > 0
-          ? Math.round((unitsWithKnownCost / unitsSold) * 10000) / 100
-          : 100,
+        gross_profit:
+          grossProfit === null ? null : Math.round((grossProfit + Number.EPSILON) * 100) / 100,
+        gross_margin_percentage:
+          completeCostCoverage && roundedRevenue > 0
+            ? Math.round((grossProfit / roundedRevenue) * 10000) / 100
+            : null,
+        cost_coverage_percentage: !detailsAvailable
+          ? 0
+          : unitsSold > 0
+            ? Math.round((unitsWithKnownCost / unitsSold) * 10000) / 100
+            : 100,
         cost_data_complete: completeCostCoverage,
         unknown_cost_items: unknownCostItems,
         details_available: detailsAvailable,
         details_message: detailsMessage,
-        top_products: rankedProducts
+        top_products: rankedProducts,
       };
       if (detailsAvailable) {
         storeCachedResponse(cacheKey, data);
@@ -702,7 +705,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data,
-        message: detailsMessage || '商品成本與利潤分析查詢完成。'
+        message: detailsMessage || '商品成本與利潤分析查詢完成。',
       });
     } catch (error) {
       return handleFallbackError(res, error, '取得商品成本與利潤分析');
@@ -722,7 +725,7 @@ function createAnalyticsRouter(supabase, options = {}) {
 
       const cacheKey = createCacheKey('overview', {
         startDate: dateRange.startDate,
-        endDate: dateRange.endDate
+        endDate: dateRange.endDate,
       });
       const cachedResponse = sendCachedResponse(res, cacheKey, '營收總覽查詢完成。');
       if (cachedResponse) {
@@ -741,7 +744,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       } else {
         const result = await supabase.rpc('get_revenue_overview', {
           p_start_date: dateRange.startDate,
-          p_end_date: dateRange.endDate
+          p_end_date: dateRange.endDate,
         });
         data = result.data;
         if (result.error) {
@@ -757,7 +760,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data,
-        message: '營收總覽查詢完成。'
+        message: '營收總覽查詢完成。',
       });
     } catch (error) {
       if (useTableFallback) {
@@ -781,23 +784,20 @@ function createAnalyticsRouter(supabase, options = {}) {
 
       const cacheKey = createCacheKey('sales-trend', {
         startDate: dateRange.startDate,
-        endDate: dateRange.endDate
+        endDate: dateRange.endDate,
       });
       const cachedResponse = sendCachedResponse(res, cacheKey, '每日銷售趨勢查詢完成。');
       if (cachedResponse) {
         return cachedResponse;
       }
 
-      const orders = await fetchOrdersInRange(
-        dateRange,
-        'order_id,total_amount,order_date'
-      );
+      const orders = await fetchOrdersInRange(dateRange, 'order_id,total_amount,order_date');
       const data = createDailySalesTrend(orders, dateRange);
       storeCachedResponse(cacheKey, data);
       return res.json({
         success: true,
         data,
-        message: '每日銷售趨勢查詢完成。'
+        message: '每日銷售趨勢查詢完成。',
       });
     } catch (error) {
       return handleFallbackError(res, error, '取得每日銷售趨勢');
@@ -823,7 +823,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       const cacheKey = createCacheKey('top-products', {
         startDate: dateRange.startDate,
         endDate: dateRange.endDate,
-        limit
+        limit,
       });
       const cachedResponse = sendCachedResponse(res, cacheKey, '熱銷商品排行榜查詢完成。');
       if (cachedResponse) {
@@ -833,21 +833,20 @@ function createAnalyticsRouter(supabase, options = {}) {
       let data;
       if (useTableFallback) {
         const orders = await fetchOrdersInRange(dateRange, 'order_id');
-        const items = await fetchItemsForOrders(orders.map(order => order.order_id));
-        const productIds = [...new Set(items.map(item => item.product_id))];
+        const items = (await fetchItemsForOrders(orders.map((order) => order.order_id))) || [];
+        const productIds = [...new Set(items.map((item) => item.product_id))];
         const productNames = await fetchProductNames(productIds);
         const totals = new Map();
 
         for (const item of items) {
           const key = String(item.product_id);
-          const itemSalesAmount = item.unit_price === null
-            ? null
-            : Number(item.quantity || 0) * item.unit_price;
+          const itemSalesAmount =
+            item.unit_price === null ? null : Number(item.quantity || 0) * item.unit_price;
           const current = totals.get(key) || {
             product_id: item.product_id,
             product_name: productNames.get(key) || '未命名商品',
             quantity_sold: 0,
-            sales_amount: itemSalesAmount
+            sales_amount: 0,
           };
           current.quantity_sold += Number(item.quantity || 0);
           if (current.sales_amount !== null && itemSalesAmount !== null) {
@@ -859,24 +858,26 @@ function createAnalyticsRouter(supabase, options = {}) {
         }
 
         data = [...totals.values()]
-          .sort((left, right) => (
-            right.quantity_sold - left.quantity_sold ||
-            right.sales_amount - left.sales_amount ||
-            String(left.product_id).localeCompare(String(right.product_id))
-          ))
+          .sort(
+            (left, right) =>
+              right.quantity_sold - left.quantity_sold ||
+              right.sales_amount - left.sales_amount ||
+              String(left.product_id).localeCompare(String(right.product_id))
+          )
           .slice(0, limit)
           .map((product, index) => ({
             ...product,
             rank: index + 1,
-            sales_amount: product.sales_amount === null
-              ? null
-              : Math.round((product.sales_amount + Number.EPSILON) * 100) / 100
+            sales_amount:
+              product.sales_amount === null
+                ? null
+                : Math.round((product.sales_amount + Number.EPSILON) * 100) / 100,
           }));
       } else {
         const result = await supabase.rpc('get_top_selling_products', {
           p_start_date: dateRange.startDate,
           p_end_date: dateRange.endDate,
-          p_limit: limit
+          p_limit: limit,
         });
         data = result.data;
         if (result.error) {
@@ -892,7 +893,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data,
-        message: '熱銷商品排行榜查詢完成。'
+        message: '熱銷商品排行榜查詢完成。',
       });
     } catch (error) {
       if (useTableFallback) {
@@ -927,7 +928,11 @@ function createAnalyticsRouter(supabase, options = {}) {
       const limit = parseInteger(req.query.limit, 1, MAX_PAGE_SIZE, 50);
       const offset = parseInteger(req.query.offset, 0, 2147483647, 0);
       if (limit === null || offset === null) {
-        return sendError(res, 400, `limit 必須是 1 至 ${MAX_PAGE_SIZE} 的整數，offset 必須是 0 至 2147483647 的整數。`);
+        return sendError(
+          res,
+          400,
+          `limit 必須是 1 至 ${MAX_PAGE_SIZE} 的整數，offset 必須是 0 至 2147483647 的整數。`
+        );
       }
 
       const cacheKey = createCacheKey('reconciliation', {
@@ -936,7 +941,7 @@ function createAnalyticsRouter(supabase, options = {}) {
         paymentStatus,
         shippingStatus,
         limit,
-        offset
+        offset,
       });
       const cachedResponse = sendCachedResponse(res, cacheKey, '財務對賬明細查詢完成。');
       if (cachedResponse) {
@@ -968,8 +973,8 @@ function createAnalyticsRouter(supabase, options = {}) {
           throw new Error('Supabase 財務對賬訂單查詢回傳格式無效。');
         }
 
-        const items = await fetchItemsForOrders(orders.map(order => order.order_id));
-        const productIds = [...new Set(items.map(item => item.product_id))];
+        const items = (await fetchItemsForOrders(orders.map((order) => order.order_id))) || [];
+        const productIds = [...new Set(items.map((item) => item.product_id))];
         const productNames = await fetchProductNames(productIds);
         const itemsByOrderId = new Map();
         for (const item of items) {
@@ -978,23 +983,23 @@ function createAnalyticsRouter(supabase, options = {}) {
           orderItems.push({
             ...item,
             product_name: productNames.get(String(item.product_id)) || '未命名商品',
-            line_total: item.unit_price === null
-              ? null
-              : Number(item.quantity || 0) * item.unit_price,
-            received_quantity: item.item_status === null
-              ? null
-              : item.item_status === '已到貨倉' || item.item_status === '已出貨'
-                ? Number(item.quantity || 0)
-                : 0
+            line_total:
+              item.unit_price === null ? null : Number(item.quantity || 0) * item.unit_price,
+            received_quantity:
+              item.item_status === null
+                ? null
+                : item.item_status === '已到貨倉' || item.item_status === '已出貨'
+                  ? Number(item.quantity || 0)
+                  : 0,
           });
           itemsByOrderId.set(key, orderItems);
         }
         data = {
           total_count: count === null ? orders.length : count,
-          rows: orders.map(order => ({
+          rows: orders.map((order) => ({
             ...order,
-            items: itemsByOrderId.get(String(order.order_id)) || []
-          }))
+            items: itemsByOrderId.get(String(order.order_id)) || [],
+          })),
         };
       } else {
         const result = await supabase.rpc('get_financial_reconciliation', {
@@ -1003,7 +1008,7 @@ function createAnalyticsRouter(supabase, options = {}) {
           p_payment_status: paymentStatus,
           p_shipping_status: shippingStatus,
           p_limit: limit,
-          p_offset: offset
+          p_offset: offset,
         });
         data = result.data;
         if (result.error) {
@@ -1019,7 +1024,7 @@ function createAnalyticsRouter(supabase, options = {}) {
       return res.json({
         success: true,
         data,
-        message: '財務對賬明細查詢完成。'
+        message: '財務對賬明細查詢完成。',
       });
     } catch (error) {
       if (useTableFallback) {

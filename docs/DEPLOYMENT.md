@@ -19,6 +19,18 @@
 - Customer wishlist reads are limited to 30 requests per IP per 15 minutes, and wishlist writes to 15 requests per IP per 15 minutes. All wishlist access is scoped to the signed customer session; direct database access is restricted to `service_role`.
 - `/health` is a liveness endpoint; it confirms that the process responds, not that Supabase or WhatsApp is reachable.
 
+## Current repository paths
+
+The application entry point is the root `index.js`; Express route modules are in `src/routes/`, middleware is in `src/middleware/`, and shared helpers are in `src/utils/`. Maintenance utilities are in `scripts/`, documentation is in `docs/`, and storefront images are in `public/assets/images/`.
+
+| File | Responsibility |
+| --- | --- |
+| `src/routes/customer.js` | Customer member endpoints mounted under `/api/customer`. |
+| `src/routes/customers.js` | Admin customer CRM endpoints mounted under `/api/admin/customers`. |
+| `src/routes/payments.js` | Payment-proof upload and review endpoints; the old `payment-proofs.js` module was renamed. |
+| `src/routes/webhooks.js` | WhatsApp and other webhook endpoints; the old `webhook.js` module was renamed. |
+| `public/assets/images/` | Public storefront image assets; use this instead of the old `public/image/` path. |
+
 ## 2. Configure environment variables
 
 Use [.env.example](../.env.example) as the variable checklist. On Render or Railway, enter values in the service's environment-variable dashboard rather than uploading `.env`.
@@ -223,9 +235,10 @@ From the project root:
 
 ```powershell
 npm ci
+npm run lint
+npm test
 node --check index.js
-node --test tests\*.test.js
 npm start
 ```
 
-The health endpoint can then be checked at `http://localhost:3000/health` (or the configured `PORT`).
+Use `npm run dev` for local development. The health endpoint can then be checked at `http://localhost:3000/health` (or the configured `PORT`). `npm run format` formats JavaScript files under `src/` and `scripts/` only.

@@ -26,16 +26,15 @@ function readCookie(req, name) {
 
 function createCustomerSession(phone, secret) {
   const now = Math.floor(Date.now() / 1000);
-  const payload = Buffer.from(JSON.stringify({
-    version: 1,
-    phone,
-    issuedAt: now,
-    expiresAt: now + SESSION_TTL_SECONDS
-  })).toString('base64url');
-  const signature = crypto
-    .createHmac('sha256', secret)
-    .update(payload)
-    .digest('base64url');
+  const payload = Buffer.from(
+    JSON.stringify({
+      version: 1,
+      phone,
+      issuedAt: now,
+      expiresAt: now + SESSION_TTL_SECONDS,
+    })
+  ).toString('base64url');
+  const signature = crypto.createHmac('sha256', secret).update(payload).digest('base64url');
   return `${payload}.${signature}`;
 }
 
@@ -53,10 +52,7 @@ function getCustomerSession(req, secret) {
   }
   const payload = cookie.slice(0, separator);
   const signature = cookie.slice(separator + 1);
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(payload)
-    .digest();
+  const expectedSignature = crypto.createHmac('sha256', secret).update(payload).digest();
   const suppliedSignature = Buffer.from(signature, 'base64url');
   if (
     expectedSignature.length !== suppliedSignature.length ||
@@ -92,17 +88,20 @@ function getCustomerSession(req, secret) {
 }
 
 function setCustomerCookie(res, value, options = {}) {
-  const maxAge = Number.isSafeInteger(options.maxAge)
-    ? options.maxAge
-    : SESSION_TTL_SECONDS;
-  res.append('Set-Cookie', [
-    `${COOKIE_NAME}=${encodeURIComponent(value)}`,
-    'Path=/api/customer',
-    `Max-Age=${maxAge}`,
-    'HttpOnly',
-    'SameSite=Strict',
-    options.secure === true ? 'Secure' : ''
-  ].filter(Boolean).join('; '));
+  const maxAge = Number.isSafeInteger(options.maxAge) ? options.maxAge : SESSION_TTL_SECONDS;
+  res.append(
+    'Set-Cookie',
+    [
+      `${COOKIE_NAME}=${encodeURIComponent(value)}`,
+      'Path=/api/customer',
+      `Max-Age=${maxAge}`,
+      'HttpOnly',
+      'SameSite=Strict',
+      options.secure === true ? 'Secure' : '',
+    ]
+      .filter(Boolean)
+      .join('; ')
+  );
 }
 
 module.exports = {
@@ -110,5 +109,5 @@ module.exports = {
   SESSION_TTL_SECONDS,
   createCustomerSession,
   getCustomerSession,
-  setCustomerCookie
+  setCustomerCookie,
 };
