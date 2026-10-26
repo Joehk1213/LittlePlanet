@@ -1,6 +1,6 @@
 'use strict';
 
-const createProductsRouter = require('./products');
+const createProductsRouter = require('./products/index');
 const createOrdersRouter = require('./orders');
 const createCustomersRouter = require('./customers');
 const createReminderRouter = require('./reminders');

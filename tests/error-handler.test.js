@@ -70,3 +70,21 @@ test('central handler formats malformed JSON and unknown API routes consistently
     responseShape(await missing.json());
   });
 });
+
+test('central handler returns safe client errors without exposing parser details', async () => {
+  const app = express();
+  app.get('/api/unsupported', (req, res, next) => {
+    const error = new Error('private encoding detail');
+    error.status = 415;
+    next(error);
+  });
+  app.use(errorHandler);
+
+  await withServer(app, async baseUrl => {
+    const response = await fetch(`${baseUrl}/api/unsupported`);
+    const body = await response.json();
+    assert.equal(response.status, 415);
+    responseShape(body);
+    assert.equal(JSON.stringify(body).includes('private encoding detail'), false);
+  });
+});

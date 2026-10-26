@@ -1,5 +1,7 @@
 # LittlePlanet
 
+[![CI](https://github.com/Joehk1213/LittlePlanet/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/Joehk1213/LittlePlanet/actions/workflows/ci.yml)
+
 LittlePlanet is a Node.js and Express application backed by Supabase, with a static storefront served from `public/`.
 
 ## Requirements
