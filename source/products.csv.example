@@ -1,0 +1,6 @@
+id,name,price,cost_price,stock,tier_prices,preorder_deadline,image_url,status
+4268,範例貼紙 A,20.00,10.00,25,"[{""min_qty"":2,""price"":18.00},{""min_qty"":5,""price"":15.00}]",2030-12-31T23:59:00+08:00,/assets/images/example-sticker-a.jpg,預購中
+4269,範例收納袋 B,30.00,12.00,10,"[{""min_qty"":2,""price"":25.00},{""min_qty"":5,""price"":20.00}]",,/assets/images/example-bag-b.jpg,預購中
+4270,範例旅行杯 C,15.00,16.00,8,"[{""min_qty"":2,""price"":14.00}]",2026-10-28T23:59:00+08:00,/assets/images/example-cup-c.jpg,預購中
+4271,範例掛飾 D,8.00,4.00,0,[],,"https://example.invalid/images/sample-charm-d.jpg",已到貨
+4272,範例收納盒 E,45.00,30.00,12,"[{""min_qty"":3,""price"":31.00}]",2030-10-31T23:59:00+08:00,/assets/images/example-box-e.jpg,預購中

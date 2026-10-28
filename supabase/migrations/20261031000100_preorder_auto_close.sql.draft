@@ -1,0 +1,9 @@
+-- DRAFT ONLY: not a Supabase migration; do not apply or rename to .sql.
+-- Existing schema values are Chinese; do not use the unrecognized 'preorder'/'closed'.
+-- Current candidates: status = '預購中' AND preorder_deadline < now().
+-- Preview only:
+-- UPDATE public.products
+-- SET status = '已下架'
+-- WHERE preorder_deadline < now()
+--   AND status = '預購中';
+-- This file intentionally contains comments only.

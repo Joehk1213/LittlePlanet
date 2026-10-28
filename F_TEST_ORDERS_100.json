@@ -1,0 +1,4028 @@
+{
+  "generated_at": "2026-10-28T19:34:37.364Z",
+  "synthetic": true,
+  "catalog_source": "source\\products.csv.example",
+  "catalog_is_example": true,
+  "orders": [
+    {
+      "order_id": "b24b29e3-ac2d-483c-8a5d-ef03090ba1e9",
+      "order_number": "TEST-F-00000",
+      "customer_phone": "85255500000",
+      "is_test_data": true,
+      "idempotency_key": "fe82df79-2f2c-493d-8100-5a749c57d4b6",
+      "order_date": "2026-10-28T12:00:00.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 202,
+      "profit_total": 14,
+      "items_count": 9,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 2,
+          "unit_price": 18,
+          "subtotal": 36,
+          "cost_price": 10,
+          "profit": 16,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 4,
+          "unit_price": 31,
+          "subtotal": 124,
+          "cost_price": 30,
+          "profit": 4,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "ef55aa3c-4db6-4219-9345-99c43b641e03",
+      "order_number": "TEST-F-00001",
+      "customer_phone": "85255500001",
+      "is_test_data": true,
+      "idempotency_key": "f96bbaa5-423f-4197-afcc-392854084b94",
+      "order_date": "2026-10-28T12:00:01.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 164,
+      "profit_total": 24,
+      "items_count": 9,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 5,
+          "unit_price": 8,
+          "subtotal": 40,
+          "cost_price": 4,
+          "profit": 20,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 4,
+          "unit_price": 31,
+          "subtotal": 124,
+          "cost_price": 30,
+          "profit": 4,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "550a79b4-d46f-4bcd-8c8d-65b586274a76",
+      "order_number": "TEST-F-00002",
+      "customer_phone": "85255500002",
+      "is_test_data": true,
+      "idempotency_key": "99f4915e-0003-41f3-9dd1-cf594cb3a06e",
+      "order_date": "2026-10-28T12:00:02.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 174,
+      "profit_total": 40,
+      "items_count": 10,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 3,
+          "unit_price": 18,
+          "subtotal": 54,
+          "cost_price": 10,
+          "profit": 24,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 2
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 5,
+          "unit_price": 14,
+          "subtotal": 70,
+          "cost_price": 16,
+          "profit": -10,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "d9dbabef-c71f-4e66-b307-45eba5de8250",
+      "order_number": "TEST-F-00003",
+      "customer_phone": "85255500003",
+      "is_test_data": true,
+      "idempotency_key": "c5c0ddd4-6e86-45e0-a9db-5cc25a107dd0",
+      "order_date": "2026-10-28T12:00:03.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 50,
+      "profit_total": 26,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "27f3914c-c923-4349-9f39-94a4b750a045",
+      "order_number": "TEST-F-00004",
+      "customer_phone": "85255500004",
+      "is_test_data": true,
+      "idempotency_key": "df6eb3de-5c68-4e48-b6d3-352badc6f90e",
+      "order_date": "2026-10-28T12:00:04.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 75,
+      "profit_total": 25,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 5,
+          "unit_price": 15,
+          "subtotal": 75,
+          "cost_price": 10,
+          "profit": 25,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "70877d5a-ed92-4890-9ef8-1ff665677201",
+      "order_number": "TEST-F-00005",
+      "customer_phone": "85255500005",
+      "is_test_data": true,
+      "idempotency_key": "0ac93c71-4d3b-4008-8845-355c1c23c3af",
+      "order_date": "2026-10-28T12:00:05.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 70,
+      "profit_total": -10,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 5,
+          "unit_price": 14,
+          "subtotal": 70,
+          "cost_price": 16,
+          "profit": -10,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "13957426-9bc4-48f8-b8c7-c85dfcaa27be",
+      "order_number": "TEST-F-00006",
+      "customer_phone": "85255500006",
+      "is_test_data": true,
+      "idempotency_key": "c6b35f24-c4e0-4dec-be7c-3aa5be78d126",
+      "order_date": "2026-10-28T12:00:06.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 16,
+      "profit_total": 8,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "5acca106-53e6-45d1-a8d5-df19eca88e49",
+      "order_number": "TEST-F-00007",
+      "customer_phone": "85255500007",
+      "is_test_data": true,
+      "idempotency_key": "e1b26d32-14a2-4d79-94e3-afa26997d863",
+      "order_date": "2026-10-28T12:00:07.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 152,
+      "profit_total": 0,
+      "items_count": 6,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 4,
+          "unit_price": 31,
+          "subtotal": 124,
+          "cost_price": 30,
+          "profit": 4,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "598599be-cdbd-4adb-8997-20d98e069361",
+      "order_number": "TEST-F-00008",
+      "customer_phone": "85255500008",
+      "is_test_data": true,
+      "idempotency_key": "8fba42cf-5b17-4261-a85f-29f177fbe32f",
+      "order_date": "2026-10-28T12:00:08.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 143,
+      "profit_total": 29,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "87a7636d-5358-47c8-bd7d-3448a84d501a",
+      "order_number": "TEST-F-00009",
+      "customer_phone": "85255500009",
+      "is_test_data": true,
+      "idempotency_key": "5c840f29-7559-4f96-9c52-96d13d620824",
+      "order_date": "2026-10-28T12:00:09.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 72,
+      "profit_total": 12,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "b41baf9e-5ff3-4b1b-82a3-acacec1992de",
+      "order_number": "TEST-F-00010",
+      "customer_phone": "85255500010",
+      "is_test_data": true,
+      "idempotency_key": "28f23efe-cd41-411b-86d7-b86f2720f9fb",
+      "order_date": "2026-10-28T12:00:10.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 152,
+      "profit_total": 64,
+      "items_count": 7,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 2,
+          "unit_price": 45,
+          "subtotal": 90,
+          "cost_price": 30,
+          "profit": 30,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 4,
+          "unit_price": 8,
+          "subtotal": 32,
+          "cost_price": 4,
+          "profit": 16,
+          "line_number": 2
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "80d2fea3-eb6d-4eac-8eee-6b744d332fcb",
+      "order_number": "TEST-F-00011",
+      "customer_phone": "85255500011",
+      "is_test_data": true,
+      "idempotency_key": "46aabbb7-d4f4-461a-8e5d-64726e7dc0ee",
+      "order_date": "2026-10-28T12:00:11.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 50,
+      "profit_total": 26,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "44b78bee-a731-4c55-883b-f630b5dee61e",
+      "order_number": "TEST-F-00012",
+      "customer_phone": "85255500012",
+      "is_test_data": true,
+      "idempotency_key": "2bb601e8-36ce-4f90-8e91-f19143e61b90",
+      "order_date": "2026-10-28T12:00:12.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 160,
+      "profit_total": 20,
+      "items_count": 7,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 2,
+          "unit_price": 45,
+          "subtotal": 90,
+          "cost_price": 30,
+          "profit": 30,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 5,
+          "unit_price": 14,
+          "subtotal": 70,
+          "cost_price": 16,
+          "profit": -10,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "a74d3b0b-d133-41c6-88ad-db2456f40bb2",
+      "order_number": "TEST-F-00013",
+      "customer_phone": "85255500013",
+      "is_test_data": true,
+      "idempotency_key": "951287a8-ca7a-474b-bcbc-cab69f8fad76",
+      "order_date": "2026-10-28T12:00:13.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 42,
+      "profit_total": -6,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "a066e803-f1fa-43b2-8844-15064fd3bbeb",
+      "order_number": "TEST-F-00014",
+      "customer_phone": "85255500014",
+      "is_test_data": true,
+      "idempotency_key": "abd35749-5750-40f2-9153-ac13cc98cdc9",
+      "order_date": "2026-10-28T12:00:14.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 50,
+      "profit_total": 26,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "4e2358ad-894a-4ad9-aa09-5774df268532",
+      "order_number": "TEST-F-00015",
+      "customer_phone": "85255500015",
+      "is_test_data": true,
+      "idempotency_key": "e00f74be-d0b7-41b6-91fe-98625dcba1cf",
+      "order_date": "2026-10-28T12:00:15.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 126,
+      "profit_total": 46,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 2,
+          "unit_price": 45,
+          "subtotal": 90,
+          "cost_price": 30,
+          "profit": 30,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 2,
+          "unit_price": 18,
+          "subtotal": 36,
+          "cost_price": 10,
+          "profit": 16,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "5099dd34-1354-4774-bbd5-dce732978fa8",
+      "order_number": "TEST-F-00016",
+      "customer_phone": "85255500016",
+      "is_test_data": true,
+      "idempotency_key": "fd7d822d-b98f-48cf-a525-00323e35c3ef",
+      "order_date": "2026-10-28T12:00:16.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 90,
+      "profit_total": 46,
+      "items_count": 7,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 5,
+          "unit_price": 8,
+          "subtotal": 40,
+          "cost_price": 4,
+          "profit": 20,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "ac72498f-20d5-4a54-ad3d-ba3fc9aa14a2",
+      "order_number": "TEST-F-00017",
+      "customer_phone": "85255500017",
+      "is_test_data": true,
+      "idempotency_key": "3e9b9fe7-3f80-4011-a84f-85d30cf44ce3",
+      "order_date": "2026-10-28T12:00:17.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 28,
+      "profit_total": -4,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "f9ea960d-fc18-414c-aa18-55b52ac1a8a5",
+      "order_number": "TEST-F-00018",
+      "customer_phone": "85255500018",
+      "is_test_data": true,
+      "idempotency_key": "027a6943-8560-4d8f-9808-abf38357c527",
+      "order_date": "2026-10-28T12:00:18.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 70,
+      "profit_total": -10,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 5,
+          "unit_price": 14,
+          "subtotal": 70,
+          "cost_price": 16,
+          "profit": -10,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "af7b4647-6c38-450b-a9c6-5c2ae1a1216e",
+      "order_number": "TEST-F-00019",
+      "customer_phone": "85255500019",
+      "is_test_data": true,
+      "idempotency_key": "79509fcc-d012-441a-a9e6-786efa1af75a",
+      "order_date": "2026-10-28T12:00:19.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 100,
+      "profit_total": 52,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "67ea7148-41c3-4329-9686-c896c55bd9c5",
+      "order_number": "TEST-F-00020",
+      "customer_phone": "85255500020",
+      "is_test_data": true,
+      "idempotency_key": "b9166ffe-979f-4c84-9fe2-89b7152fa4f2",
+      "order_date": "2026-10-28T12:00:20.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 16,
+      "profit_total": 8,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "23f4e5fd-84ff-4cb1-a5de-691d81ef8767",
+      "order_number": "TEST-F-00021",
+      "customer_phone": "85255500021",
+      "is_test_data": true,
+      "idempotency_key": "50ca4de2-8a7b-4448-93b5-414668b95f29",
+      "order_date": "2026-10-28T12:00:21.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 66,
+      "profit_total": 34,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 2,
+          "unit_price": 18,
+          "subtotal": 36,
+          "cost_price": 10,
+          "profit": 16,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "bfb20faf-1448-43d7-b0d1-427146082c37",
+      "order_number": "TEST-F-00022",
+      "customer_phone": "85255500022",
+      "is_test_data": true,
+      "idempotency_key": "480be687-fc71-4e9b-9b8b-c08869fd184d",
+      "order_date": "2026-10-28T12:00:22.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 100,
+      "profit_total": 52,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "102cea59-2bc2-4377-b005-fd497e0e2487",
+      "order_number": "TEST-F-00023",
+      "customer_phone": "85255500023",
+      "is_test_data": true,
+      "idempotency_key": "0a9686c9-e096-4cb2-a213-064385980182",
+      "order_date": "2026-10-28T12:00:23.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 100,
+      "profit_total": 52,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "a90c83b0-6320-44e3-a484-a0be0184fe1b",
+      "order_number": "TEST-F-00024",
+      "customer_phone": "85255500024",
+      "is_test_data": true,
+      "idempotency_key": "847c3b36-bc25-4700-a0ba-6f93cd9ae869",
+      "order_date": "2026-10-28T12:00:24.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 103,
+      "profit_total": 17,
+      "items_count": 6,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 2
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "7d780ae1-a9c5-453a-b7ad-902b06a4f62e",
+      "order_number": "TEST-F-00025",
+      "customer_phone": "85255500025",
+      "is_test_data": true,
+      "idempotency_key": "44c6601f-bbdc-4dc8-a493-93615fe6e6e6",
+      "order_date": "2026-10-28T12:00:25.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 117,
+      "profit_total": 27,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 2
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "46aba957-d9c2-4a48-a1f7-82aa1bed8774",
+      "order_number": "TEST-F-00026",
+      "customer_phone": "85255500026",
+      "is_test_data": true,
+      "idempotency_key": "bf29560b-a3eb-47a6-9e99-60b9f8c24f30",
+      "order_date": "2026-10-28T12:00:26.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 109,
+      "profit_total": 11,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "2a6a6405-d048-419c-a6dd-c9e7592cb0f2",
+      "order_number": "TEST-F-00027",
+      "customer_phone": "85255500027",
+      "is_test_data": true,
+      "idempotency_key": "1c1817d3-97ca-4d89-baf9-5a9a84013b9c",
+      "order_date": "2026-10-28T12:00:27.000Z",
+      "status": "completed",
+      "status_history": [
+        "picked_up",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 110,
+      "profit_total": 40,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 1,
+          "unit_price": 15,
+          "subtotal": 15,
+          "cost_price": 16,
+          "profit": -1,
+          "line_number": 2
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "d399d72c-fee9-4057-a8e8-47ad5419b3d1",
+      "order_number": "TEST-F-00028",
+      "customer_phone": "85255500028",
+      "is_test_data": true,
+      "idempotency_key": "ae365128-81e9-497a-a3dc-50220019656c",
+      "order_date": "2026-10-28T12:00:28.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 23,
+      "profit_total": 3,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 1,
+          "unit_price": 15,
+          "subtotal": 15,
+          "cost_price": 16,
+          "profit": -1,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 1,
+          "unit_price": 8,
+          "subtotal": 8,
+          "cost_price": 4,
+          "profit": 4,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "fa9fee6a-df21-4ba7-8565-b779006d9384",
+      "order_number": "TEST-F-00029",
+      "customer_phone": "85255500029",
+      "is_test_data": true,
+      "idempotency_key": "452fcdc6-ebfb-468d-abd7-01e92ceb72cd",
+      "order_date": "2026-10-28T12:00:29.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 28,
+      "profit_total": -4,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "c30bc9a7-d404-413e-a211-34b8374b41f1",
+      "order_number": "TEST-F-00030",
+      "customer_phone": "85255500030",
+      "is_test_data": true,
+      "idempotency_key": "cb1aa3fe-5cfa-4a29-a23c-35a91ac1c105",
+      "order_date": "2026-10-28T12:00:30.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 112,
+      "profit_total": 26,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 2
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 3,
+          "unit_price": 18,
+          "subtotal": 54,
+          "cost_price": 10,
+          "profit": 24,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "f96a3e22-022b-47de-bfbb-c283192b202e",
+      "order_number": "TEST-F-00031",
+      "customer_phone": "85255500031",
+      "is_test_data": true,
+      "idempotency_key": "ad450941-4122-4348-979e-fe7c13625092",
+      "order_date": "2026-10-28T12:00:31.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 172,
+      "profit_total": 44,
+      "items_count": 10,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 5,
+          "unit_price": 8,
+          "subtotal": 40,
+          "cost_price": 4,
+          "profit": 20,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 2,
+          "unit_price": 45,
+          "subtotal": 90,
+          "cost_price": 30,
+          "profit": 30,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "4fd0f387-a5c4-415e-991a-fa79ad3515f3",
+      "order_number": "TEST-F-00032",
+      "customer_phone": "85255500032",
+      "is_test_data": true,
+      "idempotency_key": "e167cb74-af99-416e-834a-29f7d6ec5edb",
+      "order_date": "2026-10-28T12:00:32.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 150,
+      "profit_total": 54,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 2
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 4,
+          "unit_price": 18,
+          "subtotal": 72,
+          "cost_price": 10,
+          "profit": 32,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "f9436a32-b561-4ab2-b1ea-d172b817fe05",
+      "order_number": "TEST-F-00033",
+      "customer_phone": "85255500033",
+      "is_test_data": true,
+      "idempotency_key": "f9f3e0be-4c9a-4104-a575-3adfa7736917",
+      "order_date": "2026-10-28T12:00:33.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 175,
+      "profit_total": 45,
+      "items_count": 9,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 4,
+          "unit_price": 8,
+          "subtotal": 32,
+          "cost_price": 4,
+          "profit": 16,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "8e6a6f26-c13f-43ec-8a27-5a2233f5fa63",
+      "order_number": "TEST-F-00034",
+      "customer_phone": "85255500034",
+      "is_test_data": true,
+      "idempotency_key": "ebaa61ea-8b6d-450b-ba4b-8aa7700a75e4",
+      "order_date": "2026-10-28T12:00:34.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 15,
+      "profit_total": -1,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 1,
+          "unit_price": 15,
+          "subtotal": 15,
+          "cost_price": 16,
+          "profit": -1,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "a1f8482b-756d-4e9f-8194-adbd10846e9b",
+      "order_number": "TEST-F-00035",
+      "customer_phone": "85255500035",
+      "is_test_data": true,
+      "idempotency_key": "6d6cf143-71bd-4fd1-af6b-35a8d1c875bb",
+      "order_date": "2026-10-28T12:00:35.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 166,
+      "profit_total": 34,
+      "items_count": 12,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 4,
+          "unit_price": 18,
+          "subtotal": 72,
+          "cost_price": 10,
+          "profit": 32,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 2
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 5,
+          "unit_price": 14,
+          "subtotal": 70,
+          "cost_price": 16,
+          "profit": -10,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "7ccb5605-c635-4eda-998d-e6abf018ce82",
+      "order_number": "TEST-F-00036",
+      "customer_phone": "85255500036",
+      "is_test_data": true,
+      "idempotency_key": "51a545da-7c24-4355-8fac-183b244d492c",
+      "order_date": "2026-10-28T12:00:36.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 80,
+      "profit_total": 4,
+      "items_count": 7,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 4,
+          "unit_price": 14,
+          "subtotal": 56,
+          "cost_price": 16,
+          "profit": -8,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "c0ea772f-84da-4b93-a79f-7d1e752f9c71",
+      "order_number": "TEST-F-00037",
+      "customer_phone": "85255500037",
+      "is_test_data": true,
+      "idempotency_key": "5fa5d9b7-1502-4dab-8a57-deb95ecfdece",
+      "order_date": "2026-10-28T12:00:37.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 54,
+      "profit_total": 24,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 3,
+          "unit_price": 18,
+          "subtotal": 54,
+          "cost_price": 10,
+          "profit": 24,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "fd799bbc-8fce-4855-b496-802a45e1f1ac",
+      "order_number": "TEST-F-00038",
+      "customer_phone": "85255500038",
+      "is_test_data": true,
+      "idempotency_key": "96e35bc7-9e4a-41ec-afdf-14989cc4ea71",
+      "order_date": "2026-10-28T12:00:38.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 193,
+      "profit_total": 43,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 5,
+          "unit_price": 20,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 40,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "2675096b-aa10-4508-9c0b-1f59b20efa34",
+      "order_number": "TEST-F-00039",
+      "customer_phone": "85255500039",
+      "is_test_data": true,
+      "idempotency_key": "27c0645b-593a-47d7-accb-cbae737d1541",
+      "order_date": "2026-10-28T12:00:39.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 83,
+      "profit_total": 29,
+      "items_count": 6,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 1,
+          "unit_price": 8,
+          "subtotal": 8,
+          "cost_price": 4,
+          "profit": 4,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 5,
+          "unit_price": 15,
+          "subtotal": 75,
+          "cost_price": 10,
+          "profit": 25,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "816d427c-51a0-4f1b-bd6c-06fa76912fdc",
+      "order_number": "TEST-F-00040",
+      "customer_phone": "85255500040",
+      "is_test_data": true,
+      "idempotency_key": "308fcd8e-11bf-49ce-bd9e-e84d3a26125c",
+      "order_date": "2026-10-28T12:00:40.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 103,
+      "profit_total": 21,
+      "items_count": 7,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 5,
+          "unit_price": 15,
+          "subtotal": 75,
+          "cost_price": 10,
+          "profit": 25,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "bdfdf858-6c09-49fa-b174-d8ae25587f13",
+      "order_number": "TEST-F-00041",
+      "customer_phone": "85255500041",
+      "is_test_data": true,
+      "idempotency_key": "b8ffae5d-0d55-4008-8b62-2c31cd55e8b2",
+      "order_date": "2026-10-28T12:00:41.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 154,
+      "profit_total": 74,
+      "items_count": 10,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 4,
+          "unit_price": 18,
+          "subtotal": 72,
+          "cost_price": 10,
+          "profit": 32,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 4,
+          "unit_price": 8,
+          "subtotal": 32,
+          "cost_price": 4,
+          "profit": 16,
+          "line_number": 2
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "1b446225-17b3-4208-8832-18bc8327775a",
+      "order_number": "TEST-F-00042",
+      "customer_phone": "85255500042",
+      "is_test_data": true,
+      "idempotency_key": "2556533d-84d3-490a-9bad-b2d5ad96aac7",
+      "order_date": "2026-10-28T12:00:42.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 8,
+      "profit_total": 4,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 1,
+          "unit_price": 8,
+          "subtotal": 8,
+          "cost_price": 4,
+          "profit": 4,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "ee29779e-7783-413c-8c5e-6fa71230b98f",
+      "order_number": "TEST-F-00043",
+      "customer_phone": "85255500043",
+      "is_test_data": true,
+      "idempotency_key": "4e9bdd7d-f81d-4f1a-b617-6c01399d0110",
+      "order_date": "2026-10-28T12:00:43.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 116,
+      "profit_total": 36,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 4,
+          "unit_price": 18,
+          "subtotal": 72,
+          "cost_price": 10,
+          "profit": 32,
+          "line_number": 2
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "7a50b8a6-7f70-44fb-b72c-8d7d952ee697",
+      "order_number": "TEST-F-00044",
+      "customer_phone": "85255500044",
+      "is_test_data": true,
+      "idempotency_key": "6fd78999-6250-43a6-b945-2757c80d20c1",
+      "order_date": "2026-10-28T12:00:44.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 151,
+      "profit_total": 17,
+      "items_count": 6,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "0251cb22-ba31-4e33-997c-93ce217b3516",
+      "order_number": "TEST-F-00045",
+      "customer_phone": "85255500045",
+      "is_test_data": true,
+      "idempotency_key": "55be9f94-33f6-48a9-8e4b-cf6e6c89af1c",
+      "order_date": "2026-10-28T12:00:45.000Z",
+      "status": "completed",
+      "status_history": [
+        "picked_up",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 15,
+      "profit_total": -1,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 1,
+          "unit_price": 15,
+          "subtotal": 15,
+          "cost_price": 16,
+          "profit": -1,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "39e94885-4c99-4983-9b38-c200c54c2cbd",
+      "order_number": "TEST-F-00046",
+      "customer_phone": "85255500046",
+      "is_test_data": true,
+      "idempotency_key": "fbdb4d89-42c3-49f6-9644-589c99ebd76d",
+      "order_date": "2026-10-28T12:00:46.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 101,
+      "profit_total": 7,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 1,
+          "unit_price": 8,
+          "subtotal": 8,
+          "cost_price": 4,
+          "profit": 4,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "927a0a39-76d9-4087-97b4-0d35459148f8",
+      "order_number": "TEST-F-00047",
+      "customer_phone": "85255500047",
+      "is_test_data": true,
+      "idempotency_key": "4c7ee8f4-17fe-4447-a321-cd52d7486b56",
+      "order_date": "2026-10-28T12:00:47.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 42,
+      "profit_total": -6,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "3fe51793-4b03-4a30-aebf-a7d094cd6a60",
+      "order_number": "TEST-F-00048",
+      "customer_phone": "85255500048",
+      "is_test_data": true,
+      "idempotency_key": "e98ea287-584f-44ee-b709-d6a5da8df59f",
+      "order_date": "2026-10-28T12:00:48.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 93,
+      "profit_total": 3,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "7d4dc133-3b49-48b3-801e-29bcc0f81670",
+      "order_number": "TEST-F-00049",
+      "customer_phone": "85255500049",
+      "is_test_data": true,
+      "idempotency_key": "1e91bdc9-ca99-46a0-8b4a-33f97e5a9547",
+      "order_date": "2026-10-28T12:00:49.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 20,
+      "profit_total": 10,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 1,
+          "unit_price": 20,
+          "subtotal": 20,
+          "cost_price": 10,
+          "profit": 10,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "39e51b01-7a88-4800-93a3-74a783bafbd1",
+      "order_number": "TEST-F-00050",
+      "customer_phone": "85255500050",
+      "is_test_data": true,
+      "idempotency_key": "52ef1876-116c-49f1-a330-e94705f95134",
+      "order_date": "2026-10-28T12:00:50.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 187,
+      "profit_total": 5,
+      "items_count": 11,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 5,
+          "unit_price": 14,
+          "subtotal": 70,
+          "cost_price": 16,
+          "profit": -10,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "240a3250-5159-49eb-80b3-bc6c3ef4f605",
+      "order_number": "TEST-F-00051",
+      "customer_phone": "85255500051",
+      "is_test_data": true,
+      "idempotency_key": "16c2fff8-cda5-4442-9710-30b3dd52a3ef",
+      "order_date": "2026-10-28T12:00:51.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 129,
+      "profit_total": 21,
+      "items_count": 6,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 1,
+          "unit_price": 20,
+          "subtotal": 20,
+          "cost_price": 10,
+          "profit": 10,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 2
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "3cdbea24-5e3d-4451-87e5-25b141256cf3",
+      "order_number": "TEST-F-00052",
+      "customer_phone": "85255500052",
+      "is_test_data": true,
+      "idempotency_key": "138f0d56-453b-43d9-8903-d0863132ee57",
+      "order_date": "2026-10-28T12:00:52.000Z",
+      "status": "completed",
+      "status_history": [
+        "picked_up",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 8,
+      "profit_total": 4,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 1,
+          "unit_price": 8,
+          "subtotal": 8,
+          "cost_price": 4,
+          "profit": 4,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "3355d6d0-c2a0-479b-a99f-51337dc848be",
+      "order_number": "TEST-F-00053",
+      "customer_phone": "85255500053",
+      "is_test_data": true,
+      "idempotency_key": "cca38682-a6a9-4ea2-a96f-3f1e3800e81f",
+      "order_date": "2026-10-28T12:00:53.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 110,
+      "profit_total": 22,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 4,
+          "unit_price": 14,
+          "subtotal": 56,
+          "cost_price": 16,
+          "profit": -8,
+          "line_number": 2
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "20f5144d-556c-47a0-845e-9772c7eb8e17",
+      "order_number": "TEST-F-00054",
+      "customer_phone": "85255500054",
+      "is_test_data": true,
+      "idempotency_key": "35da00b9-c0b7-4d44-839f-e5f485841578",
+      "order_date": "2026-10-28T12:00:54.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 154,
+      "profit_total": 22,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 4,
+          "unit_price": 31,
+          "subtotal": 124,
+          "cost_price": 30,
+          "profit": 4,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "e529f0c5-8019-4214-a359-8c3d0d57a51a",
+      "order_number": "TEST-F-00055",
+      "customer_phone": "85255500055",
+      "is_test_data": true,
+      "idempotency_key": "a081a5da-c2ee-4dd3-81a7-f09ac34b6a7b",
+      "order_date": "2026-10-28T12:00:55.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 160,
+      "profit_total": 66,
+      "items_count": 6,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 2
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 1,
+          "unit_price": 15,
+          "subtotal": 15,
+          "cost_price": 16,
+          "profit": -1,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "5fd26d98-18c4-41c1-826d-4cdffad892f6",
+      "order_number": "TEST-F-00056",
+      "customer_phone": "85255500056",
+      "is_test_data": true,
+      "idempotency_key": "520a3a7d-5b69-4a2b-9569-eff597a61369",
+      "order_date": "2026-10-28T12:00:56.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 197,
+      "profit_total": 85,
+      "items_count": 9,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 4,
+          "unit_price": 8,
+          "subtotal": 32,
+          "cost_price": 4,
+          "profit": 16,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 2,
+          "unit_price": 45,
+          "subtotal": 90,
+          "cost_price": 30,
+          "profit": 30,
+          "line_number": 2
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 3,
+          "unit_price": 25,
+          "subtotal": 75,
+          "cost_price": 12,
+          "profit": 39,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "e2c576a2-e2da-48fa-a78c-66ef7d9b1596",
+      "order_number": "TEST-F-00057",
+      "customer_phone": "85255500057",
+      "is_test_data": true,
+      "idempotency_key": "4c2550cd-0fbd-44fe-9d59-d2b5d1ae6485",
+      "order_date": "2026-10-28T12:00:57.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 140,
+      "profit_total": 12,
+      "items_count": 6,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 4,
+          "unit_price": 31,
+          "subtotal": 124,
+          "cost_price": 30,
+          "profit": 4,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "b2ab60d6-1696-4d0f-aabd-6803bee79a11",
+      "order_number": "TEST-F-00058",
+      "customer_phone": "85255500058",
+      "is_test_data": true,
+      "idempotency_key": "791222c0-9e41-4e36-a0fd-920e194df1fd",
+      "order_date": "2026-10-28T12:00:58.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 280,
+      "profit_total": 56,
+      "items_count": 12,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 5,
+          "unit_price": 31,
+          "subtotal": 155,
+          "cost_price": 30,
+          "profit": 5,
+          "line_number": 2
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 5,
+          "unit_price": 15,
+          "subtotal": 75,
+          "cost_price": 10,
+          "profit": 25,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "dc1a69b9-3a32-4414-a93c-5ef85c8b1dcc",
+      "order_number": "TEST-F-00059",
+      "customer_phone": "85255500059",
+      "is_test_data": true,
+      "idempotency_key": "93b54762-573c-48a3-9fe5-b1e94fcc7736",
+      "order_date": "2026-10-28T12:00:59.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 183,
+      "profit_total": 49,
+      "items_count": 10,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 5,
+          "unit_price": 8,
+          "subtotal": 40,
+          "cost_price": 4,
+          "profit": 20,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "2d659859-4c79-49d9-a972-98b82e2bd849",
+      "order_number": "TEST-F-00060",
+      "customer_phone": "85255500060",
+      "is_test_data": true,
+      "idempotency_key": "8180eb97-7812-4814-9214-d9dd5652004f",
+      "order_date": "2026-10-28T12:01:00.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 208,
+      "profit_total": 54,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 1,
+          "unit_price": 15,
+          "subtotal": 15,
+          "cost_price": 16,
+          "profit": -1,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 2
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "c5ce05bf-d443-4a82-adfb-fc1067fda149",
+      "order_number": "TEST-F-00061",
+      "customer_phone": "85255500061",
+      "is_test_data": true,
+      "idempotency_key": "2d17d68e-e7f0-49cc-817e-8e2d819e3115",
+      "order_date": "2026-10-28T12:01:01.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 132,
+      "profit_total": 8,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 1,
+          "unit_price": 8,
+          "subtotal": 8,
+          "cost_price": 4,
+          "profit": 4,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 4,
+          "unit_price": 31,
+          "subtotal": 124,
+          "cost_price": 30,
+          "profit": 4,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "12e4cfc6-a940-45d2-adff-3ca4636e3b16",
+      "order_number": "TEST-F-00062",
+      "customer_phone": "85255500062",
+      "is_test_data": true,
+      "idempotency_key": "79e8f0ad-0f8e-46d6-9c5a-d36497d7f3cc",
+      "order_date": "2026-10-28T12:01:02.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 93,
+      "profit_total": 3,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "54b07925-bfc8-4efd-bec9-1f7ee7428bcb",
+      "order_number": "TEST-F-00063",
+      "customer_phone": "85255500063",
+      "is_test_data": true,
+      "idempotency_key": "052603cd-f5d8-46fc-9e3d-eb725d055e84",
+      "order_date": "2026-10-28T12:01:03.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 24,
+      "profit_total": 12,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "30f76a67-b601-4a80-aa1c-c910eb3ea3a7",
+      "order_number": "TEST-F-00064",
+      "customer_phone": "85255500064",
+      "is_test_data": true,
+      "idempotency_key": "feb4de91-d33f-4174-99c1-ab1bfe6640c2",
+      "order_date": "2026-10-28T12:01:04.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 183,
+      "profit_total": 27,
+      "items_count": 9,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 1,
+          "unit_price": 15,
+          "subtotal": 15,
+          "cost_price": 16,
+          "profit": -1,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 5,
+          "unit_price": 15,
+          "subtotal": 75,
+          "cost_price": 10,
+          "profit": 25,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "14ac6024-3b06-423b-8e94-179907a02c21",
+      "order_number": "TEST-F-00065",
+      "customer_phone": "85255500065",
+      "is_test_data": true,
+      "idempotency_key": "9a078d18-6d86-4599-a297-fed5d94ae495",
+      "order_date": "2026-10-28T12:01:05.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 32,
+      "profit_total": 16,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 4,
+          "unit_price": 8,
+          "subtotal": 32,
+          "cost_price": 4,
+          "profit": 16,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "9e986e89-a55f-4f59-bdb5-fcbae15efb2a",
+      "order_number": "TEST-F-00066",
+      "customer_phone": "85255500066",
+      "is_test_data": true,
+      "idempotency_key": "2b16f951-ecad-4621-a727-15702cd66c91",
+      "order_date": "2026-10-28T12:01:06.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 232,
+      "profit_total": 64,
+      "items_count": 10,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 5,
+          "unit_price": 20,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 40,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 2,
+          "unit_price": 45,
+          "subtotal": 90,
+          "cost_price": 30,
+          "profit": 30,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "279f38fd-f065-4ff1-9aff-d398b64be461",
+      "order_number": "TEST-F-00067",
+      "customer_phone": "85255500067",
+      "is_test_data": true,
+      "idempotency_key": "61248c6f-7a8c-42db-acd8-004141348353",
+      "order_date": "2026-10-28T12:01:07.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 157,
+      "profit_total": 67,
+      "items_count": 10,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 5,
+          "unit_price": 8,
+          "subtotal": 40,
+          "cost_price": 4,
+          "profit": 20,
+          "line_number": 2
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 4,
+          "unit_price": 18,
+          "subtotal": 72,
+          "cost_price": 10,
+          "profit": 32,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "fab39e9b-78b5-4574-a548-41c6f41117c4",
+      "order_number": "TEST-F-00068",
+      "customer_phone": "85255500068",
+      "is_test_data": true,
+      "idempotency_key": "96f7816e-31b0-4e3e-ad66-5933a928a2c2",
+      "order_date": "2026-10-28T12:01:08.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 195,
+      "profit_total": 73,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 2,
+          "unit_price": 45,
+          "subtotal": 90,
+          "cost_price": 30,
+          "profit": 30,
+          "line_number": 2
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 5,
+          "unit_price": 15,
+          "subtotal": 75,
+          "cost_price": 10,
+          "profit": 25,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "b4acac42-8075-4b9c-917c-75481b1c03b9",
+      "order_number": "TEST-F-00069",
+      "customer_phone": "85255500069",
+      "is_test_data": true,
+      "idempotency_key": "fae1a8cb-edf6-4257-a263-3022a397c609",
+      "order_date": "2026-10-28T12:01:09.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 155,
+      "profit_total": 5,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 5,
+          "unit_price": 31,
+          "subtotal": 155,
+          "cost_price": 30,
+          "profit": 5,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "1d6c0186-63dc-458d-b7a9-23e8c1f03177",
+      "order_number": "TEST-F-00070",
+      "customer_phone": "85255500070",
+      "is_test_data": true,
+      "idempotency_key": "1c5fc255-1ab3-42f8-a466-3ca2ba9992d6",
+      "order_date": "2026-10-28T12:01:10.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 154,
+      "profit_total": 76,
+      "items_count": 7,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 3,
+          "unit_price": 18,
+          "subtotal": 54,
+          "cost_price": 10,
+          "profit": 24,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "6c07a982-18fa-46dc-9ae1-82bbf071c7c4",
+      "order_number": "TEST-F-00071",
+      "customer_phone": "85255500071",
+      "is_test_data": true,
+      "idempotency_key": "18d13a91-f119-41d2-ae07-47971d1bf4d5",
+      "order_date": "2026-10-28T12:01:11.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 24,
+      "profit_total": 12,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "cf435079-8642-43af-84ba-2af9f5ecba24",
+      "order_number": "TEST-F-00072",
+      "customer_phone": "85255500072",
+      "is_test_data": true,
+      "idempotency_key": "04e671e6-13a4-461b-a55c-04bbcf31b1b9",
+      "order_date": "2026-10-28T12:01:12.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 255,
+      "profit_total": 57,
+      "items_count": 9,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 5,
+          "unit_price": 31,
+          "subtotal": 155,
+          "cost_price": 30,
+          "profit": 5,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "550fe3f6-6be9-4ac4-a410-ee5fd2f3f048",
+      "order_number": "TEST-F-00073",
+      "customer_phone": "85255500073",
+      "is_test_data": true,
+      "idempotency_key": "4088cd73-d59b-4b18-8adc-b7a135b5a3b4",
+      "order_date": "2026-10-28T12:01:13.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 45,
+      "profit_total": 15,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "4c40222b-ad2c-4c64-bc7f-28bb121a6a26",
+      "order_number": "TEST-F-00074",
+      "customer_phone": "85255500074",
+      "is_test_data": true,
+      "idempotency_key": "3e5876ab-0a44-43c8-8b22-6caa51f146fc",
+      "order_date": "2026-10-28T12:01:14.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 8,
+      "profit_total": 4,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 1,
+          "unit_price": 8,
+          "subtotal": 8,
+          "cost_price": 4,
+          "profit": 4,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "fe31baff-ab74-41e9-af68-5314c5d85d2e",
+      "order_number": "TEST-F-00075",
+      "customer_phone": "85255500075",
+      "is_test_data": true,
+      "idempotency_key": "a35f99c2-afb0-468d-9c34-36572f2e213e",
+      "order_date": "2026-10-28T12:01:15.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 124,
+      "profit_total": 4,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 4,
+          "unit_price": 31,
+          "subtotal": 124,
+          "cost_price": 30,
+          "profit": 4,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "953b15ed-7860-4d0a-8353-2ff471c5405b",
+      "order_number": "TEST-F-00076",
+      "customer_phone": "85255500076",
+      "is_test_data": true,
+      "idempotency_key": "4c37c6d6-05e3-4957-80e2-adb74a7d810e",
+      "order_date": "2026-10-28T12:01:16.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 136,
+      "profit_total": 58,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 5,
+          "unit_price": 20,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 40,
+          "line_number": 2
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 1,
+          "unit_price": 20,
+          "subtotal": 20,
+          "cost_price": 10,
+          "profit": 10,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "bf591254-5f63-4240-91ce-6d739fc4d31f",
+      "order_number": "TEST-F-00077",
+      "customer_phone": "85255500077",
+      "is_test_data": true,
+      "idempotency_key": "e89c93f2-d000-4a3c-8e91-7e69a7d67c5c",
+      "order_date": "2026-10-28T12:01:17.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 54,
+      "profit_total": 24,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 3,
+          "unit_price": 18,
+          "subtotal": 54,
+          "cost_price": 10,
+          "profit": 24,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "9afe4442-caf5-4ebb-a7d2-4eee4486c212",
+      "order_number": "TEST-F-00078",
+      "customer_phone": "85255500078",
+      "is_test_data": true,
+      "idempotency_key": "767ca78d-6a64-47ba-8b19-383b485789c7",
+      "order_date": "2026-10-28T12:01:18.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 36,
+      "profit_total": 18,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 1,
+          "unit_price": 20,
+          "subtotal": 20,
+          "cost_price": 10,
+          "profit": 10,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 2,
+          "unit_price": 8,
+          "subtotal": 16,
+          "cost_price": 4,
+          "profit": 8,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "8de762d2-ff6d-418d-a73e-73330605b411",
+      "order_number": "TEST-F-00079",
+      "customer_phone": "85255500079",
+      "is_test_data": true,
+      "idempotency_key": "f573c4f3-bb9b-4cb9-9e52-d31b242717f7",
+      "order_date": "2026-10-28T12:01:19.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 75,
+      "profit_total": 33,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "5afac1eb-1367-49bd-811c-4056aff7874d",
+      "order_number": "TEST-F-00080",
+      "customer_phone": "85255500080",
+      "is_test_data": true,
+      "idempotency_key": "a3d6764a-aac8-4b84-a4ae-7f94c159cd62",
+      "order_date": "2026-10-28T12:01:20.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 30,
+      "profit_total": 18,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "4e43a1d0-22c3-4ef5-8f03-668918361b3d",
+      "order_number": "TEST-F-00081",
+      "customer_phone": "85255500081",
+      "is_test_data": true,
+      "idempotency_key": "0299edc0-69f0-45a2-b3f4-e810ddcfe24d",
+      "order_date": "2026-10-28T12:01:21.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 36,
+      "profit_total": 16,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 2,
+          "unit_price": 18,
+          "subtotal": 36,
+          "cost_price": 10,
+          "profit": 16,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "19a5e954-82fb-4608-9415-74793715e0ef",
+      "order_number": "TEST-F-00082",
+      "customer_phone": "85255500082",
+      "is_test_data": true,
+      "idempotency_key": "4fe99c7f-1f2c-4ae3-9a3f-ba8773c21c00",
+      "order_date": "2026-10-28T12:01:22.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 100,
+      "profit_total": 52,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "446be9d9-f933-489c-b2a3-79ffa446f731",
+      "order_number": "TEST-F-00083",
+      "customer_phone": "85255500083",
+      "is_test_data": true,
+      "idempotency_key": "3186a177-c6f0-48d4-ab7c-cb1765cda858",
+      "order_date": "2026-10-28T12:01:23.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 100,
+      "profit_total": 52,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "a5ab3ada-ff95-4704-97a6-e83767b7aac1",
+      "order_number": "TEST-F-00084",
+      "customer_phone": "85255500084",
+      "is_test_data": true,
+      "idempotency_key": "65bab540-8c68-485e-92f4-3ffd51375618",
+      "order_date": "2026-10-28T12:01:24.000Z",
+      "status": "completed",
+      "status_history": [
+        "shipped",
+        "completed"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 175,
+      "profit_total": 33,
+      "items_count": 11,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 5,
+          "unit_price": 14,
+          "subtotal": 70,
+          "cost_price": 16,
+          "profit": -10,
+          "line_number": 2
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 5,
+          "unit_price": 15,
+          "subtotal": 75,
+          "cost_price": 10,
+          "profit": 25,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "918fdf3c-45e8-44d6-9f86-955b0140c791",
+      "order_number": "TEST-F-00085",
+      "customer_phone": "85255500085",
+      "is_test_data": true,
+      "idempotency_key": "6f4911e8-645a-4c9c-a2a3-1a8b045c5f29",
+      "order_date": "2026-10-28T12:01:25.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 138,
+      "profit_total": 20,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 2
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 1,
+          "unit_price": 15,
+          "subtotal": 15,
+          "cost_price": 16,
+          "profit": -1,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "bc22ee47-5d6a-4c86-ac65-b3caf517aa73",
+      "order_number": "TEST-F-00086",
+      "customer_phone": "85255500086",
+      "is_test_data": true,
+      "idempotency_key": "8ed81a99-286d-4d3f-a5b4-b4a9b86e493c",
+      "order_date": "2026-10-28T12:01:26.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 56,
+      "profit_total": -8,
+      "items_count": 4,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 4,
+          "unit_price": 14,
+          "subtotal": 56,
+          "cost_price": 16,
+          "profit": -8,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "ae9a92b6-be5c-4d68-841d-a96263fd25f3",
+      "order_number": "TEST-F-00087",
+      "customer_phone": "85255500087",
+      "is_test_data": true,
+      "idempotency_key": "31ba985b-e3cb-4fce-bc81-734bb2c0e453",
+      "order_date": "2026-10-28T12:01:27.000Z",
+      "status": "paid",
+      "status_history": [
+        "pending",
+        "paid"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 155,
+      "profit_total": 5,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 5,
+          "unit_price": 31,
+          "subtotal": 155,
+          "cost_price": 30,
+          "profit": 5,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "0bb41c69-de49-4dc8-84bd-aee5fa539d12",
+      "order_number": "TEST-F-00088",
+      "customer_phone": "85255500088",
+      "is_test_data": true,
+      "idempotency_key": "872c40f2-710d-4caf-8012-5955934900b4",
+      "order_date": "2026-10-28T12:01:28.000Z",
+      "status": "shipped",
+      "status_history": [
+        "paid",
+        "shipped"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "已出貨",
+      "shipping_method": "順豐",
+      "total_amount": 53,
+      "profit_total": 19,
+      "items_count": 2,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 1
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 1,
+          "unit_price": 8,
+          "subtotal": 8,
+          "cost_price": 4,
+          "profit": 4,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "53d24039-8b3b-424d-b67b-87cf6744c529",
+      "order_number": "TEST-F-00089",
+      "customer_phone": "85255500089",
+      "is_test_data": true,
+      "idempotency_key": "f9c29e87-dbed-4026-a8a3-23793081219c",
+      "order_date": "2026-10-28T12:01:29.000Z",
+      "status": "pending",
+      "status_history": [
+        "pending"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 45,
+      "profit_total": 15,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "d3360045-acf7-4f47-b289-fd0fc21317d9",
+      "order_number": "TEST-F-00090",
+      "customer_phone": "85255500090",
+      "is_test_data": true,
+      "idempotency_key": "509ef3aa-bc8f-461d-ae2e-d8450deaac35",
+      "order_date": "2026-10-28T12:01:30.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 30,
+      "profit_total": 18,
+      "items_count": 1,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 1,
+          "unit_price": 30,
+          "subtotal": 30,
+          "cost_price": 12,
+          "profit": 18,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "54e6e92c-1084-406e-9c05-ad5460045d9b",
+      "order_number": "TEST-F-00091",
+      "customer_phone": "85255500091",
+      "is_test_data": true,
+      "idempotency_key": "4923e236-17f3-4855-a9e6-93f11f892082",
+      "order_date": "2026-10-28T12:01:31.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 252,
+      "profit_total": 52,
+      "items_count": 10,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 2
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 4,
+          "unit_price": 31,
+          "subtotal": 124,
+          "cost_price": 30,
+          "profit": 4,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "3fc5dbcc-491f-4d9f-9e8f-d710ae056931",
+      "order_number": "TEST-F-00092",
+      "customer_phone": "85255500092",
+      "is_test_data": true,
+      "idempotency_key": "7697dde3-64a1-4c6f-9fe7-f5878299948c",
+      "order_date": "2026-10-28T12:01:32.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 95,
+      "profit_total": 41,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 1,
+          "unit_price": 45,
+          "subtotal": 45,
+          "cost_price": 30,
+          "profit": 15,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "bf33238f-d566-4170-bc76-65210d633a94",
+      "order_number": "TEST-F-00093",
+      "customer_phone": "85255500093",
+      "is_test_data": true,
+      "idempotency_key": "7ebb25d3-c67f-46e7-bc5d-ab61c19b926a",
+      "order_date": "2026-10-28T12:01:33.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 114,
+      "profit_total": 26,
+      "items_count": 7,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 1
+        },
+        {
+          "product_id": "4268",
+          "product_name": "範例貼紙 A",
+          "quantity": 4,
+          "unit_price": 18,
+          "subtotal": 72,
+          "cost_price": 10,
+          "profit": 32,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "c2b2bbc2-756b-4f90-9427-a4ec0f8a654a",
+      "order_number": "TEST-F-00094",
+      "customer_phone": "85255500094",
+      "is_test_data": true,
+      "idempotency_key": "5b1a73a0-152b-4153-81f0-e116422cfa3b",
+      "order_date": "2026-10-28T12:01:34.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 74,
+      "profit_total": 38,
+      "items_count": 5,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "a860f833-c180-4ef3-89c5-6ddecef3715c",
+      "order_number": "TEST-F-00095",
+      "customer_phone": "85255500095",
+      "is_test_data": true,
+      "idempotency_key": "fdceda3c-19c6-4e6d-b37a-4dfe60eef442",
+      "order_date": "2026-10-28T12:01:35.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 142,
+      "profit_total": 34,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 1
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 5,
+          "unit_price": 20,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 40,
+          "line_number": 2
+        }
+      ]
+    },
+    {
+      "order_id": "9bcf7640-8e6e-4aa3-bc75-eef6cdb6244f",
+      "order_number": "TEST-F-00096",
+      "customer_phone": "85255500096",
+      "is_test_data": true,
+      "idempotency_key": "f2582db5-8a48-4f33-85de-910883e854c9",
+      "order_date": "2026-10-28T12:01:36.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 24,
+      "profit_total": 12,
+      "items_count": 3,
+      "items": [
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 1
+        }
+      ]
+    },
+    {
+      "order_id": "1409920e-9bb1-48f5-ba34-859578445a9b",
+      "order_number": "TEST-F-00097",
+      "customer_phone": "85255500097",
+      "is_test_data": true,
+      "idempotency_key": "7a7af45a-a3e4-4c99-8339-8b7ffd8372b4",
+      "order_date": "2026-10-28T12:01:37.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "pending",
+        "cancelled"
+      ],
+      "payment_status": "未付款",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 167,
+      "profit_total": 41,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 2,
+          "unit_price": 25,
+          "subtotal": 50,
+          "cost_price": 12,
+          "profit": 26,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 2
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "e19f19d2-e62a-4643-ae11-831c2e486322",
+      "order_number": "TEST-F-00098",
+      "customer_phone": "85255500098",
+      "is_test_data": true,
+      "idempotency_key": "b9352792-def3-44be-92b3-7521b7cd3bf8",
+      "order_date": "2026-10-28T12:01:38.000Z",
+      "status": "cancelled",
+      "status_history": [
+        "paid",
+        "cancelled"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "順豐",
+      "total_amount": 218,
+      "profit_total": 78,
+      "items_count": 8,
+      "items": [
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 2,
+          "unit_price": 14,
+          "subtotal": 28,
+          "cost_price": 16,
+          "profit": -4,
+          "line_number": 1
+        },
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 2,
+          "unit_price": 45,
+          "subtotal": 90,
+          "cost_price": 30,
+          "profit": 30,
+          "line_number": 2
+        },
+        {
+          "product_id": "4269",
+          "product_name": "範例收納袋 B",
+          "quantity": 4,
+          "unit_price": 25,
+          "subtotal": 100,
+          "cost_price": 12,
+          "profit": 52,
+          "line_number": 3
+        }
+      ]
+    },
+    {
+      "order_id": "811b2de0-54c1-4d10-bb26-7bd13821fc1e",
+      "order_number": "TEST-F-00099",
+      "customer_phone": "85255500099",
+      "is_test_data": true,
+      "idempotency_key": "9a498e9f-3650-40e9-95ca-f9054d3cfef3",
+      "order_date": "2026-10-28T12:01:39.000Z",
+      "status": "picked_up",
+      "status_history": [
+        "paid",
+        "picked_up"
+      ],
+      "payment_status": "已付清",
+      "shipping_status": "待到貨",
+      "shipping_method": "自取",
+      "total_amount": 159,
+      "profit_total": 9,
+      "items_count": 9,
+      "items": [
+        {
+          "product_id": "4272",
+          "product_name": "範例收納盒 E",
+          "quantity": 3,
+          "unit_price": 31,
+          "subtotal": 93,
+          "cost_price": 30,
+          "profit": 3,
+          "line_number": 1
+        },
+        {
+          "product_id": "4270",
+          "product_name": "範例旅行杯 C",
+          "quantity": 3,
+          "unit_price": 14,
+          "subtotal": 42,
+          "cost_price": 16,
+          "profit": -6,
+          "line_number": 2
+        },
+        {
+          "product_id": "4271",
+          "product_name": "範例掛飾 D",
+          "quantity": 3,
+          "unit_price": 8,
+          "subtotal": 24,
+          "cost_price": 4,
+          "profit": 12,
+          "line_number": 3
+        }
+      ]
+    }
+  ]
+}

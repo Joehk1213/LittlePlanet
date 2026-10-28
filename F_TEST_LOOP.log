@@ -1,0 +1,1221 @@
+
+> littleplanet@1.0.0 test
+> node --test
+
+✔ admin order list normalizes phone, applies filters and returns profit and item count (233.9181ms)
+✔ admin order list reports unknown product costs as unknown profit (84.5934ms)
+✔ admin order status transition uses service-role RPC and validates order UUID (138.1668ms)
+✔ admin order status rejects illegal transitions with 409 (38.7516ms)
+✔ admin order status payment guard is returned as conflict without changing payment fields (20.8975ms)
+✔ admin order status update requires an authorized session (65.1358ms)
+✔ admin order status rejects unsupported status values before database access (38.6476ms)
+✔ admin order status reports missing orders as not found (13.6198ms)
+✔ admin order status reports an unapplied RPC migration as unavailable (88.0745ms)
+✔ admin order status rejects malformed RPC results (40.6057ms)
+✔ admin orders APIs require an orders admin session and service-role availability (32.8766ms)
+✔ admin order filters reject malformed phone, status, date and page size (16.9563ms)
+✔ admin order frontend service uses fetch-only API calls (14.0289ms)
+✔ admin order status migration extends statuses, calculates profit and locks transitions (2.2462ms)
+✔ product management endpoints accept the products scope without a browser bearer token (350.1607ms)
+✔ session-only authorization checks the orders scope and rejects a bearer token (66.494ms)
+✔ admin login issues an HttpOnly scoped cookie and session authorizes same-origin writes (112.7171ms)
+✔ admin login rejects bad credentials and cross-origin login requests (32.6091ms)
+✔ session cookies reject tampering and do not grant other credentials scopes (93.7118ms)
+✔ logout expires the HttpOnly session cookie (14.696ms)
+✔ analytics summary selects product names from the existing products.name column (493.4893ms)
+✔ profit analytics reports revenue, per-product profit, margin and cost coverage (50.112ms)
+✔ profit analytics treats null, blank and omitted costs as zero (15.1791ms)
+✔ profit analytics treats malformed product amounts as zero (28.099ms)
+取得商品成本與利潤分析 Supabase 查詢失敗： {
+  query: '商品成本報表查詢',
+  code: '42703',
+  message: 'column products.cost_price does not exist',
+  details: 'Missing column: products.cost_price',
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column products.cost_price does not exist',
+    details: 'Missing column: products.cost_price'
+  }
+}
+✔ profit analytics reports a missing cost column as an unapplied migration (17.5247ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: '42703',
+  message: 'column order_items.quantity does not exist',
+  details: 'Missing column: order_items.quantity',
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column order_items.quantity does not exist',
+    details: 'Missing column: order_items.quantity'
+  }
+}
+✔ profit analytics safely degrades when an order item column is missing (58.2019ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: 'PGRST205',
+  message: "Could not find the table 'public.order_items' in the schema cache",
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: 'PGRST205',
+    message: "Could not find the table 'public.order_items' in the schema cache"
+  }
+}
+✔ profit analytics safely degrades when the order_items table is unavailable (13.6229ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: 'PGRST303',
+  message: 'JWT issued at future',
+  details: null,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'PGRST303', message: 'JWT issued at future', details: null }
+}
+✔ profit analytics safely degrades when order_items encounters JWT clock skew or other errors (12.3284ms)
+✔ profit analytics skips order_items entirely when details are not enabled (17.3989ms)
+✔ table fallback reports live orders and UUID-keyed product totals (35.8229ms)
+✔ analytics summary requires an analytics session and aggregates bounded dashboard data (58.0256ms)
+✔ analytics summary treats malformed order amounts as zero and still counts orders (22.9332ms)
+✔ analytics summary batches large order ID filters to avoid oversized Supabase requests (77.8189ms)
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: 'XX000',
+  message: 'private detail',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000', message: 'private detail' }
+}
+✔ analytics summary returns structured Supabase errors without leaking details (10.5161ms)
+✔ analytics reports missing tables and columns as unapplied schema migrations (21.346ms)
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: 'PGRST205',
+  message: "Could not find the table 'public.orders' in the schema cache",
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: 'PGRST205',
+    message: "Could not find the table 'public.orders' in the schema cache"
+  }
+}
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: '42703',
+  message: 'column products.cost_price does not exist',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column products.cost_price does not exist'
+  }
+}
+✔ analytics report responses are cached by endpoint and query parameters (31.1785ms)
+✔ sales trend returns daily Hong Kong totals and fills dates without orders (19.9038ms)
+取得每日銷售趨勢 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,total_amount,order_date)',
+  code: 'XX000',
+  message: 'Supabase 查詢失敗：orders.select(order_id,total_amount,order_date)',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000' }
+}
+✔ sales trend validates dates, requires admin auth and surfaces database errors (26.3343ms)
+✔ revenue overview validates date range and returns RPC report (29.867ms)
+✔ top product ranking validates its limit and returns ordered rows (29.1232ms)
+✔ financial reconciliation validates filters and pagination (42.6005ms)
+✔ admin token and service role are enforced before report queries (17.5643ms)
+取得營收總覽 Supabase RPC 失敗： {
+  query: undefined,
+  code: 'PGRST202',
+  message: undefined,
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'PGRST202' }
+}
+取得營收總覽 Supabase RPC 失敗： {
+  query: undefined,
+  code: 'XX000',
+  message: undefined,
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000' }
+}
+營收總覽 RPC 回傳格式無效： []
+✔ Supabase errors and malformed RPC responses are explicit (31.9866ms)
+✔ checkout migration adds phone-scoped idempotency and serializes repeated requests (71.5633ms)
+✔ checkout keeps inventory locking and deadline checks in the existing transaction (0.4402ms)
+✔ idempotent checkout RPC remains service-role-only (0.5996ms)
+✔ checkout client sends phone-based bigint items to the backend without Supabase access (67.7267ms)
+✔ checkout contact memory restores saved details only for the matching phone (8.8984ms)
+✔ checkout reuses a saved idempotency key for retries and rotates after success (12.2841ms)
+✔ checkout fallback idempotency key remains UUID v4 compatible (2.9646ms)
+﹣ local anon Supabase cannot select orders or order_items (0.3207ms) # SKIP
+✔ guest single-order lookup requires both matching phone and official order number (484.7556ms)
+✔ guest lookup rejects either missing credential and UUID-only lookups (118.6712ms)
+✔ guest lookup service remains disabled when read access is unavailable (20.8867ms)
+✔ member session requires phone and matching existing order proof; history remains private and paginated (90.575ms)
+✔ member cookies reject tampering and member session configuration is required (47.5863ms)
+✔ customer list requires admin scope and returns search plus order aggregates (427.3729ms)
+管理員客戶列表查詢失敗： { code: 'XX000', message: 'database unavailable' }
+✔ customer list validates pagination and reports Supabase failures (72.9644ms)
+✔ credit status update validates input, persists allowed values, and handles missing customers (100.8484ms)
+更新客戶信用評級失敗： { code: 'XX000', message: 'database unavailable' }
+✔ credit status update returns a structured error for database failures (18.2795ms)
+✔ customer CRM routes accept an authenticated customers admin session (37.3135ms)
+更新出貨資料 Supabase RPC 失敗： { code: '55000', message: '訂單必須已付清才可出貨。' }
+✔ E2E business flow: products, checkout rollback, reminders, inbound, shipping, customer lookup, analytics (492.2344ms)
+✔ checkout applies stored quantity tiers and rejects expired preorder deadlines (56.1365ms)
+✔ checkout reports unapplied database migrations as service unavailable (14.3541ms)
+✔ WhatsApp webhook verifies Meta challenge and signature before processing messages (35.2094ms)
+✔ WhatsApp payment reports remain pending manual verification and are idempotent (26.2726ms)
+處理 WhatsApp webhook 時發生錯誤： Error: WhatsApp 訂單查詢資料庫操作失敗。
+    at getOrderStatus (C:\Project\LittlePlanet\src\routes\webhooks.js:155:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async handleIncomingMessage (C:\Project\LittlePlanet\src\routes\webhooks.js:662:21)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ WhatsApp webhook catches Supabase failures and accepts status callbacks without outbound config (33.7742ms)
+✔ central handler returns a structured error for rejected async route handlers (248.3255ms)
+✔ central handler formats malformed JSON and unknown API routes consistently (112.3471ms)
+✔ central handler returns safe client errors without exposing parser details (41.7899ms)
+✔ central handler sanitizes Supabase error details and service credentials (36.8532ms)
+✔ expiring stock alerts include all expired and next-30-day batches with remaining stock (287.2902ms)
+讀取近效期庫存批次時發生 Supabase 錯誤： { message: 'private database detail' }
+✔ expiring stock alerts require inbound authorization and report database errors (72.9817ms)
+✔ CSV parser preserves quoted commas, escaped quotes and multiline fields (5.8774ms)
+✔ product validation enforces schema-compatible tiers and nonnegative stock (3.7584ms)
+✔ CSV validator reports duplicates, invalid rows, losses and missing images (23.2757ms)
+✔ image reconciliation separates missing local files, remote URLs and Docker image metadata (20.0782ms)
+✔ preorder preview uses current Chinese status values and writes a comment-only draft (28.9143ms)
+✔ test data factory produces 100 isolated orders with normalized fake phones and reconciled totals (45.6571ms)
+{"level":30,"time":1793216081299,"pid":672,"hostname":"JOE-SERVER","req":{"id":1,"method":"GET","url":"/health"},"res":{"statusCode":200},"responseTime":48,"msg":"request completed"}
+{"level":30,"time":1793216081360,"pid":672,"hostname":"JOE-SERVER","req":{"id":2,"method":"GET","url":"/services/checkout.js"},"res":{"statusCode":200},"responseTime":12,"msg":"request completed"}
+{"level":30,"time":1793216081369,"pid":672,"hostname":"JOE-SERVER","req":{"id":3,"method":"GET","url":"/services/adminOrders.js"},"res":{"statusCode":200},"responseTime":3,"msg":"request completed"}
+{"level":30,"time":1793216081379,"pid":672,"hostname":"JOE-SERVER","req":{"id":4,"method":"GET","url":"/api/admin/orders"},"res":{"statusCode":401},"responseTime":6,"msg":"request completed"}
+✔ GET /health returns a cache-disabled liveness response (255.9102ms)
+{"level":50,"time":1793216081486,"pid":672,"hostname":"JOE-SERVER","req":{"id":5,"method":"POST","url":"/api/orders"},"code":"INVALID_JSON","msg":"Request failed"}
+{"level":30,"time":1793216081487,"pid":672,"hostname":"JOE-SERVER","req":{"id":5,"method":"POST","url":"/api/orders"},"res":{"statusCode":400},"responseTime":44,"msg":"request completed"}
+✔ production API errors do not return stack traces or database internals (116.0007ms)
+✔ inbound receipt requires authorized inbound scope and service-role writes (288.9214ms)
+✔ a valid inbound session records a receipt with a bigint-range product ID (24.7731ms)
+✔ receipt validates quantities and date-only best-before values before calling the RPC (146.0325ms)
+記錄入庫 Supabase RPC 失敗： { code: 'XX000', message: 'transaction failed' }
+✔ receipt sends the optional date to the atomic receipt RPC and handles database failures (70.1405ms)
+讀取商品收貨批次時發生 Supabase 錯誤： { code: '42P01' }
+✔ batch list returns date-only batch data and reports Supabase errors (67.1898ms)
+✔ batch date update changes only the selected batch date and supports clearing it (19.0116ms)
+✔ batch date update rejects unauthorized, invalid, past, and non-date-only updates before writing (82.3769ms)
+更新商品批次最佳使用日期時發生 Supabase 錯誤： { code: 'XX000', message: 'database unavailable' }
+更新批次最佳使用日期時發生未預期錯誤： Error: Simulated batch update exception.
+    at Object.maybeSingle (C:\Project\LittlePlanet\tests\inbound.test.js:84:19)
+    at C:\Project\LittlePlanet\src\routes\inbound.js:368:10
+    at Layer.handle [as handle_request] (C:\Project\LittlePlanet\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Project\LittlePlanet\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Project\LittlePlanet\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Project\LittlePlanet\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:376:14)
+    at router.process_params (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:421:3)
+✔ batch date update returns not-found and structured database failures without partial changes (86.9874ms)
+✔ admin order APIs require an authorized orders session (247.0912ms)
+✔ admin order list returns bounded pages with phone, items, price, date and status (102.5565ms)
+✔ admin order list returns signed private payment-proof previews without exposing storage paths (28.3599ms)
+✔ admin order status update validates status and persists the allowed value (66.7823ms)
+✔ checkout merges duplicate products and returns the official order number, not its UUID (371.4352ms)
+✔ checkout stores a human-readable order number when the RPC does not return one (113.8479ms)
+✔ checkout validates pickup selection and passes self-pickup details to the migration RPC (90.4722ms)
+✔ phone checkout uses the RPC tier price instead of a client-supplied price (50.0156ms)
+✔ checkout replaces a UUID mistakenly stored as order_number before responding (15.4786ms)
+✔ stock conflict is surfaced without a success-shaped fallback (36.1148ms)
+✔ invalid checkout data and missing service role never call the RPC (119.1368ms)
+✔ checkout replays the same order for one phone and key, but creates a new order for a new key (27.2218ms)
+✔ checkout requires a UUID v4 key and sanitizes deadline and duplicate errors (38.6064ms)
+✔ payment proof upload requires both matching order number and phone and stores a private object reference (282.4721ms)
+✔ payment proof upload validates image bytes, MIME, size and protects verified proofs (147.0354ms)
+儲存付款憑證失敗： { message: 'private details' }
+✔ payment proof upload reports storage failures without updating the order (15.9154ms)
+✔ admin payment proof review requires orders scope and only accepts verified or rejected (67.8688ms)
+✔ products endpoint reads stock and retains category and status filtering (313.9645ms)
+✔ products endpoint returns requested product IDs and public tier pricing fields (54.252ms)
+✔ product administration rejects invalid cost prices (100.3723ms)
+✔ product image upload requires admin access and validates bytes before Storage upload (69.5836ms)
+✔ products endpoint returns only a date-only public summary for multiple batches when requested (24.9778ms)
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'PGRST205', message: 'table unavailable' }
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'PGRST204', message: 'column unavailable' }
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'XX000', message: 'database unavailable' }
+✔ products endpoint reports errors when the public batch-date summary cannot be read (51.8207ms)
+✔ products endpoint rejects an invalid best-before summary option before database access (17.6674ms)
+✔ products endpoint searches, sorts and paginates validated query parameters (72.9326ms)
+✔ products endpoint rejects invalid search, sort, and pagination parameters before database access (75.1264ms)
+✔ inventory alerts require admin access and use validated restock thresholds (14.6203ms)
+✔ inventory adjustments validate reasons and persist a transactional audit RPC (49.3491ms)
+讀取庫存調整記錄時發生 Supabase 錯誤： {
+  code: 'PGRST205',
+  message: "Could not find the table 'public.inventory_adjustments' in the schema cache"
+}
+✔ inventory adjustment reports a missing table as an unapplied migration (27.2803ms)
+✔ product create and edit endpoints require admin access and persist validated fields (21.481ms)
+✔ product edit preserves UUID IDs when updating batch expiry data (11.8297ms)
+新增產品時發生 Supabase 錯誤： { code: 'XX000' }
+✔ product create and edit validate input and report database errors (89.1946ms)
+✔ product deletion requires admin authorization and returns the deleted product ID (20.3714ms)
+✔ stock update requires admin authorization and service role, then returns persisted stock (17.0199ms)
+✔ stock update accepts UUID product IDs (14.705ms)
+✔ stock update validates product ID and stock without calling Supabase (53.4201ms)
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'PGRST204' }
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'XX000' }
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'P0002', message: 'missing' }
+✔ stock update surfaces missing migration, missing product and unexpected Supabase errors (47.2286ms)
+✔ stock update fails closed if service role or admin token is unavailable (58.7637ms)
+✔ product category endpoints trim names, reuse case-insensitive duplicates, and report database failures (55.9126ms)
+✔ product create and edit persist only registered, trimmed category names (26.8796ms)
+✔ storefront web app manifest declares installable LittlePlanet app metadata and an existing icon (5.1877ms)
+✔ service worker parses and explicitly avoids caching API responses (1.5378ms)
+✔ 提醒在截單前剛好 24 小時時成功發送並更新狀態 (359.5528ms)
+✔ 截單時間超出 24 小時窗口時不會發送提醒 (34.7987ms)
+✔ 成功發送後重跑不會重複發送同一商品提醒 (45.045ms)
+執行截單提醒失敗： { code: 'XX000', message: 'private database detail' }
+✔ Supabase 查詢失敗時回傳標準 JSON 錯誤格式 (36.2301ms)
+✔ public product review endpoint returns rating summary without customer phone numbers (293.4645ms)
+✔ public review endpoint excludes pending and rejected reviews (37.5208ms)
+✔ public rating summary endpoint validates IDs and returns grouped approved-review data (100.2794ms)
+✔ order tracking review requires matching phone, official order number and purchased product (87.0092ms)
+✔ member can review a purchased product with a valid session and same-origin request (41.871ms)
+✔ review submission rejects missing member session and malformed ratings (41.1244ms)
+✔ review submission requires proof the member purchased that product (24.3804ms)
+✔ admin review list and delete require reviews scope authorization (39.6743ms)
+✔ real admin sessions grant review moderation only to the reviews scope (25.5195ms)
+讀取商品評價失敗： { code: 'XX000', message: 'failure' }
+✔ database RPC errors use the standard structured error response (16.9417ms)
+✔ API protection rate limits requests and returns retry metadata (310.504ms)
+✔ API CORS allows same-origin and configured origins, rejects others (65.9355ms)
+✔ API CORS rejects unconfigured development and lookalike origins (17.9084ms)
+✔ sensitive checkout limiter returns a structured 429 response (372.0197ms)
+✔ customer review limiter returns the standard structured 429 response (40.4462ms)
+✔ wishlist read and write limiters return structured 429 responses (26.2087ms)
+✔ read-only table fallback returns order and product pick lists but blocks shipment writes (273.4031ms)
+✔ pick list supports order and product grouping and validates group_by (48.3894ms)
+▶ shipping updates atomically and sends a WhatsApp notification
+  ✔ bulk tracking imports CSV using order numbers and processes notification status (47.5452ms)
+  ✔ bulk tracking rejects duplicate rows and invalid headers before database access (26.2014ms)
+✔ shipping updates atomically and sends a WhatsApp notification (75.5312ms)
+✔ bulk tracking accepts an Excel workbook with localized column headings (65.1812ms)
+✔ shipping route accepts UUID order IDs used by the production database (11.6275ms)
+呼叫出貨通知 claim RPC 時發生錯誤： {
+  orderId: '31',
+  error: Error: claim_shipping_notification unavailable
+      at Object.rpc (C:\Project\LittlePlanet\tests\shipping.test.js:417:17)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:332:37)
+      at C:\Project\LittlePlanet\src\routes\shipping.js:650:34
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+呼叫出貨通知 finish RPC 時發生錯誤： {
+  orderId: '31',
+  error: Error: finish_shipping_notification unavailable
+      at Object.rpc (C:\Project\LittlePlanet\tests\shipping.test.js:417:17)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:409:43)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async C:\Project\LittlePlanet\src\routes\shipping.js:650:28
+}
+✔ shipping notification RPC exceptions do not hide a completed shipment (24.7125ms)
+WhatsApp 出貨通知發送失敗： {
+  orderId: '30',
+  error: Error: WhatsApp unavailable
+      at sendWhatsApp (C:\Project\LittlePlanet\tests\shipping.test.js:478:15)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:398:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async C:\Project\LittlePlanet\src\routes\shipping.js:650:28
+}
+✔ WhatsApp failure remains explicit and can be retried (18.1282ms)
+✔ admin token, service role, and shipment input are enforced (80.3867ms)
+取得執貨清單 Supabase RPC 失敗： { code: 'PGRST202' }
+取得執貨清單 Supabase RPC 失敗： { code: 'XX000' }
+執貨清單 RPC 回傳格式無效： { not: 'an array' }
+✔ RPC errors and unexpected pick-list payloads are not returned as success (49.0796ms)
+✔ checkout requires a WhatsApp contact number before database operations (37.8482ms)
+✔ admin SOP generator is limited to product managers and supplies pricing, cutoff, upload and preview controls (11.8873ms)
+✔ storefront includes instant keyword search, urgency badges and accessible cart interactions (32.4367ms)
+✔ admin uses timed toasts and table skeletons during order and customer loads (8.5609ms)
+Error adding product: [TypeError: fetch failed] {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1430:18)
+      at afterConnectMultiple (node:net:2099:7) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+✔ tests\test.js (439.0229ms)
+✔ 有效落單內容只建立待確認意圖，不會即時扣庫存或建立訂單 (304.154ms)
+✔ 未知商品不建立待確認意圖或訂單並回覆錯誤提示 (24.1327ms)
+✔ 相同來源訊息重送只建立一個意圖，並重用相同確認碼 (30.5071ms)
+✔ 確認待確認意圖後才建立未付款訂單，重送確認不會重複建單 (29.4187ms)
+✔ WhatsApp image receipts require order-number caption and matching sender phone (276.5862ms)
+✔ valid receipt is stored privately, forwarded internally and deduplicated without marking payment paid (46.066ms)
+處理 WhatsApp webhook 時發生錯誤： Error: 付款憑證圖片內容與檔案格式不符。
+    at handlePaymentProofImage (C:\Project\LittlePlanet\src\routes\webhooks.js:307:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ invalid image bytes are rejected and failed processing remains retryable (16.5908ms)
+轉發付款憑證至內部收件人失敗： Error: simulated internal notification failure
+    at sendWhatsAppImage (C:\Project\LittlePlanet\tests\webhook-payment-proofs.test.js:170:39)
+    at handlePaymentProofImage (C:\Project\LittlePlanet\src\routes\webhooks.js:356:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ receipt forwarding failure is recorded while the private proof remains pending review (13.1571ms)
+✔ returns no sender when WhatsApp Cloud API is not configured (2.2033ms)
+✔ rejects partial or malformed WhatsApp Cloud API configuration (1.1082ms)
+✔ sends a text message using the configured Cloud API and confirms delivery (6.4516ms)
+✔ rejects invalid recipient, empty text, and provider failures explicitly (3.7571ms)
+✔ downloads only allowlisted WhatsApp media URLs and enforces the image-size limit (105.7615ms)
+✔ uploads and sends a WhatsApp image with the provided caption (6.897ms)
+✔ parses a product code with Chinese variant text and compact quantity (3.9307ms)
+✔ normalizes case, whitespace, full-width characters and multiple items (1.2743ms)
+✔ rejects an unknown product code without producing order items (5.9582ms)
+▶ rejects malformed entries and non-positive quantities
+  ✔ malformed syntax (0.4758ms)
+  ✔ zero quantity (0.4405ms)
+  ✔ quantity above the checkout limit (0.431ms)
+✔ rejects malformed entries and non-positive quantities (4.3228ms)
+▶ rejects repeated or ambiguous product codes
+  ✔ duplicate item in a message (0.7773ms)
+  ✔ duplicate product code in the catalog (0.5257ms)
+✔ rejects repeated or ambiguous product codes (2.9709ms)
+✔ rejects unavailable products and invalid parser inputs explicitly (4.3045ms)
+✔ wishlist endpoints require a member session and return only the current member data (204.0366ms)
+✔ wishlist creation validates same-origin requests and product identifiers (53.767ms)
+✔ member adds and removes a wishlist item without affecting another member (24.0934ms)
+讀取會員收藏清單失敗： { code: 'XX000', message: 'database unavailable' }
+✔ wishlist database failures return a structured error response (11.1857ms)
+ℹ tests 196
+ℹ suites 0
+ℹ pass 195
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 5959.9344
+
+> littleplanet@1.0.0 test
+> node --test
+
+✔ admin order list normalizes phone, applies filters and returns profit and item count (207.4888ms)
+✔ admin order list reports unknown product costs as unknown profit (52.4723ms)
+✔ admin order status transition uses service-role RPC and validates order UUID (67.3541ms)
+✔ admin order status rejects illegal transitions with 409 (76.8375ms)
+✔ admin order status payment guard is returned as conflict without changing payment fields (22.4674ms)
+✔ admin order status update requires an authorized session (16.6963ms)
+✔ admin order status rejects unsupported status values before database access (14.6464ms)
+✔ admin order status reports missing orders as not found (12.4323ms)
+✔ admin order status reports an unapplied RPC migration as unavailable (83.4789ms)
+✔ admin order status rejects malformed RPC results (30.0459ms)
+✔ admin orders APIs require an orders admin session and service-role availability (23.5737ms)
+✔ admin order filters reject malformed phone, status, date and page size (17.6797ms)
+✔ admin order frontend service uses fetch-only API calls (8.75ms)
+✔ admin order status migration extends statuses, calculates profit and locks transitions (2.286ms)
+✔ product management endpoints accept the products scope without a browser bearer token (357.9817ms)
+✔ session-only authorization checks the orders scope and rejects a bearer token (83.2152ms)
+✔ admin login issues an HttpOnly scoped cookie and session authorizes same-origin writes (168.7952ms)
+✔ admin login rejects bad credentials and cross-origin login requests (29.5248ms)
+✔ session cookies reject tampering and do not grant other credentials scopes (28.8548ms)
+✔ logout expires the HttpOnly session cookie (10.7147ms)
+✔ analytics summary selects product names from the existing products.name column (361.4817ms)
+✔ profit analytics reports revenue, per-product profit, margin and cost coverage (56.8718ms)
+✔ profit analytics treats null, blank and omitted costs as zero (66.7539ms)
+✔ profit analytics treats malformed product amounts as zero (18.2565ms)
+取得商品成本與利潤分析 Supabase 查詢失敗： {
+  query: '商品成本報表查詢',
+  code: '42703',
+  message: 'column products.cost_price does not exist',
+  details: 'Missing column: products.cost_price',
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column products.cost_price does not exist',
+    details: 'Missing column: products.cost_price'
+  }
+}
+✔ profit analytics reports a missing cost column as an unapplied migration (42.1708ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: '42703',
+  message: 'column order_items.quantity does not exist',
+  details: 'Missing column: order_items.quantity',
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column order_items.quantity does not exist',
+    details: 'Missing column: order_items.quantity'
+  }
+}
+✔ profit analytics safely degrades when an order item column is missing (32.4361ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: 'PGRST205',
+  message: "Could not find the table 'public.order_items' in the schema cache",
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: 'PGRST205',
+    message: "Could not find the table 'public.order_items' in the schema cache"
+  }
+}
+✔ profit analytics safely degrades when the order_items table is unavailable (19.4858ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: 'PGRST303',
+  message: 'JWT issued at future',
+  details: null,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'PGRST303', message: 'JWT issued at future', details: null }
+}
+✔ profit analytics safely degrades when order_items encounters JWT clock skew or other errors (26.1848ms)
+✔ profit analytics skips order_items entirely when details are not enabled (19.8619ms)
+✔ table fallback reports live orders and UUID-keyed product totals (40.7625ms)
+✔ analytics summary requires an analytics session and aggregates bounded dashboard data (30.0775ms)
+✔ analytics summary treats malformed order amounts as zero and still counts orders (13.4393ms)
+✔ analytics summary batches large order ID filters to avoid oversized Supabase requests (91.0332ms)
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: 'XX000',
+  message: 'private detail',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000', message: 'private detail' }
+}
+✔ analytics summary returns structured Supabase errors without leaking details (14.0345ms)
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: 'PGRST205',
+  message: "Could not find the table 'public.orders' in the schema cache",
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: 'PGRST205',
+    message: "Could not find the table 'public.orders' in the schema cache"
+  }
+}
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: '42703',
+  message: 'column products.cost_price does not exist',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column products.cost_price does not exist'
+  }
+}
+✔ analytics reports missing tables and columns as unapplied schema migrations (19.6651ms)
+✔ analytics report responses are cached by endpoint and query parameters (31.6045ms)
+✔ sales trend returns daily Hong Kong totals and fills dates without orders (11.7725ms)
+取得每日銷售趨勢 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,total_amount,order_date)',
+  code: 'XX000',
+  message: 'Supabase 查詢失敗：orders.select(order_id,total_amount,order_date)',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000' }
+}
+✔ sales trend validates dates, requires admin auth and surfaces database errors (16.9792ms)
+✔ revenue overview validates date range and returns RPC report (23.3602ms)
+✔ top product ranking validates its limit and returns ordered rows (30.2449ms)
+✔ financial reconciliation validates filters and pagination (31.0858ms)
+✔ admin token and service role are enforced before report queries (23.5591ms)
+取得營收總覽 Supabase RPC 失敗： {
+  query: undefined,
+  code: 'PGRST202',
+  message: undefined,
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'PGRST202' }
+}
+取得營收總覽 Supabase RPC 失敗： {
+  query: undefined,
+  code: 'XX000',
+  message: undefined,
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000' }
+}
+營收總覽 RPC 回傳格式無效： []
+✔ Supabase errors and malformed RPC responses are explicit (55.3716ms)
+✔ checkout migration adds phone-scoped idempotency and serializes repeated requests (2.4189ms)
+✔ checkout keeps inventory locking and deadline checks in the existing transaction (0.3447ms)
+✔ idempotent checkout RPC remains service-role-only (0.497ms)
+✔ checkout client sends phone-based bigint items to the backend without Supabase access (24.8273ms)
+✔ checkout contact memory restores saved details only for the matching phone (7.0281ms)
+✔ checkout reuses a saved idempotency key for retries and rotates after success (4.7755ms)
+✔ checkout fallback idempotency key remains UUID v4 compatible (2.2793ms)
+﹣ local anon Supabase cannot select orders or order_items (0.3036ms) # SKIP
+✔ guest single-order lookup requires both matching phone and official order number (329.9956ms)
+✔ guest lookup rejects either missing credential and UUID-only lookups (153.4356ms)
+✔ guest lookup service remains disabled when read access is unavailable (20.0124ms)
+✔ member session requires phone and matching existing order proof; history remains private and paginated (72.4367ms)
+✔ member cookies reject tampering and member session configuration is required (40.9558ms)
+✔ customer list requires admin scope and returns search plus order aggregates (318.9815ms)
+管理員客戶列表查詢失敗： { code: 'XX000', message: 'database unavailable' }
+✔ customer list validates pagination and reports Supabase failures (75.3935ms)
+✔ credit status update validates input, persists allowed values, and handles missing customers (77.6469ms)
+更新客戶信用評級失敗： { code: 'XX000', message: 'database unavailable' }
+✔ credit status update returns a structured error for database failures (14.6964ms)
+✔ customer CRM routes accept an authenticated customers admin session (21.336ms)
+更新出貨資料 Supabase RPC 失敗： { code: '55000', message: '訂單必須已付清才可出貨。' }
+✔ E2E business flow: products, checkout rollback, reminders, inbound, shipping, customer lookup, analytics (423.4602ms)
+✔ checkout applies stored quantity tiers and rejects expired preorder deadlines (52.5783ms)
+✔ checkout reports unapplied database migrations as service unavailable (15.6995ms)
+✔ WhatsApp webhook verifies Meta challenge and signature before processing messages (28.1878ms)
+✔ WhatsApp payment reports remain pending manual verification and are idempotent (13.0937ms)
+處理 WhatsApp webhook 時發生錯誤： Error: WhatsApp 訂單查詢資料庫操作失敗。
+    at getOrderStatus (C:\Project\LittlePlanet\src\routes\webhooks.js:155:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async handleIncomingMessage (C:\Project\LittlePlanet\src\routes\webhooks.js:662:21)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ WhatsApp webhook catches Supabase failures and accepts status callbacks without outbound config (20.9558ms)
+✔ central handler returns a structured error for rejected async route handlers (224.4841ms)
+✔ central handler formats malformed JSON and unknown API routes consistently (67.6115ms)
+✔ central handler returns safe client errors without exposing parser details (51.1176ms)
+✔ central handler sanitizes Supabase error details and service credentials (21.0516ms)
+✔ expiring stock alerts include all expired and next-30-day batches with remaining stock (253.3993ms)
+讀取近效期庫存批次時發生 Supabase 錯誤： { message: 'private database detail' }
+✔ expiring stock alerts require inbound authorization and report database errors (37.1755ms)
+✔ CSV parser preserves quoted commas, escaped quotes and multiline fields (8.3794ms)
+✔ product validation enforces schema-compatible tiers and nonnegative stock (3.9572ms)
+✔ CSV validator reports duplicates, invalid rows, losses and missing images (26.6172ms)
+✔ image reconciliation separates missing local files, remote URLs and Docker image metadata (24.4884ms)
+✔ preorder preview uses current Chinese status values and writes a comment-only draft (17.0587ms)
+✔ test data factory produces 100 isolated orders with normalized fake phones and reconciled totals (28.717ms)
+{"level":30,"time":1793216086991,"pid":23444,"hostname":"JOE-SERVER","req":{"id":1,"method":"GET","url":"/health"},"res":{"statusCode":200},"responseTime":19,"msg":"request completed"}
+{"level":30,"time":1793216087036,"pid":23444,"hostname":"JOE-SERVER","req":{"id":2,"method":"GET","url":"/services/checkout.js"},"res":{"statusCode":200},"responseTime":7,"msg":"request completed"}
+{"level":30,"time":1793216087059,"pid":23444,"hostname":"JOE-SERVER","req":{"id":3,"method":"GET","url":"/services/adminOrders.js"},"res":{"statusCode":200},"responseTime":11,"msg":"request completed"}
+{"level":30,"time":1793216087072,"pid":23444,"hostname":"JOE-SERVER","req":{"id":4,"method":"GET","url":"/api/admin/orders"},"res":{"statusCode":401},"responseTime":5,"msg":"request completed"}
+✔ GET /health returns a cache-disabled liveness response (200.694ms)
+{"level":50,"time":1793216087164,"pid":23444,"hostname":"JOE-SERVER","req":{"id":5,"method":"POST","url":"/api/orders"},"code":"INVALID_JSON","msg":"Request failed"}
+{"level":30,"time":1793216087166,"pid":23444,"hostname":"JOE-SERVER","req":{"id":5,"method":"POST","url":"/api/orders"},"res":{"statusCode":400},"responseTime":53,"msg":"request completed"}
+✔ production API errors do not return stack traces or database internals (93.0591ms)
+✔ inbound receipt requires authorized inbound scope and service-role writes (295.2788ms)
+✔ a valid inbound session records a receipt with a bigint-range product ID (15.3014ms)
+✔ receipt validates quantities and date-only best-before values before calling the RPC (119.5995ms)
+記錄入庫 Supabase RPC 失敗： { code: 'XX000', message: 'transaction failed' }
+✔ receipt sends the optional date to the atomic receipt RPC and handles database failures (57.0951ms)
+讀取商品收貨批次時發生 Supabase 錯誤： { code: '42P01' }
+✔ batch list returns date-only batch data and reports Supabase errors (44.4058ms)
+✔ batch date update changes only the selected batch date and supports clearing it (32.0862ms)
+✔ batch date update rejects unauthorized, invalid, past, and non-date-only updates before writing (69.5333ms)
+更新商品批次最佳使用日期時發生 Supabase 錯誤： { code: 'XX000', message: 'database unavailable' }
+更新批次最佳使用日期時發生未預期錯誤： Error: Simulated batch update exception.
+    at Object.maybeSingle (C:\Project\LittlePlanet\tests\inbound.test.js:84:19)
+    at C:\Project\LittlePlanet\src\routes\inbound.js:368:10
+    at Layer.handle [as handle_request] (C:\Project\LittlePlanet\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Project\LittlePlanet\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Project\LittlePlanet\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Project\LittlePlanet\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:376:14)
+    at router.process_params (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:421:3)
+✔ batch date update returns not-found and structured database failures without partial changes (43.987ms)
+✔ admin order APIs require an authorized orders session (229.8436ms)
+✔ admin order list returns bounded pages with phone, items, price, date and status (64.2831ms)
+✔ admin order list returns signed private payment-proof previews without exposing storage paths (41.5015ms)
+✔ admin order status update validates status and persists the allowed value (97.4785ms)
+✔ checkout merges duplicate products and returns the official order number, not its UUID (319.3039ms)
+✔ checkout stores a human-readable order number when the RPC does not return one (94.7617ms)
+✔ checkout validates pickup selection and passes self-pickup details to the migration RPC (32.0568ms)
+✔ phone checkout uses the RPC tier price instead of a client-supplied price (24.6981ms)
+✔ checkout replaces a UUID mistakenly stored as order_number before responding (15.7316ms)
+✔ stock conflict is surfaced without a success-shaped fallback (23.3493ms)
+✔ invalid checkout data and missing service role never call the RPC (137.9479ms)
+✔ checkout replays the same order for one phone and key, but creates a new order for a new key (61.304ms)
+✔ checkout requires a UUID v4 key and sanitizes deadline and duplicate errors (54.1584ms)
+✔ payment proof upload requires both matching order number and phone and stores a private object reference (200.2533ms)
+✔ payment proof upload validates image bytes, MIME, size and protects verified proofs (92.5042ms)
+儲存付款憑證失敗： { message: 'private details' }
+✔ payment proof upload reports storage failures without updating the order (25.3465ms)
+✔ admin payment proof review requires orders scope and only accepts verified or rejected (73.6236ms)
+✔ products endpoint reads stock and retains category and status filtering (305.2567ms)
+✔ products endpoint returns requested product IDs and public tier pricing fields (44.188ms)
+✔ product administration rejects invalid cost prices (53.7837ms)
+✔ product image upload requires admin access and validates bytes before Storage upload (27.1453ms)
+✔ products endpoint returns only a date-only public summary for multiple batches when requested (13.6759ms)
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'PGRST205', message: 'table unavailable' }
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'PGRST204', message: 'column unavailable' }
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'XX000', message: 'database unavailable' }
+✔ products endpoint reports errors when the public batch-date summary cannot be read (33.1248ms)
+✔ products endpoint rejects an invalid best-before summary option before database access (13.9532ms)
+✔ products endpoint searches, sorts and paginates validated query parameters (75.4733ms)
+✔ products endpoint rejects invalid search, sort, and pagination parameters before database access (38.2932ms)
+✔ inventory alerts require admin access and use validated restock thresholds (16.1655ms)
+✔ inventory adjustments validate reasons and persist a transactional audit RPC (25.954ms)
+讀取庫存調整記錄時發生 Supabase 錯誤： {
+  code: 'PGRST205',
+  message: "Could not find the table 'public.inventory_adjustments' in the schema cache"
+}
+✔ inventory adjustment reports a missing table as an unapplied migration (23.0921ms)
+✔ product create and edit endpoints require admin access and persist validated fields (20.5746ms)
+✔ product edit preserves UUID IDs when updating batch expiry data (10.1754ms)
+新增產品時發生 Supabase 錯誤： { code: 'XX000' }
+✔ product create and edit validate input and report database errors (62.882ms)
+✔ product deletion requires admin authorization and returns the deleted product ID (12.6596ms)
+✔ stock update requires admin authorization and service role, then returns persisted stock (23.9288ms)
+✔ stock update accepts UUID product IDs (10.4933ms)
+✔ stock update validates product ID and stock without calling Supabase (96.0148ms)
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'PGRST204' }
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'XX000' }
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'P0002', message: 'missing' }
+✔ stock update surfaces missing migration, missing product and unexpected Supabase errors (35.1716ms)
+✔ stock update fails closed if service role or admin token is unavailable (8.6773ms)
+✔ product category endpoints trim names, reuse case-insensitive duplicates, and report database failures (42.4849ms)
+✔ product create and edit persist only registered, trimmed category names (32.4121ms)
+✔ storefront web app manifest declares installable LittlePlanet app metadata and an existing icon (15.9086ms)
+✔ service worker parses and explicitly avoids caching API responses (1.3561ms)
+✔ 提醒在截單前剛好 24 小時時成功發送並更新狀態 (261.8431ms)
+✔ 截單時間超出 24 小時窗口時不會發送提醒 (57.8988ms)
+✔ 成功發送後重跑不會重複發送同一商品提醒 (39.4907ms)
+執行截單提醒失敗： { code: 'XX000', message: 'private database detail' }
+✔ Supabase 查詢失敗時回傳標準 JSON 錯誤格式 (55.6443ms)
+✔ public product review endpoint returns rating summary without customer phone numbers (207.3444ms)
+✔ public review endpoint excludes pending and rejected reviews (31.3719ms)
+✔ public rating summary endpoint validates IDs and returns grouped approved-review data (46.6319ms)
+✔ order tracking review requires matching phone, official order number and purchased product (66.7122ms)
+✔ member can review a purchased product with a valid session and same-origin request (46.9334ms)
+✔ review submission rejects missing member session and malformed ratings (35.1672ms)
+✔ review submission requires proof the member purchased that product (21.9937ms)
+✔ admin review list and delete require reviews scope authorization (30.1334ms)
+✔ real admin sessions grant review moderation only to the reviews scope (37.1273ms)
+讀取商品評價失敗： { code: 'XX000', message: 'failure' }
+✔ database RPC errors use the standard structured error response (15.608ms)
+✔ API protection rate limits requests and returns retry metadata (246.8616ms)
+✔ API CORS allows same-origin and configured origins, rejects others (106.3081ms)
+✔ API CORS rejects unconfigured development and lookalike origins (36.4266ms)
+✔ sensitive checkout limiter returns a structured 429 response (286.4193ms)
+✔ customer review limiter returns the standard structured 429 response (30.4434ms)
+✔ wishlist read and write limiters return structured 429 responses (70.7362ms)
+✔ read-only table fallback returns order and product pick lists but blocks shipment writes (249.0385ms)
+✔ pick list supports order and product grouping and validates group_by (44.6069ms)
+▶ shipping updates atomically and sends a WhatsApp notification
+  ✔ bulk tracking imports CSV using order numbers and processes notification status (43.8821ms)
+  ✔ bulk tracking rejects duplicate rows and invalid headers before database access (42.2272ms)
+✔ shipping updates atomically and sends a WhatsApp notification (88.1762ms)
+✔ bulk tracking accepts an Excel workbook with localized column headings (121.8253ms)
+✔ shipping route accepts UUID order IDs used by the production database (14.4461ms)
+呼叫出貨通知 claim RPC 時發生錯誤： {
+  orderId: '31',
+  error: Error: claim_shipping_notification unavailable
+      at Object.rpc (C:\Project\LittlePlanet\tests\shipping.test.js:417:17)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:332:37)
+      at C:\Project\LittlePlanet\src\routes\shipping.js:650:34
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+呼叫出貨通知 finish RPC 時發生錯誤： {
+  orderId: '31',
+  error: Error: finish_shipping_notification unavailable
+      at Object.rpc (C:\Project\LittlePlanet\tests\shipping.test.js:417:17)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:409:43)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async C:\Project\LittlePlanet\src\routes\shipping.js:650:28
+}
+✔ shipping notification RPC exceptions do not hide a completed shipment (45.3964ms)
+WhatsApp 出貨通知發送失敗： {
+  orderId: '30',
+  error: Error: WhatsApp unavailable
+      at sendWhatsApp (C:\Project\LittlePlanet\tests\shipping.test.js:478:15)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:398:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async C:\Project\LittlePlanet\src\routes\shipping.js:650:28
+}
+✔ WhatsApp failure remains explicit and can be retried (25.7834ms)
+✔ admin token, service role, and shipment input are enforced (34.3816ms)
+取得執貨清單 Supabase RPC 失敗： { code: 'PGRST202' }
+取得執貨清單 Supabase RPC 失敗： { code: 'XX000' }
+執貨清單 RPC 回傳格式無效： { not: 'an array' }
+✔ RPC errors and unexpected pick-list payloads are not returned as success (64.3229ms)
+✔ checkout requires a WhatsApp contact number before database operations (19.6081ms)
+✔ admin SOP generator is limited to product managers and supplies pricing, cutoff, upload and preview controls (9.04ms)
+✔ storefront includes instant keyword search, urgency badges and accessible cart interactions (49.6468ms)
+✔ admin uses timed toasts and table skeletons during order and customer loads (8.175ms)
+Error adding product: [TypeError: fetch failed] {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1430:18)
+      at afterConnectMultiple (node:net:2099:7) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+✔ tests\test.js (366.1293ms)
+✔ 有效落單內容只建立待確認意圖，不會即時扣庫存或建立訂單 (348.9645ms)
+✔ 未知商品不建立待確認意圖或訂單並回覆錯誤提示 (69.3119ms)
+✔ 相同來源訊息重送只建立一個意圖，並重用相同確認碼 (40.121ms)
+✔ 確認待確認意圖後才建立未付款訂單，重送確認不會重複建單 (57.0134ms)
+✔ WhatsApp image receipts require order-number caption and matching sender phone (309.0685ms)
+✔ valid receipt is stored privately, forwarded internally and deduplicated without marking payment paid (80.5817ms)
+處理 WhatsApp webhook 時發生錯誤： Error: 付款憑證圖片內容與檔案格式不符。
+    at handlePaymentProofImage (C:\Project\LittlePlanet\src\routes\webhooks.js:307:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ invalid image bytes are rejected and failed processing remains retryable (20.1624ms)
+轉發付款憑證至內部收件人失敗： Error: simulated internal notification failure
+    at sendWhatsAppImage (C:\Project\LittlePlanet\tests\webhook-payment-proofs.test.js:170:39)
+    at handlePaymentProofImage (C:\Project\LittlePlanet\src\routes\webhooks.js:356:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ receipt forwarding failure is recorded while the private proof remains pending review (47.6555ms)
+✔ returns no sender when WhatsApp Cloud API is not configured (2.4662ms)
+✔ rejects partial or malformed WhatsApp Cloud API configuration (1.1713ms)
+✔ sends a text message using the configured Cloud API and confirms delivery (7.5979ms)
+✔ rejects invalid recipient, empty text, and provider failures explicitly (2.4302ms)
+✔ downloads only allowlisted WhatsApp media URLs and enforces the image-size limit (90.5042ms)
+✔ uploads and sends a WhatsApp image with the provided caption (2.8051ms)
+✔ parses a product code with Chinese variant text and compact quantity (4.1889ms)
+✔ normalizes case, whitespace, full-width characters and multiple items (1.0454ms)
+✔ rejects an unknown product code without producing order items (0.7282ms)
+▶ rejects malformed entries and non-positive quantities
+  ✔ malformed syntax (1.4764ms)
+  ✔ zero quantity (0.5301ms)
+  ✔ quantity above the checkout limit (1.0937ms)
+✔ rejects malformed entries and non-positive quantities (8.6209ms)
+▶ rejects repeated or ambiguous product codes
+  ✔ duplicate item in a message (1.6644ms)
+  ✔ duplicate product code in the catalog (0.5817ms)
+✔ rejects repeated or ambiguous product codes (3.4765ms)
+✔ rejects unavailable products and invalid parser inputs explicitly (0.4364ms)
+✔ wishlist endpoints require a member session and return only the current member data (274.4943ms)
+✔ wishlist creation validates same-origin requests and product identifiers (87.1675ms)
+✔ member adds and removes a wishlist item without affecting another member (44.3923ms)
+讀取會員收藏清單失敗： { code: 'XX000', message: 'database unavailable' }
+✔ wishlist database failures return a structured error response (45.6776ms)
+ℹ tests 196
+ℹ suites 0
+ℹ pass 195
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 4912.9202
+
+> littleplanet@1.0.0 test
+> node --test
+
+✔ admin order list normalizes phone, applies filters and returns profit and item count (295.694ms)
+✔ admin order list reports unknown product costs as unknown profit (87.1743ms)
+✔ admin order status transition uses service-role RPC and validates order UUID (139.5855ms)
+✔ admin order status rejects illegal transitions with 409 (53.0141ms)
+✔ admin order status payment guard is returned as conflict without changing payment fields (16.2847ms)
+✔ admin order status update requires an authorized session (14.8004ms)
+✔ admin order status rejects unsupported status values before database access (45.4528ms)
+✔ admin order status reports missing orders as not found (15.8851ms)
+✔ admin order status reports an unapplied RPC migration as unavailable (19.2253ms)
+✔ admin order status rejects malformed RPC results (69.2676ms)
+✔ admin orders APIs require an orders admin session and service-role availability (53.8325ms)
+✔ admin order filters reject malformed phone, status, date and page size (28.7764ms)
+✔ admin order frontend service uses fetch-only API calls (7.3148ms)
+✔ admin order status migration extends statuses, calculates profit and locks transitions (1.5117ms)
+✔ product management endpoints accept the products scope without a browser bearer token (397.0438ms)
+✔ session-only authorization checks the orders scope and rejects a bearer token (100.5221ms)
+✔ admin login issues an HttpOnly scoped cookie and session authorizes same-origin writes (111.5886ms)
+✔ admin login rejects bad credentials and cross-origin login requests (53.2295ms)
+✔ session cookies reject tampering and do not grant other credentials scopes (90.1967ms)
+✔ logout expires the HttpOnly session cookie (77.793ms)
+✔ analytics summary selects product names from the existing products.name column (501.6105ms)
+✔ profit analytics reports revenue, per-product profit, margin and cost coverage (80.1959ms)
+✔ profit analytics treats null, blank and omitted costs as zero (13.8669ms)
+✔ profit analytics treats malformed product amounts as zero (23.3871ms)
+取得商品成本與利潤分析 Supabase 查詢失敗： {
+  query: '商品成本報表查詢',
+  code: '42703',
+  message: 'column products.cost_price does not exist',
+  details: 'Missing column: products.cost_price',
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column products.cost_price does not exist',
+    details: 'Missing column: products.cost_price'
+  }
+}
+✔ profit analytics reports a missing cost column as an unapplied migration (49.2392ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: '42703',
+  message: 'column order_items.quantity does not exist',
+  details: 'Missing column: order_items.quantity',
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column order_items.quantity does not exist',
+    details: 'Missing column: order_items.quantity'
+  }
+}
+✔ profit analytics safely degrades when an order item column is missing (12.1112ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: 'PGRST205',
+  message: "Could not find the table 'public.order_items' in the schema cache",
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: 'PGRST205',
+    message: "Could not find the table 'public.order_items' in the schema cache"
+  }
+}
+✔ profit analytics safely degrades when the order_items table is unavailable (13.4651ms)
+讀取訂單商品明細失敗： {
+  query: undefined,
+  code: 'PGRST303',
+  message: 'JWT issued at future',
+  details: null,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'PGRST303', message: 'JWT issued at future', details: null }
+}
+✔ profit analytics safely degrades when order_items encounters JWT clock skew or other errors (10.7782ms)
+✔ profit analytics skips order_items entirely when details are not enabled (24.9599ms)
+✔ table fallback reports live orders and UUID-keyed product totals (46.1576ms)
+✔ analytics summary requires an analytics session and aggregates bounded dashboard data (39.702ms)
+✔ analytics summary treats malformed order amounts as zero and still counts orders (34.6141ms)
+✔ analytics summary batches large order ID filters to avoid oversized Supabase requests (56.9595ms)
+✔ analytics summary returns structured Supabase errors without leaking details (10.4984ms)
+✔ analytics reports missing tables and columns as unapplied schema migrations (16.4658ms)
+✔ analytics report responses are cached by endpoint and query parameters (26.5121ms)
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: 'XX000',
+  message: 'private detail',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000', message: 'private detail' }
+}
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: 'PGRST205',
+  message: "Could not find the table 'public.orders' in the schema cache",
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: 'PGRST205',
+    message: "Could not find the table 'public.orders' in the schema cache"
+  }
+}
+取得營運分析摘要 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,order_date,total_amount)',
+  code: '42703',
+  message: 'column products.cost_price does not exist',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: {
+    code: '42703',
+    message: 'column products.cost_price does not exist'
+  }
+}
+✔ sales trend returns daily Hong Kong totals and fills dates without orders (9.9219ms)
+✔ sales trend validates dates, requires admin auth and surfaces database errors (16.9517ms)
+取得每日銷售趨勢 Supabase 查詢失敗： {
+  query: 'orders.select(order_id,total_amount,order_date)',
+  code: 'XX000',
+  message: 'Supabase 查詢失敗：orders.select(order_id,total_amount,order_date)',
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000' }
+}
+✔ revenue overview validates date range and returns RPC report (26.0064ms)
+✔ top product ranking validates its limit and returns ordered rows (21.8694ms)
+✔ financial reconciliation validates filters and pagination (29.3186ms)
+✔ admin token and service role are enforced before report queries (16.5176ms)
+取得營收總覽 Supabase RPC 失敗： {
+  query: undefined,
+  code: 'PGRST202',
+  message: undefined,
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'PGRST202' }
+}
+取得營收總覽 Supabase RPC 失敗： {
+  query: undefined,
+  code: 'XX000',
+  message: undefined,
+  details: undefined,
+  hint: undefined,
+  status: undefined,
+  originalError: { code: 'XX000' }
+}
+營收總覽 RPC 回傳格式無效： []
+✔ Supabase errors and malformed RPC responses are explicit (53.6948ms)
+✔ checkout migration adds phone-scoped idempotency and serializes repeated requests (2.4948ms)
+✔ checkout keeps inventory locking and deadline checks in the existing transaction (0.3743ms)
+✔ idempotent checkout RPC remains service-role-only (0.5481ms)
+✔ checkout client sends phone-based bigint items to the backend without Supabase access (6.9001ms)
+✔ checkout contact memory restores saved details only for the matching phone (4.491ms)
+✔ checkout reuses a saved idempotency key for retries and rotates after success (4.5462ms)
+✔ checkout fallback idempotency key remains UUID v4 compatible (3.6239ms)
+﹣ local anon Supabase cannot select orders or order_items (0.424ms) # SKIP
+✔ guest single-order lookup requires both matching phone and official order number (456.9988ms)
+✔ guest lookup rejects either missing credential and UUID-only lookups (133.9904ms)
+✔ guest lookup service remains disabled when read access is unavailable (23.1434ms)
+✔ member session requires phone and matching existing order proof; history remains private and paginated (68.0392ms)
+✔ member cookies reject tampering and member session configuration is required (33.7774ms)
+✔ customer list requires admin scope and returns search plus order aggregates (424.7186ms)
+管理員客戶列表查詢失敗： { code: 'XX000', message: 'database unavailable' }
+✔ customer list validates pagination and reports Supabase failures (49.1893ms)
+✔ credit status update validates input, persists allowed values, and handles missing customers (92.3069ms)
+更新客戶信用評級失敗： { code: 'XX000', message: 'database unavailable' }
+✔ credit status update returns a structured error for database failures (14.4286ms)
+✔ customer CRM routes accept an authenticated customers admin session (42.0573ms)
+更新出貨資料 Supabase RPC 失敗： { code: '55000', message: '訂單必須已付清才可出貨。' }
+✔ E2E business flow: products, checkout rollback, reminders, inbound, shipping, customer lookup, analytics (452.5648ms)
+✔ checkout applies stored quantity tiers and rejects expired preorder deadlines (51.9124ms)
+✔ checkout reports unapplied database migrations as service unavailable (14.5698ms)
+✔ WhatsApp webhook verifies Meta challenge and signature before processing messages (32.7521ms)
+✔ WhatsApp payment reports remain pending manual verification and are idempotent (30.9511ms)
+處理 WhatsApp webhook 時發生錯誤： Error: WhatsApp 訂單查詢資料庫操作失敗。
+    at getOrderStatus (C:\Project\LittlePlanet\src\routes\webhooks.js:155:13)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async handleIncomingMessage (C:\Project\LittlePlanet\src\routes\webhooks.js:662:21)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ WhatsApp webhook catches Supabase failures and accepts status callbacks without outbound config (65.7401ms)
+✔ central handler returns a structured error for rejected async route handlers (195.5796ms)
+✔ central handler formats malformed JSON and unknown API routes consistently (78.9109ms)
+✔ central handler returns safe client errors without exposing parser details (25.3762ms)
+✔ central handler sanitizes Supabase error details and service credentials (23.8979ms)
+✔ expiring stock alerts include all expired and next-30-day batches with remaining stock (310.9828ms)
+讀取近效期庫存批次時發生 Supabase 錯誤： { message: 'private database detail' }
+✔ expiring stock alerts require inbound authorization and report database errors (60.8667ms)
+✔ CSV parser preserves quoted commas, escaped quotes and multiline fields (4.0385ms)
+✔ product validation enforces schema-compatible tiers and nonnegative stock (3.4506ms)
+✔ CSV validator reports duplicates, invalid rows, losses and missing images (36.3243ms)
+✔ image reconciliation separates missing local files, remote URLs and Docker image metadata (34.2701ms)
+✔ preorder preview uses current Chinese status values and writes a comment-only draft (11.263ms)
+✔ test data factory produces 100 isolated orders with normalized fake phones and reconciled totals (81.7215ms)
+{"level":30,"time":1793216093957,"pid":23308,"hostname":"JOE-SERVER","req":{"id":1,"method":"GET","url":"/health"},"res":{"statusCode":200},"responseTime":51,"msg":"request completed"}
+{"level":30,"time":1793216093998,"pid":23308,"hostname":"JOE-SERVER","req":{"id":2,"method":"GET","url":"/services/checkout.js"},"res":{"statusCode":200},"responseTime":8,"msg":"request completed"}
+{"level":30,"time":1793216094006,"pid":23308,"hostname":"JOE-SERVER","req":{"id":3,"method":"GET","url":"/services/adminOrders.js"},"res":{"statusCode":200},"responseTime":3,"msg":"request completed"}
+{"level":30,"time":1793216094017,"pid":23308,"hostname":"JOE-SERVER","req":{"id":4,"method":"GET","url":"/api/admin/orders"},"res":{"statusCode":401},"responseTime":6,"msg":"request completed"}
+✔ GET /health returns a cache-disabled liveness response (243.9351ms)
+{"level":50,"time":1793216094070,"pid":23308,"hostname":"JOE-SERVER","req":{"id":5,"method":"POST","url":"/api/orders"},"code":"INVALID_JSON","msg":"Request failed"}
+{"level":30,"time":1793216094072,"pid":23308,"hostname":"JOE-SERVER","req":{"id":5,"method":"POST","url":"/api/orders"},"res":{"statusCode":400},"responseTime":27,"msg":"request completed"}
+✔ production API errors do not return stack traces or database internals (53.8309ms)
+✔ inbound receipt requires authorized inbound scope and service-role writes (338.8666ms)
+✔ a valid inbound session records a receipt with a bigint-range product ID (16.1751ms)
+✔ receipt validates quantities and date-only best-before values before calling the RPC (135.4085ms)
+記錄入庫 Supabase RPC 失敗： { code: 'XX000', message: 'transaction failed' }
+✔ receipt sends the optional date to the atomic receipt RPC and handles database failures (69.36ms)
+讀取商品收貨批次時發生 Supabase 錯誤： { code: '42P01' }
+✔ batch list returns date-only batch data and reports Supabase errors (44.6154ms)
+✔ batch date update changes only the selected batch date and supports clearing it (43.4225ms)
+✔ batch date update rejects unauthorized, invalid, past, and non-date-only updates before writing (71.1249ms)
+更新商品批次最佳使用日期時發生 Supabase 錯誤： { code: 'XX000', message: 'database unavailable' }
+更新批次最佳使用日期時發生未預期錯誤： Error: Simulated batch update exception.
+    at Object.maybeSingle (C:\Project\LittlePlanet\tests\inbound.test.js:84:19)
+    at C:\Project\LittlePlanet\src\routes\inbound.js:368:10
+    at Layer.handle [as handle_request] (C:\Project\LittlePlanet\node_modules\express\lib\router\layer.js:95:5)
+    at next (C:\Project\LittlePlanet\node_modules\express\lib\router\route.js:149:13)
+    at Route.dispatch (C:\Project\LittlePlanet\node_modules\express\lib\router\route.js:119:3)
+    at Layer.handle [as handle_request] (C:\Project\LittlePlanet\node_modules\express\lib\router\layer.js:95:5)
+    at C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:284:15
+    at param (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:365:14)
+    at param (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:376:14)
+    at router.process_params (C:\Project\LittlePlanet\node_modules\express\lib\router\index.js:421:3)
+✔ batch date update returns not-found and structured database failures without partial changes (33.7235ms)
+✔ admin order APIs require an authorized orders session (282.0043ms)
+✔ admin order list returns bounded pages with phone, items, price, date and status (71.039ms)
+✔ admin order list returns signed private payment-proof previews without exposing storage paths (22.8971ms)
+✔ admin order status update validates status and persists the allowed value (60.0761ms)
+✔ checkout merges duplicate products and returns the official order number, not its UUID (381.6231ms)
+✔ checkout stores a human-readable order number when the RPC does not return one (100.1216ms)
+✔ checkout validates pickup selection and passes self-pickup details to the migration RPC (44.9379ms)
+✔ phone checkout uses the RPC tier price instead of a client-supplied price (13.3094ms)
+✔ checkout replaces a UUID mistakenly stored as order_number before responding (21.1865ms)
+✔ stock conflict is surfaced without a success-shaped fallback (30.1625ms)
+✔ invalid checkout data and missing service role never call the RPC (114.5943ms)
+✔ checkout replays the same order for one phone and key, but creates a new order for a new key (42.9373ms)
+✔ checkout requires a UUID v4 key and sanitizes deadline and duplicate errors (34.5454ms)
+✔ payment proof upload requires both matching order number and phone and stores a private object reference (254.9202ms)
+✔ payment proof upload validates image bytes, MIME, size and protects verified proofs (92.8731ms)
+儲存付款憑證失敗： { message: 'private details' }
+✔ payment proof upload reports storage failures without updating the order (14.4403ms)
+✔ admin payment proof review requires orders scope and only accepts verified or rejected (66.1789ms)
+✔ products endpoint reads stock and retains category and status filtering (224.9145ms)
+✔ products endpoint returns requested product IDs and public tier pricing fields (99.8853ms)
+✔ product administration rejects invalid cost prices (48.6868ms)
+✔ product image upload requires admin access and validates bytes before Storage upload (35.2004ms)
+✔ products endpoint returns only a date-only public summary for multiple batches when requested (48.745ms)
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'PGRST205', message: 'table unavailable' }
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'PGRST204', message: 'column unavailable' }
+讀取公開商品批次效期摘要時發生 Supabase 錯誤： { code: 'XX000', message: 'database unavailable' }
+✔ products endpoint reports errors when the public batch-date summary cannot be read (42.0389ms)
+✔ products endpoint rejects an invalid best-before summary option before database access (59.6792ms)
+✔ products endpoint searches, sorts and paginates validated query parameters (77.0227ms)
+✔ products endpoint rejects invalid search, sort, and pagination parameters before database access (33.015ms)
+✔ inventory alerts require admin access and use validated restock thresholds (41.4156ms)
+✔ inventory adjustments validate reasons and persist a transactional audit RPC (32.8955ms)
+讀取庫存調整記錄時發生 Supabase 錯誤： {
+  code: 'PGRST205',
+  message: "Could not find the table 'public.inventory_adjustments' in the schema cache"
+}
+✔ inventory adjustment reports a missing table as an unapplied migration (11.0519ms)
+✔ product create and edit endpoints require admin access and persist validated fields (40.7058ms)
+✔ product edit preserves UUID IDs when updating batch expiry data (17.41ms)
+新增產品時發生 Supabase 錯誤： { code: 'XX000' }
+✔ product create and edit validate input and report database errors (60.9519ms)
+✔ product deletion requires admin authorization and returns the deleted product ID (17.4711ms)
+✔ stock update requires admin authorization and service role, then returns persisted stock (27.4402ms)
+✔ stock update accepts UUID product IDs (12.8926ms)
+✔ stock update validates product ID and stock without calling Supabase (51.8379ms)
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'PGRST204' }
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'XX000' }
+更新產品庫存時發生 Supabase RPC 錯誤： { code: 'P0002', message: 'missing' }
+✔ stock update surfaces missing migration, missing product and unexpected Supabase errors (41.8683ms)
+✔ stock update fails closed if service role or admin token is unavailable (15.0032ms)
+✔ product category endpoints trim names, reuse case-insensitive duplicates, and report database failures (28.5479ms)
+✔ product create and edit persist only registered, trimmed category names (31.0685ms)
+✔ storefront web app manifest declares installable LittlePlanet app metadata and an existing icon (10.525ms)
+✔ service worker parses and explicitly avoids caching API responses (1.4524ms)
+✔ 提醒在截單前剛好 24 小時時成功發送並更新狀態 (359.3082ms)
+✔ 截單時間超出 24 小時窗口時不會發送提醒 (32.559ms)
+✔ 成功發送後重跑不會重複發送同一商品提醒 (43.4696ms)
+執行截單提醒失敗： { code: 'XX000', message: 'private database detail' }
+✔ Supabase 查詢失敗時回傳標準 JSON 錯誤格式 (16.0127ms)
+✔ public product review endpoint returns rating summary without customer phone numbers (245.5971ms)
+✔ public review endpoint excludes pending and rejected reviews (85.1068ms)
+✔ public rating summary endpoint validates IDs and returns grouped approved-review data (70.3762ms)
+✔ order tracking review requires matching phone, official order number and purchased product (71.5301ms)
+✔ member can review a purchased product with a valid session and same-origin request (26.7108ms)
+✔ review submission rejects missing member session and malformed ratings (22.2089ms)
+✔ review submission requires proof the member purchased that product (20.7185ms)
+✔ admin review list and delete require reviews scope authorization (47.5187ms)
+✔ real admin sessions grant review moderation only to the reviews scope (50.9443ms)
+讀取商品評價失敗： { code: 'XX000', message: 'failure' }
+✔ database RPC errors use the standard structured error response (22.0835ms)
+✔ API protection rate limits requests and returns retry metadata (237.4278ms)
+✔ API CORS allows same-origin and configured origins, rejects others (55.2538ms)
+✔ API CORS rejects unconfigured development and lookalike origins (17.4857ms)
+✔ sensitive checkout limiter returns a structured 429 response (319.8198ms)
+✔ customer review limiter returns the standard structured 429 response (34.923ms)
+✔ wishlist read and write limiters return structured 429 responses (42.5125ms)
+✔ read-only table fallback returns order and product pick lists but blocks shipment writes (259.608ms)
+✔ pick list supports order and product grouping and validates group_by (75.588ms)
+▶ shipping updates atomically and sends a WhatsApp notification
+  ✔ bulk tracking imports CSV using order numbers and processes notification status (55.1322ms)
+  ✔ bulk tracking rejects duplicate rows and invalid headers before database access (42.3412ms)
+✔ shipping updates atomically and sends a WhatsApp notification (99.2017ms)
+✔ bulk tracking accepts an Excel workbook with localized column headings (88.4519ms)
+✔ shipping route accepts UUID order IDs used by the production database (11.911ms)
+呼叫出貨通知 claim RPC 時發生錯誤： {
+  orderId: '31',
+  error: Error: claim_shipping_notification unavailable
+      at Object.rpc (C:\Project\LittlePlanet\tests\shipping.test.js:417:17)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:332:37)
+      at C:\Project\LittlePlanet\src\routes\shipping.js:650:34
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+呼叫出貨通知 finish RPC 時發生錯誤： {
+  orderId: '31',
+  error: Error: finish_shipping_notification unavailable
+      at Object.rpc (C:\Project\LittlePlanet\tests\shipping.test.js:417:17)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:409:43)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async C:\Project\LittlePlanet\src\routes\shipping.js:650:28
+}
+✔ shipping notification RPC exceptions do not hide a completed shipment (24.9378ms)
+WhatsApp 出貨通知發送失敗： {
+  orderId: '30',
+  error: Error: WhatsApp unavailable
+      at sendWhatsApp (C:\Project\LittlePlanet\tests\shipping.test.js:478:15)
+      at sendShipmentNotification (C:\Project\LittlePlanet\src\routes\shipping.js:398:13)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async C:\Project\LittlePlanet\src\routes\shipping.js:650:28
+}
+✔ WhatsApp failure remains explicit and can be retried (19.2097ms)
+✔ admin token, service role, and shipment input are enforced (40.8364ms)
+取得執貨清單 Supabase RPC 失敗： { code: 'PGRST202' }
+取得執貨清單 Supabase RPC 失敗： { code: 'XX000' }
+執貨清單 RPC 回傳格式無效： { not: 'an array' }
+✔ RPC errors and unexpected pick-list payloads are not returned as success (30.0393ms)
+✔ checkout requires a WhatsApp contact number before database operations (24.1006ms)
+✔ admin SOP generator is limited to product managers and supplies pricing, cutoff, upload and preview controls (11.0403ms)
+✔ storefront includes instant keyword search, urgency badges and accessible cart interactions (33.4228ms)
+✔ admin uses timed toasts and table skeletons during order and customer loads (10.1826ms)
+Error adding product: [TypeError: fetch failed] {
+  [cause]: AggregateError [ECONNREFUSED]:
+      at internalConnectMultiple (node:net:1430:18)
+      at afterConnectMultiple (node:net:2099:7) {
+    code: 'ECONNREFUSED',
+    [errors]: [ [Error], [Error] ]
+  }
+}
+✔ tests\test.js (580.9841ms)
+✔ 有效落單內容只建立待確認意圖，不會即時扣庫存或建立訂單 (315.1408ms)
+✔ 未知商品不建立待確認意圖或訂單並回覆錯誤提示 (35.3107ms)
+✔ 相同來源訊息重送只建立一個意圖，並重用相同確認碼 (33.9262ms)
+✔ 確認待確認意圖後才建立未付款訂單，重送確認不會重複建單 (40.3674ms)
+✔ WhatsApp image receipts require order-number caption and matching sender phone (248.2649ms)
+✔ valid receipt is stored privately, forwarded internally and deduplicated without marking payment paid (63.5909ms)
+處理 WhatsApp webhook 時發生錯誤： Error: 付款憑證圖片內容與檔案格式不符。
+    at handlePaymentProofImage (C:\Project\LittlePlanet\src\routes\webhooks.js:307:15)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ invalid image bytes are rejected and failed processing remains retryable (22.8637ms)
+轉發付款憑證至內部收件人失敗： Error: simulated internal notification failure
+    at sendWhatsAppImage (C:\Project\LittlePlanet\tests\webhook-payment-proofs.test.js:170:39)
+    at handlePaymentProofImage (C:\Project\LittlePlanet\src\routes\webhooks.js:356:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async C:\Project\LittlePlanet\src\routes\webhooks.js:763:22
+✔ receipt forwarding failure is recorded while the private proof remains pending review (18.6122ms)
+✔ returns no sender when WhatsApp Cloud API is not configured (2.6311ms)
+✔ rejects partial or malformed WhatsApp Cloud API configuration (1.3247ms)
+✔ sends a text message using the configured Cloud API and confirms delivery (2.4171ms)
+✔ rejects invalid recipient, empty text, and provider failures explicitly (2.4837ms)
+✔ downloads only allowlisted WhatsApp media URLs and enforces the image-size limit (133.2874ms)
+✔ uploads and sends a WhatsApp image with the provided caption (6.2037ms)
+✔ parses a product code with Chinese variant text and compact quantity (4.9183ms)
+✔ normalizes case, whitespace, full-width characters and multiple items (1.125ms)
+✔ rejects an unknown product code without producing order items (0.8686ms)
+▶ rejects malformed entries and non-positive quantities
+  ✔ malformed syntax (0.4501ms)
+  ✔ zero quantity (0.4998ms)
+  ✔ quantity above the checkout limit (0.4391ms)
+✔ rejects malformed entries and non-positive quantities (4.3711ms)
+▶ rejects repeated or ambiguous product codes
+  ✔ duplicate item in a message (0.4806ms)
+  ✔ duplicate product code in the catalog (0.503ms)
+✔ rejects repeated or ambiguous product codes (2.0564ms)
+✔ rejects unavailable products and invalid parser inputs explicitly (1.0403ms)
+✔ wishlist endpoints require a member session and return only the current member data (242.3545ms)
+✔ wishlist creation validates same-origin requests and product identifiers (65.7034ms)
+✔ member adds and removes a wishlist item without affecting another member (40.672ms)
+讀取會員收藏清單失敗： { code: 'XX000', message: 'database unavailable' }
+✔ wishlist database failures return a structured error response (23.5054ms)
+ℹ tests 196
+ℹ suites 0
+ℹ pass 195
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 5424.669
