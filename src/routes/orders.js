@@ -7,6 +7,8 @@ const normalizeProductId = require('../utils/normalize-product-id');
 
 const MISSING_SCHEMA_CODES = new Set(['42P01', '42703', '42883', 'PGRST202', 'PGRST204']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_V4_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ORDER_STATUSES = new Set(['pending', 'shipping', 'completed']);
 const SHIPPING_METHODS = new Set(['面交', '自取', '順豐', '京東']);
 const PAYMENT_PROOF_BUCKET = 'payment-proofs';
@@ -291,10 +293,15 @@ function createOrdersRouter(supabase, options = {}) {
 
     let body = req.body && typeof req.body === 'object' ? req.body : {};
     const isCheckoutRoute = req.path === '/checkout';
+    const hasIdempotencyKey = Object.hasOwn(body, 'idempotency_key');
+    const rawIdempotencyKey = body.idempotency_key;
     if (isCheckoutRoute) {
       const customer = body.customer;
       if (!customer || typeof customer !== 'object' || Array.isArray(customer)) {
         return sendError(res, 400, '顧客聯絡資料格式無效。');
+      }
+      if (!hasIdempotencyKey) {
+        return sendError(res, 400, '請提供有效的結帳請求識別碼。', 'INVALID_IDEMPOTENCY_KEY');
       }
       if (Object.hasOwn(customer, 'email')) {
         req.log.warn({ field: 'customer.email' }, 'Ignoring unsupported checkout field');
@@ -329,8 +336,17 @@ function createOrdersRouter(supabase, options = {}) {
         shipping_method: body.pickup,
         shipping_address: body.shipping_address,
         items: checkoutItems,
+        idempotency_key: rawIdempotencyKey,
       };
     }
+
+    if (
+      hasIdempotencyKey &&
+      (typeof rawIdempotencyKey !== 'string' || !UUID_V4_PATTERN.test(rawIdempotencyKey))
+    ) {
+      return sendError(res, 400, '請提供有效的結帳請求識別碼。', 'INVALID_IDEMPOTENCY_KEY');
+    }
+    const idempotencyKey = hasIdempotencyKey ? rawIdempotencyKey.toLowerCase() : null;
 
     if (
       (body.customer_name !== undefined &&
@@ -417,6 +433,12 @@ function createOrdersRouter(supabase, options = {}) {
       quantity,
     }));
 
+    req.log.info({
+      phone_suffix: customerPhone.slice(-4),
+      idem_key: idempotencyKey,
+      items_count: rpcItems.length,
+    }, 'Checkout request received');
+
     try {
       const { data, error } = await supabase.rpc('create_customer_order', {
         p_customer_phone: customerPhone,
@@ -424,6 +446,7 @@ function createOrdersRouter(supabase, options = {}) {
         p_customer_name: customerName || null,
         p_shipping_method: shippingMethod,
         p_shipping_address: shippingAddress,
+        p_idempotency_key: idempotencyKey,
       });
 
       if (error) {
@@ -449,6 +472,12 @@ function createOrdersRouter(supabase, options = {}) {
             message: '部分商品庫存不足，請更新購物車後重試。',
             code: 'STOCK_UNAVAILABLE',
           });
+        }
+        if (error.message === 'PREORDER_DEADLINE_PASSED') {
+          return sendError(res, 409, '預購已截止，請移除相關商品後再試。', 'PREORDER_DEADLINE_PASSED');
+        }
+        if (error.message === 'DUPLICATE_REQUEST' || error.code === '23505') {
+          return sendError(res, 409, '重複請求，請稍後再試。', 'DUPLICATE_REQUEST');
         }
         if (error.message === 'PRODUCT_UNAVAILABLE') {
           return sendError(

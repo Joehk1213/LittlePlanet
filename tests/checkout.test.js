@@ -13,6 +13,7 @@ const supabaseUrl =
   process.env.CHECKOUT_RLS_TEST_SUPABASE_URL || process.env.SUPABASE_URL;
 const supabaseAnonKey =
   process.env.CHECKOUT_RLS_TEST_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY;
+const IDEMPOTENCY_KEY = '2a0d4f4c-9d99-4c93-8a74-28ecff9d67a1';
 
 function isLocalSupabaseUrl(value) {
   if (!value) {
@@ -40,7 +41,20 @@ test('checkout client sends phone-based bigint items to the backend without Supa
   );
   assert.equal(/createClient|SUPABASE_SERVICE_ROLE_KEY/.test(source), false);
   const calls = [];
+  const values = new Map();
   const browser = {
+    crypto: { randomUUID: () => IDEMPOTENCY_KEY },
+    localStorage: {
+      getItem(key) {
+        return values.has(key) ? values.get(key) : null;
+      },
+      setItem(key, value) {
+        values.set(key, value);
+      },
+      removeItem(key) {
+        values.delete(key);
+      }
+    },
     async fetch(url, options) {
       calls.push({ url, options });
       return {
@@ -73,7 +87,11 @@ test('checkout client sends phone-based bigint items to the backend without Supa
     calls[0].options.headers['Content-Type'],
     'application/json'
   );
-  assert.deepEqual(JSON.parse(calls[0].options.body), payload);
+  assert.deepEqual(JSON.parse(calls[0].options.body), {
+    ...payload,
+    idempotency_key: IDEMPOTENCY_KEY
+  });
+  assert.equal(values.has('lp_last_idem_key'), false);
 });
 
 test('checkout contact memory restores saved details only for the matching phone', () => {
@@ -105,6 +123,99 @@ test('checkout contact memory restores saved details only for the matching phone
   assert.equal(profile.shipping_method, '自取');
   assert.equal(profile.shipping_address, '荃灣店');
   assert.equal(browser.LittlePlanetCheckout.getContactProfile('85287654321', storage), null);
+});
+
+test('checkout reuses a saved idempotency key for retries and rotates after success', async () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'services', 'checkout.js'),
+    'utf8'
+  );
+  const values = new Map();
+  const calls = [];
+  let generated = 0;
+  const keys = [
+    IDEMPOTENCY_KEY,
+    '64e58e7a-5316-4d4d-8a49-005cfe2eac21'
+  ];
+  const responses = [
+    {
+      ok: false,
+      status: 500,
+      async json() {
+        return { success: false, message: 'temporary failure' };
+      }
+    },
+    {
+      ok: true,
+      status: 201,
+      async json() {
+        return { success: true, data: { order_id: 'LP-20261029-AAAA0001' } };
+      }
+    },
+    {
+      ok: true,
+      status: 201,
+      async json() {
+        return { success: true, data: { order_id: 'LP-20261029-BBBB0002' } };
+      }
+    }
+  ];
+  const storage = {
+    getItem(key) {
+      return values.has(key) ? values.get(key) : null;
+    },
+    setItem(key, value) {
+      values.set(key, value);
+    },
+    removeItem(key) {
+      values.delete(key);
+    }
+  };
+  const browser = {
+    crypto: {
+      randomUUID() {
+        return keys[generated++];
+      }
+    },
+    localStorage: storage,
+    async fetch(url, options) {
+      calls.push(JSON.parse(options.body));
+      return responses.shift();
+    }
+  };
+  vm.runInNewContext(source, { window: browser });
+
+  const payload = {
+    customer: { phone: '+852 1234-5678' },
+    items: [{ product_id: '4268', qty: 1 }]
+  };
+  await browser.LittlePlanetCheckout.submit(payload);
+  const saved = JSON.parse(values.get('lp_last_idem_key'));
+  assert.equal(saved.phone, '85212345678');
+  assert.equal(saved.key, IDEMPOTENCY_KEY);
+
+  await browser.LittlePlanetCheckout.submit(payload);
+  assert.equal(calls[0].idempotency_key, IDEMPOTENCY_KEY);
+  assert.equal(calls[1].idempotency_key, IDEMPOTENCY_KEY);
+  assert.equal(values.has('lp_last_idem_key'), false);
+
+  await browser.LittlePlanetCheckout.submit(payload);
+  assert.equal(calls[2].idempotency_key, keys[1]);
+  assert.equal(generated, 2);
+});
+
+test('checkout fallback idempotency key remains UUID v4 compatible', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'services', 'checkout.js'),
+    'utf8'
+  );
+  const browser = {};
+  vm.runInNewContext(source, { window: browser });
+
+  assert.match(
+    browser.LittlePlanetCheckout.generateIdempotencyKey(),
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+  );
 });
 
 test(

@@ -5,6 +5,7 @@ const express = require('express');
 const createOrdersRouter = require('../src/routes/orders');
 
 const ORDER_UUID = 'e1da0bac-9021-4e87-920b-2f5bf5381f32';
+const DEFAULT_IDEMPOTENCY_KEY = '2a0d4f4c-9d99-4c93-8a74-28ecff9d67a1';
 
 async function withServer(router, run) {
   const app = express();
@@ -41,11 +42,14 @@ async function postOrder(baseUrl, body) {
   return { status: response.status, body: await response.json() };
 }
 
-async function postCheckout(baseUrl, body) {
+async function postCheckout(baseUrl, body, includeDefaultIdempotencyKey = true) {
+  const requestBody = Object.hasOwn(body, 'idempotency_key') || !includeDefaultIdempotencyKey
+    ? body
+    : { ...body, idempotency_key: DEFAULT_IDEMPOTENCY_KEY };
   const response = await fetch(`${baseUrl}/api/orders/checkout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body)
+    body: JSON.stringify(requestBody)
   });
   return { status: response.status, body: await response.json() };
 }
@@ -118,6 +122,7 @@ test('checkout merges duplicate products and returns the official order number, 
   assert.equal(rpcCall.args.p_customer_name, '小行星客人');
   assert.equal(rpcCall.args.p_shipping_method, '順豐');
   assert.equal(rpcCall.args.p_shipping_address, '順豐站：852AL');
+  assert.equal(rpcCall.args.p_idempotency_key, DEFAULT_IDEMPOTENCY_KEY);
 });
 
 test('checkout stores a human-readable order number when the RPC does not return one', async () => {
@@ -400,4 +405,118 @@ test('invalid checkout data and missing service role never call the RPC', async 
     assert.match(response.body.message, /SUPABASE_SERVICE_ROLE_KEY/);
   });
   assert.equal(calls, 0);
+});
+
+test('checkout replays the same order for one phone and key, but creates a new order for a new key', async () => {
+  const ordersByIdempotencyKey = new Map();
+  const rpcCalls = [];
+  let nextOrder = 0;
+  const keys = [
+    DEFAULT_IDEMPOTENCY_KEY,
+    '64e58e7a-5316-4d4d-8a49-005cfe2eac21'
+  ];
+
+  await withServer(createOrdersRouter({
+    rpc: async (name, args) => {
+      rpcCalls.push({ name, args });
+      const compositeKey = `${args.p_customer_phone}:${args.p_idempotency_key}`;
+      let order = ordersByIdempotencyKey.get(compositeKey);
+      if (!order) {
+        nextOrder += 1;
+        const suffix = String(nextOrder).padStart(8, '0');
+        order = {
+          order_id: `b9e5d550-1e4a-4f4d-8a74-0000${suffix}`,
+          order_number: `LP-20261029-${suffix}`,
+          total_amount: 25,
+          items: [{ product_id: '4268', quantity: 1, unit_price: 25 }]
+        };
+        ordersByIdempotencyKey.set(compositeKey, order);
+      }
+      return { data: order, error: null };
+    }
+  }), async (baseUrl, requestLogs) => {
+    const request = key => postCheckout(baseUrl, {
+      customer: { phone: '+85212345678' },
+      items: [{ product_id: '4268', qty: 1 }],
+      idempotency_key: key
+    });
+
+    const first = await request(keys[0]);
+    const retry = await request(keys[0]);
+    const secondOrder = await request(keys[1]);
+    const differentPhone = await postCheckout(baseUrl, {
+      customer: { phone: '+85287654321' },
+      items: [{ product_id: '4268', qty: 1 }],
+      idempotency_key: keys[0]
+    });
+
+    assert.equal(first.status, 201);
+    assert.equal(retry.status, 201);
+    assert.equal(first.body.data.order_id, retry.body.data.order_id);
+    assert.notEqual(first.body.data.order_id, secondOrder.body.data.order_id);
+    assert.notEqual(first.body.data.order_id, differentPhone.body.data.order_id);
+    assert.equal(first.body.data.order_id, first.body.data.order_number);
+    assert.equal(rpcCalls.length, 4);
+    assert.deepEqual(rpcCalls.map(call => call.args.p_idempotency_key), [
+      keys[0],
+      keys[0],
+      keys[1],
+      keys[0]
+    ]);
+    assert.equal(rpcCalls[0].args.p_customer_phone, '85212345678');
+
+    const checkoutLogs = requestLogs.filter(log =>
+      log.level === 'info' && log.args[1] === 'Checkout request received'
+    );
+    assert.equal(checkoutLogs.length, 4);
+    assert.equal(checkoutLogs[0].args[0].phone_suffix, '5678');
+    assert.equal(checkoutLogs[3].args[0].phone_suffix, '4321');
+    assert.equal(JSON.stringify(checkoutLogs).includes('85212345678'), false);
+  });
+});
+
+test('checkout requires a UUID v4 key and sanitizes deadline and duplicate errors', async () => {
+  let rpcCalls = 0;
+  await withServer(createOrdersRouter({
+    rpc: async (_name, args) => {
+      rpcCalls += 1;
+      if (args.p_idempotency_key === DEFAULT_IDEMPOTENCY_KEY) {
+        return {
+          data: null,
+          error: { code: 'P0001', message: 'PREORDER_DEADLINE_PASSED', details: 'database internals' }
+        };
+      }
+      return { data: null, error: { code: '23505', message: 'private constraint name' } };
+    }
+  }), async baseUrl => {
+    const baseBody = {
+      customer: { phone: '+85212345678' },
+      items: [{ product_id: '4268', qty: 1 }]
+    };
+    const missingKey = await postCheckout(baseUrl, baseBody, false);
+    const invalidKey = await postCheckout(baseUrl, {
+      ...baseBody,
+      idempotency_key: 'not-a-uuid'
+    });
+    assert.equal(missingKey.status, 400);
+    assert.equal(invalidKey.status, 400);
+
+    const deadline = await postCheckout(baseUrl, {
+      ...baseBody,
+      idempotency_key: DEFAULT_IDEMPOTENCY_KEY
+    });
+    assert.equal(deadline.status, 409);
+    assert.equal(deadline.body.code, 'PREORDER_DEADLINE_PASSED');
+    assert.equal(deadline.body.message, '預購已截止，請移除相關商品後再試。');
+    assert.equal(JSON.stringify(deadline.body).includes('database internals'), false);
+
+    const duplicate = await postCheckout(baseUrl, {
+      ...baseBody,
+      idempotency_key: '64e58e7a-5316-4d4d-8a49-005cfe2eac21'
+    });
+    assert.equal(duplicate.status, 409);
+    assert.equal(duplicate.body.code, 'DUPLICATE_REQUEST');
+    assert.equal(JSON.stringify(duplicate.body).includes('private constraint name'), false);
+  });
+  assert.equal(rpcCalls, 2);
 });

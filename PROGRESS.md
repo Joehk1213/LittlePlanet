@@ -768,3 +768,51 @@ n8n-n8n-1                                          docker.n8n.io/n8nio/n8n:lates
 - The existing product API already selects public `tier_prices` and `preorder_deadline`; the storefront already recalculates cart unit/subtotal from quantity, and `create_customer_order()` performs authoritative tier-price calculation and order insertion in the database. Kept that server-side RPC as the pricing authority rather than trusting submitted prices or duplicating calculation in the route.
 - Replaced the storefront's tier-price text summary with accessible quantity-band tables in product cards and quick view. Added an admin-only review moderation hint and explicit “評價審核中” status label. Admin review list/status/delete failures now use Pino request logs with safe event metadata.
 - Added checkout coverage proving a client price is discarded and the server RPC's tier price is returned, and a public review test proving pending/rejected reviews are excluded alongside migration SQL/RLS-grant contract checks. Verification: `npm test` — 174 tests, 173 passed, 0 failed, 1 skipped (local anon RLS test requires an explicitly configured loopback Supabase URL/key); `npm run lint` passed; inline JavaScript in `public/index.html` and `public/admin.html` parsed successfully. The migration was not applied and no live database was written.
+
+## [DESKTOP] 2026-10-28 SEALED - SHA256 PASS 1074 files
+
+- Read-only final count: `C:\docker-data\littleplanet\postgres` contains 1,074 files.
+- `C:\docker-data\littleplanet-handover` contains 1,282 files, 59 directories, and 1,357,873,805 bytes.
+- `postgres.zip` is 5,961,824 bytes; SHA-256 `279D8CB392FBF5D5D303F8C108AA92DC7D582A6C9B23F6E367FA8BFBDB46FC3F` matches `CHECKSUM.txt` and `MANIFEST.txt`. `images.tar` is 1,287,879,680 bytes; SHA-256 `4A82F764B2106BA14A70A7B84E408D1C3154C0272D16B8C7E2A9D862EDF4804F` matches `MANIFEST.txt`.
+- Compared the 1,074 live Postgres files with the 1,074 `postgres_live` staged files and `MANIFEST.txt`: relative paths, lengths, and every SHA-256 matched.
+- `Test-Path D:\docker-data\littleplanet` returned `False`; no D: directory was created or modified.
+
+## [DESKTOP - C] 2026-10-28 Images.tar Pure PJ1 Rebuild
+
+### Inventory and classification (recorded before rebuild)
+
+- Docker CLI is installed, but the `desktop-linux` Docker daemon is unavailable (`//./pipe/dockerDesktopLinuxEngine` does not exist). Therefore `docker images`, `docker save`, and daemon-based `docker load` verification cannot run in this session. I did not start or alter Docker Desktop.
+- Read-only inspection of the existing `images.tar` `index.json` and `manifest.json` confirms these 9 tags:
+  - **PJ1 keep (7):** `littleplanet-app:latest`, `supabase/storage-api:v1.81.0`, `supabase/postgres:17.6.1.136`, `caddy:2.10.2`, `supabase/gotrue:v2.197.0`, `postgrest/postgrest:v14.18`, `supabase/realtime:v2.143.3`.
+  - **PJ2 exclude (2):** `pgvector/pgvector:pg15` (only used by `family-rag-db`) and `ghcr.io/huggingface/text-embeddings-inference:cpu-1.6` (embedding service bound to `FAMILY_DATA_ROOT`).
+- The project `docker-compose.prod.yml` currently contains both PJ1 services and `family-rag-db`/`embedding-service`; those two PJ2 services are excluded from the PJ1-only image package. The 9-tag decision is from the archive itself, not a live `docker images` inventory.
+
+### PJ1-only archive build and verification
+
+- Preserved the original 9-tag `images.tar` and created `images.tar.mixed_9tags_backup_20261028`; both are 1,287,879,680 bytes and SHA-256 `4A82F764B2106BA14A70A7B84E408D1C3154C0272D16B8C7E2A9D862EDF4804F`. The original remains in place.
+- Created `C:\docker-data\littleplanet-handover\images-pj1-only.tar` with only the 7 PJ1 tags listed above. It is 894,679,040 bytes; SHA-256 `3D91F03B5292A82F77D4338316D6E446D767356E6FE33CC37236D651C96CAC41`.
+- Verified the new legacy Docker archive manifest contains exactly those 7 tags, no PJ2 tags, all referenced config/layer blobs exist, and every included blob SHA-256 matches its digest filename. Added `C:\docker-data\littleplanet-handover\IMAGES_PJ1_ONLY_MANIFEST.txt` with the image decision, size/hash, and backup details.
+- `docker load` was not run because the `desktop-linux` Docker daemon is unavailable; the tar passed structural and per-blob integrity checks, but daemon import remains unverified. No files were deleted; `images.tar` was not overwritten. D: and OneDrive were not accessed.
+
+## [DESKTOP - C2] Promoted to pure PJ1 images.tar
+
+- Verified the pure archive SHA-256 `3D91F03B5292A82F77D4338316D6E446D767356E6FE33CC37236D651C96CAC41`, copied it to the retained `images.tar.pj1-pure_20261028`, moved the old active mixed archive to `images.tar.old_mixed`, then promoted the pure archive to `images.tar`.
+- Active `images.tar` is 894,679,040 bytes and has the verified 7 PJ1 tags. The pure copy `images.tar.pj1-pure_20261028` matches it. Both mixed backups remain: `images.tar.old_mixed` and `images.tar.mixed_9tags_backup_20261028`, each 1,287,879,680 bytes with SHA-256 `4A82F764B2106BA14A70A7B84E408D1C3154C0272D16B8C7E2A9D862EDF4804F`; none were deleted.
+- Updated `CHECKSUM.txt`, regenerated `MANIFEST.txt` for all 1,284 handover payload files (excluding the two index/checksum files), and aligned `README_JOE.txt`, `docker_images.txt`, and `IMAGES_PJ1_ONLY_MANIFEST.txt` with the pure PJ1 package.
+- OneDrive copy was not performed: the requested `C:\Users\Joehk\OneDrive\Documents\littleplanet-handover` and its `C:\Users\Joehk` parent do not exist. No alternate profile path was guessed or created, so SERVER sync remains pending. Docker `load` validation also remains pending because the desktop-linux daemon is unavailable.
+
+## [DESKTOP - C3] OneDrive-Personal synced to pure PJ1 894MB
+
+- Located the existing OneDrive-Personal root at `C:\Users\JOE\OneDrive - Personal`; no existing `littleplanet-handover` folder or `Documents` folder was present. Created the dedicated `C:\Users\JOE\OneDrive - Personal\littleplanet-handover` folder rather than using the unrelated Airport Authority OneDrive.
+- Copied `images.tar`, `IMAGES_PJ1_ONLY_MANIFEST.txt`, `MANIFEST.txt`, and `CHECKSUM.txt` from C: and verified each destination file has the same size and SHA-256 as its source. `images.tar` is 894,679,040 bytes with SHA-256 `3D91F03B5292A82F77D4338316D6E446D767356E6FE33CC37236D651C96CAC41`.
+- The OneDrive process was running at verification time. Local sync-folder copy is verified; completion of cloud upload/SERVER synchronization is not independently confirmed. Mixed backups remain on C: unchanged.
+
+## [DESKTOP - D] 2026-10-29 Inventory atomic + idempotency + deadline - migration 20261029000100 + 181 tests
+
+- Audited the starting state before edits. The active branch was `pj1/dev-next`, with HEAD `a931dcc` (ahead of `origin/pj1/dev-next` by one commit; `a206d92` is an ancestor). The only initial worktree change was the existing `PROGRESS.md` modification; it was preserved. No branch switch, reset, or cleanup was performed.
+- Migration history already contains `20261022000500_product_cost_price.sql` and continues through `20261024000500_add_customers_google_email.sql`. To avoid a duplicate Supabase migration version, the new migration is `20261029000100_inventory_idempotency_deadline.sql`.
+- Existing `20261022000400` checkout RPC already locks product rows, checks `preorder_deadline`, applies tier pricing, verifies `products.stock`, inserts order/items, and decrements stock within the same transaction. The new migration adds `orders.idempotency_key`, a partial unique `(customer_phone, idempotency_key)` index, and a service-role-only RPC wrapper using a transaction advisory lock; replay returns the existing order. It also distinguishes expired preorder errors. No duplicate stock column or batch-quantity inventory model was added.
+- Kept the implemented Express contract and schema: `customer.phone`, `items[].product_id/qty`, and existing shipping method/address fields. The requested `pickup_location_id` and checkout `note` are not present in the migrations, so no unsupported columns or RPC parameters were introduced. The legacy order RPC remains service-role-only; no `anon`/`authenticated` execute grant was added.
+- The checkout route requires and validates UUID v4 idempotency keys, calls the backend Supabase RPC, logs only the phone suffix with the key/item count, and sanitizes stock, preorder, and duplicate errors. The fetch-only browser service persists the current key with the normalized phone in `lp_last_idem_key`, reuses it on failed retries, and clears it after a successful response.
+- Validation: full `npm test` passed **180 / 181**, **0 failed**, **1 skipped** (local anon RLS test not configured for a local Supabase URL); `npm run lint` passed. Endpoint replay behavior is covered with an RPC mock; no direct database writes were made. The migration was not applied to any database, and no local `psql`/Supabase CLI was available for database execution testing.
+- Confirmed `C:\docker-data\littleplanet-handover\images.tar` remains 894,679,040 bytes with SHA-256 `3D91F03B5292A82F77D4338316D6E446D767356E6FE33CC37236D651C96CAC41`. No `.env.docker`, `database/family-rag`, `src/rag`, OneDrive, or Docker images were modified.
