@@ -170,6 +170,63 @@ test('checkout stores a human-readable order number when the RPC does not return
   });
 });
 
+test('checkout validates pickup selection and passes self-pickup details to the migration RPC', async () => {
+  const rpcCalls = [];
+  await withServer(createOrdersRouter({
+    rpc: async (name, args) => {
+      rpcCalls.push({ name, args });
+      return {
+        data: {
+          order_id: ORDER_UUID,
+          order_number: 'LP-20261022-A1B2C3D4',
+          total_amount: 25,
+          items: [{ product_id: 4268, quantity: 1, unit_price: 25 }]
+        },
+        error: null
+      };
+    }
+  }), async baseUrl => {
+    const response = await postCheckout(baseUrl, {
+      customer: { phone: '+85212345678', name: '小行星客人' },
+      pickup: '自取',
+      shipping_address: '荃灣店',
+      items: [{ product_id: '4268', qty: 1 }]
+    });
+    assert.equal(response.status, 201);
+    assert.equal(response.body.data.order_id, 'LP-20261022-A1B2C3D4');
+
+    for (const invalidBody of [
+      {
+        customer: { phone: '+85212345678' },
+        pickup: 'delivery',
+        items: [{ product_id: '4268', qty: 1 }]
+      },
+      {
+        customer: { phone: '+85212345678' },
+        pickup: 'sf_station',
+        items: [{ product_id: '4268', qty: 1 }]
+      },
+      {
+        customer: { phone: '+85212345678' },
+        pickup: 'sf_station',
+        shipping_address: 'x'.repeat(191),
+        items: [{ product_id: '4268', qty: 1 }]
+      }
+    ]) {
+      const invalid = await postCheckout(baseUrl, invalidBody);
+      assert.equal(invalid.status, 400);
+      assert.equal(invalid.body.success, false);
+    }
+  });
+
+  assert.equal(rpcCalls.length, 1);
+  assert.equal(rpcCalls[0].name, 'create_customer_order');
+  assert.equal(rpcCalls[0].args.p_customer_phone, '85212345678');
+  assert.equal(rpcCalls[0].args.p_customer_name, '小行星客人');
+  assert.equal(rpcCalls[0].args.p_shipping_method, '自取');
+  assert.equal(rpcCalls[0].args.p_shipping_address, '荃灣店');
+});
+
 test('checkout replaces a UUID mistakenly stored as order_number before responding', async () => {
   const order = { order_id: ORDER_UUID, order_number: ORDER_UUID };
   const updates = [];

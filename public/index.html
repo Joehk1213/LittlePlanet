@@ -233,15 +233,19 @@
       <input id="customerPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder="例如：91234567 或 +85291234567" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
       <label for="customerName" class="mt-3 block text-sm font-bold text-slate-800">收件人姓名／稱呼</label>
       <input id="customerName" type="text" maxlength="100" autocomplete="name" placeholder="請輸入收件人姓名或稱呼" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
-      <label for="shippingMethod" class="mt-3 block text-sm font-bold text-slate-800">取貨方式</label>
+      <label for="shippingMethod" class="mt-3 block text-sm font-bold text-slate-800">取貨／配送方式（自取或送貨）</label>
       <select id="shippingMethod" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
         <option value="">請選擇（可稍後確認）</option>
-        <option value="sf_station">順豐站</option>
-        <option value="sf_locker">順豐智能櫃</option>
-        <option value="順豐">順豐送貨</option>
-        <option value="自取">自取</option>
-        <option value="面交">面交</option>
-        <option value="京東">京東</option>
+        <optgroup label="自取／面交">
+          <option value="自取">自取</option>
+          <option value="面交">面交</option>
+        </optgroup>
+        <optgroup label="送貨／取件點">
+          <option value="sf_station">順豐站</option>
+          <option value="sf_locker">順豐智能櫃</option>
+          <option value="順豐">順豐送貨</option>
+          <option value="京東">京東</option>
+        </optgroup>
       </select>
       <label for="shippingAddress" class="mt-3 block text-sm font-bold text-slate-800">取貨點編號／地址 <span id="shippingAddressOptional" class="font-normal text-slate-500">（選填）</span></label>
       <input id="shippingAddress" type="text" maxlength="200" autocomplete="street-address" list="pickupPointExamples" placeholder="可輸入地區或取件點編號" class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:ring-4 focus:ring-indigo-100">
@@ -250,6 +254,7 @@
         <option value="H852K01P"></option>
       </datalist>
       <p id="shippingAddressHint" class="mt-1 text-xs leading-5 text-slate-500">順豐站／智能櫃編號例子只作輸入提示，請核對所選地點。</p>
+      <p id="pickupMemoryHint" class="mt-1 hidden text-xs font-semibold leading-5 text-indigo-700" aria-live="polite"></p>
       <label class="mt-3 flex items-start gap-2 text-xs leading-5 text-slate-600">
         <input id="rememberCheckoutDetails" type="checkbox" class="mt-1 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
         <span>只在此裝置記住我的收件資料，方便下次自動帶入（可隨時取消）。</span>
@@ -312,7 +317,6 @@
     'use strict';
 
     const CART_STORAGE_KEY = 'littleplanet_cart';
-    const CHECKOUT_PROFILE_STORAGE_KEY = 'littleplanet_checkout_profiles';
     const THEME_STORAGE_KEY = 'littleplanet_theme';
     const storefrontUrlParams = new URLSearchParams(window.location.search);
     if (
@@ -385,36 +389,39 @@
       return String(value || '').replace(/\D/g, '');
     }
 
-    function loadCheckoutProfiles() {
-      try {
-        const profiles = JSON.parse(localStorage.getItem(CHECKOUT_PROFILE_STORAGE_KEY) || '[]');
-        if (!Array.isArray(profiles)) {
-          throw new Error('熟客資料格式無效。');
-        }
-        return profiles.filter(profile =>
-          profile &&
-          typeof profile.phone === 'string' &&
-          typeof profile.customer_name === 'string' &&
-          typeof profile.shipping_method === 'string' &&
-          typeof profile.shipping_address === 'string'
-        );
-      } catch (error) {
-        console.error('讀取本機熟客資料失敗：', error);
-        showToast('無法讀取此裝置已記住的資料，請檢查瀏覽器儲存設定。');
-        return [];
+    function showPickupMemory(profile) {
+      const hint = document.querySelector('#pickupMemoryHint');
+      const pickupMethods = new Set(['自取', '面交', 'sf_station', 'sf_locker', '順豐站', '順豐智能櫃']);
+      if (profile && pickupMethods.has(profile.shipping_method) && profile.shipping_address) {
+        hint.textContent = `上次自取地點：${profile.shipping_address}`;
+        hint.classList.remove('hidden');
+      } else {
+        hint.textContent = '';
+        hint.classList.add('hidden');
       }
     }
 
-    function fillCheckoutProfile() {
+    function fillCheckoutProfile(showNotification = true) {
       const phone = normalizePhoneForProfile(document.querySelector('#customerPhone').value);
-      if (!/^\d{8,15}$/.test(phone)) return;
-      const profile = loadCheckoutProfiles().find(item => item.phone === phone);
-      if (!profile) return;
+      let profile;
+      try {
+        profile = window.LittlePlanetCheckout.getContactProfile(phone);
+      } catch (error) {
+        console.error('讀取本機熟客資料失敗：', error);
+        showToast('無法讀取此裝置已記住的資料，請檢查瀏覽器儲存設定。');
+        showPickupMemory(null);
+        return;
+      }
+      if (!profile) {
+        showPickupMemory(null);
+        return;
+      }
       document.querySelector('#customerName').value = profile.customer_name;
       document.querySelector('#shippingMethod').value = profile.shipping_method;
       document.querySelector('#shippingAddress').value = profile.shipping_address;
       updateShippingAddressRequirement();
-      showToast('已從此裝置帶入上次收件資料。');
+      showPickupMemory(profile);
+      if (showNotification) showToast('已從此裝置帶入上次收件資料。');
     }
 
     function saveCheckoutProfile(phone) {
@@ -423,14 +430,11 @@
         phone: normalizePhoneForProfile(phone),
         customer_name: document.querySelector('#customerName').value.trim(),
         shipping_method: document.querySelector('#shippingMethod').value,
-        shipping_address: document.querySelector('#shippingAddress').value.trim(),
-        updated_at: new Date().toISOString()
+        shipping_address: document.querySelector('#shippingAddress').value.trim()
       };
       if (!profile.phone || (!profile.customer_name && !profile.shipping_method && !profile.shipping_address)) return;
       try {
-        const profiles = loadCheckoutProfiles().filter(item => item.phone !== profile.phone);
-        profiles.unshift(profile);
-        localStorage.setItem(CHECKOUT_PROFILE_STORAGE_KEY, JSON.stringify(profiles.slice(0, 10)));
+        window.LittlePlanetCheckout.rememberContactProfile(profile);
       } catch (error) {
         console.error('儲存本機熟客資料失敗：', error);
         showToast('訂單已建立，但無法記住資料；請檢查瀏覽器儲存空間。');
@@ -1741,6 +1745,7 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       showToast('已清空購物車。');
     });
 
+    document.querySelector('#customerPhone').addEventListener('input', () => fillCheckoutProfile(false));
     document.querySelector('#customerPhone').addEventListener('change', fillCheckoutProfile);
     document.querySelector('#customerPhone').addEventListener('blur', fillCheckoutProfile);
     document.querySelector('#shippingMethod').addEventListener('change', () => {
@@ -1748,6 +1753,15 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       renderCart();
     });
     updateShippingAddressRequirement();
+    try {
+      const lastPhone = localStorage.getItem('littleplanet_last_phone');
+      if (lastPhone) {
+        document.querySelector('#customerPhone').value = lastPhone;
+        fillCheckoutProfile(false);
+      }
+    } catch (error) {
+      console.error('讀取上次結帳電話失敗：', error);
+    }
 
     document.querySelector('#checkoutButton').addEventListener('click', async event => {
       const button = event.currentTarget;

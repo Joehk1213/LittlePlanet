@@ -76,6 +76,37 @@ test('checkout client sends phone-based bigint items to the backend without Supa
   assert.deepEqual(JSON.parse(calls[0].options.body), payload);
 });
 
+test('checkout contact memory restores saved details only for the matching phone', () => {
+  const source = fs.readFileSync(
+    path.join(__dirname, '..', 'src', 'services', 'checkout.js'),
+    'utf8'
+  );
+  const browser = {};
+  const values = new Map();
+  const storage = {
+    getItem(key) {
+      return values.has(key) ? values.get(key) : null;
+    },
+    setItem(key, value) {
+      values.set(key, value);
+    }
+  };
+  vm.runInNewContext(source, { window: browser });
+
+  browser.LittlePlanetCheckout.rememberContactProfile({
+    phone: '+852 1234-5678',
+    customer_name: '小行星客人',
+    shipping_method: '自取',
+    shipping_address: '荃灣店'
+  }, storage);
+
+  const profile = browser.LittlePlanetCheckout.getContactProfile('85212345678', storage);
+  assert.equal(profile.customer_name, '小行星客人');
+  assert.equal(profile.shipping_method, '自取');
+  assert.equal(profile.shipping_address, '荃灣店');
+  assert.equal(browser.LittlePlanetCheckout.getContactProfile('85287654321', storage), null);
+});
+
 test(
   'local anon Supabase cannot select orders or order_items',
   { skip: !supabaseUrl || !supabaseAnonKey || !isLocalSupabaseUrl(supabaseUrl) },
