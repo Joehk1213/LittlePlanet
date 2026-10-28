@@ -397,14 +397,14 @@ function createReviewsRouter(supabase, options = {}) {
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
       if (error) {
-        console.error('讀取管理員評價清單失敗：', error);
+        req.log.error({ event: 'admin_review_list_failure', code: error.code }, '讀取管理員評價清單失敗');
         if (MISSING_SCHEMA_CODES.has(error.code)) {
           return sendError(res, 503, '商品評價資料庫 migration 尚未完成。');
         }
         return sendError(res, 500, '讀取評價清單失敗，請稍後再試。');
       }
       if (!Array.isArray(data)) {
-        console.error('管理員評價清單格式無效：', data);
+        req.log.error({ event: 'invalid_admin_review_list' }, '管理員評價清單格式無效');
         return sendError(res, 500, '評價清單資料格式無效。');
       }
       return res.json({
@@ -418,7 +418,7 @@ function createReviewsRouter(supabase, options = {}) {
         message: '評價清單載入完成。',
       });
     } catch (error) {
-      console.error('處理管理員評價清單時發生未預期錯誤：', error);
+      req.log.error({ event: 'admin_review_list_unexpected_failure' }, '處理管理員評價清單時發生未預期錯誤');
       return sendError(res, 500, '讀取評價清單時發生錯誤，請稍後再試。');
     }
   });
@@ -442,7 +442,7 @@ function createReviewsRouter(supabase, options = {}) {
         .select('review_id,status')
         .maybeSingle();
       if (error) {
-        console.error('更新評價審核狀態失敗：', error);
+        req.log.error({ event: 'admin_review_status_update_failure', code: error.code }, '更新評價審核狀態失敗');
         if (MISSING_SCHEMA_CODES.has(error.code)) {
           return sendError(res, 503, '商品評價審核資料庫 migration 尚未完成。');
         }
@@ -460,7 +460,7 @@ function createReviewsRouter(supabase, options = {}) {
               : '評價已設為待審核。',
       });
     } catch (error) {
-      console.error('處理評價審核狀態時發生未預期錯誤：', error);
+      req.log.error({ event: 'admin_review_status_update_unexpected_failure' }, '處理評價審核狀態時發生未預期錯誤');
       return sendError(res, 500, '更新評價審核狀態時發生錯誤，請稍後再試。');
     }
   });
@@ -480,7 +480,7 @@ function createReviewsRouter(supabase, options = {}) {
         .select('review_id')
         .maybeSingle();
       if (error) {
-        console.error('刪除商品評價失敗：', error);
+        req.log.error({ event: 'admin_review_delete_failure', code: error.code }, '刪除商品評價失敗');
         if (MISSING_SCHEMA_CODES.has(error.code)) {
           return sendError(res, 503, '商品評價資料庫 migration 尚未完成。');
         }
@@ -493,7 +493,7 @@ function createReviewsRouter(supabase, options = {}) {
         message: '商品評價已刪除。',
       });
     } catch (error) {
-      console.error('處理商品評價刪除時發生未預期錯誤：', error);
+      req.log.error({ event: 'admin_review_delete_unexpected_failure' }, '處理商品評價刪除時發生未預期錯誤');
       return sendError(res, 500, '刪除商品評價時發生錯誤，請稍後再試。');
     }
   });

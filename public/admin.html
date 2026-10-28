@@ -551,6 +551,7 @@
                 <button id="refresh-reviews-button" type="button">重新載入</button>
             </div>
             <p id="reviews-status" class="chart-status" role="status" aria-live="polite">登入後載入顧客評價</p>
+            <p class="chart-status">「評價審核中」的評價只供具評價管理權限的管理員審核，未批准前不會公開顯示。</p>
             <div style="overflow-x: auto;">
                 <table>
                     <thead>
@@ -3056,7 +3057,7 @@
                     reviewStatus.dataset.savedStatus = review.status || 'pending';
                     reviewStatus.setAttribute('aria-label', `評價 ${review.review_id} 審核狀態`);
                     for (const [value, label] of [
-                        ['pending', '待審核'],
+                        ['pending', '評價審核中'],
                         ['approved', '公開'],
                         ['rejected', '拒絕']
                     ]) {

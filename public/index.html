@@ -523,10 +523,48 @@
       );
     }
 
-    function tierPriceSummary(product) {
-      return getTierPrices(product)
-        .map(tier => `買滿 ${tier.min_qty} 件每件 ${formatPrice(tier.price)}`)
-        .join(' · ');
+    function createTierPriceTable(product) {
+      const basePrice = getProductPrice(product);
+      const tiers = getTierPrices(product);
+      if (basePrice === null || tiers.length === 0) return null;
+
+      const table = document.createElement('table');
+      table.className = 'w-full overflow-hidden rounded-lg border border-emerald-100 bg-emerald-50 text-xs';
+      table.setAttribute('aria-label', '商品階梯價');
+      const caption = makeElement('caption', 'sr-only', '團購階梯價');
+      const header = document.createElement('thead');
+      const headerRow = document.createElement('tr');
+      headerRow.append(
+        makeElement('th', 'px-2 py-1.5 text-left text-emerald-900', '購買數量'),
+        makeElement('th', 'px-2 py-1.5 text-right text-emerald-900', '每件價格')
+      );
+      header.append(headerRow);
+
+      const body = document.createElement('tbody');
+      const bands = [];
+      let minimum = 1;
+      let price = basePrice;
+      for (const tier of tiers) {
+        const maximum = tier.min_qty - 1;
+        bands.push({
+          quantity: maximum === minimum ? `${minimum} 件` : `${minimum}–${maximum} 件`,
+          price
+        });
+        minimum = tier.min_qty;
+        price = tier.price;
+      }
+      bands.push({ quantity: `${minimum} 件起`, price });
+
+      for (const band of bands) {
+        const row = document.createElement('tr');
+        row.append(
+          makeElement('td', 'border-t border-emerald-100 px-2 py-1.5 text-slate-700', band.quantity),
+          makeElement('td', 'border-t border-emerald-100 px-2 py-1.5 text-right font-bold text-emerald-800', formatPrice(band.price))
+        );
+        body.append(row);
+      }
+      table.append(caption, header, body);
+      return table;
     }
 
     function formatCountdown(deadline) {
@@ -691,9 +729,11 @@
       document.querySelector('#quickViewCategory').textContent = product.category || '精選商品';
       document.querySelector('#quickViewTitle').textContent = getProductName(product);
       document.querySelector('#quickViewPrice').textContent = formatPrice(getProductPrice(product));
-      const tierSummary = document.querySelector('#quickViewTierPrices');
-      tierSummary.textContent = tierPriceSummary(product);
-      tierSummary.hidden = !tierSummary.textContent;
+      const tierPrices = document.querySelector('#quickViewTierPrices');
+      const tierTable = createTierPriceTable(product);
+      tierPrices.replaceChildren();
+      tierPrices.hidden = !tierTable;
+      if (tierTable) tierPrices.append(tierTable);
       const countdown = document.querySelector('#quickViewCountdown');
       countdown.dataset.countdownDeadline = product.preorder_deadline || '';
       countdown.hidden = !product.preorder_deadline;
@@ -806,8 +846,8 @@ document.querySelector('#quickViewStock').textContent = isPreorder ? '商品狀�
 
       content.append(makeElement('p', 'mt-2 text-lg font-black tracking-tight text-indigo-700', formatPrice(price)));
 
-      const tierSummary = tierPriceSummary(product);
-      if (tierSummary) content.append(makeElement('p', 'mt-1 text-xs font-bold leading-5 text-emerald-700', tierSummary));
+      const tierTable = createTierPriceTable(product);
+      if (tierTable) content.append(tierTable);
       if (product.preorder_deadline) {
         const countdown = makeElement('p', 'mt-1 text-xs font-extrabold text-rose-600');
         countdown.dataset.countdownDeadline = product.preorder_deadline;

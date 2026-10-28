@@ -1,7 +1,9 @@
 'use strict';
 
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
 const http = require('node:http');
+const path = require('node:path');
 const test = require('node:test');
 const express = require('express');
 const createAdminSessions = require('../src/middleware/admin-sessions');
@@ -16,6 +18,10 @@ const PRODUCT_ID = '17';
 
 async function withServer(supabase, run, options = {}) {
   const app = express();
+  app.use((req, res, next) => {
+    req.log = { error() {} };
+    next();
+  });
   app.use(express.json());
   app.use('/api', createReviewsRouter(supabase, {
     customerSessionSecret: SESSION_SECRET,
@@ -53,6 +59,7 @@ function createSupabase(options = {}) {
       customer_phone: PHONE,
       rating: 5,
       comment: '很喜歡！',
+      status: 'approved',
       created_at: '2026-10-04T01:00:00Z'
     }]
   };
@@ -179,17 +186,23 @@ function createSupabase(options = {}) {
       }
       assert.equal(name, 'get_product_reviews');
       assert.equal(args.p_product_id, PRODUCT_ID);
+      const approvedReviews = tables.product_reviews.filter(review =>
+        String(review.product_id) === args.p_product_id && review.status === 'approved'
+      );
       return {
         data: {
-          average_rating: 5,
-          review_count: 1,
-          reviews: [{
-            review_id: REVIEW_ID,
-            product_id: PRODUCT_ID,
-            rating: 5,
-            comment: '很喜歡！',
-            created_at: '2026-10-04T01:00:00Z'
-          }]
+          average_rating: approvedReviews.length
+            ? approvedReviews.reduce((total, review) => total + review.rating, 0) / approvedReviews.length
+            : 0,
+          review_count: approvedReviews.length,
+          reviews: approvedReviews.map(review => ({
+            review_id: review.review_id,
+            product_id: String(review.product_id),
+            rating: review.rating,
+            comment: review.comment,
+            customer_name: review.customer_name || '已驗證買家',
+            created_at: review.created_at
+          }))
         },
         error: null
       };
@@ -217,6 +230,53 @@ test('public product review endpoint returns rating summary without customer pho
     assert.equal(body.data.reviews[0].comment, '很喜歡！');
     assert.equal(Object.hasOwn(body.data.reviews[0], 'customer_phone'), false);
   });
+});
+
+test('public review endpoint excludes pending and rejected reviews', async () => {
+  const supabase = createSupabase();
+  supabase.tables.product_reviews.push(
+    {
+      review_id: '91e68293-0864-4dcf-a862-941f41b23620',
+      product_id: Number(PRODUCT_ID),
+      rating: 1,
+      comment: '尚待審核',
+      status: 'pending',
+      created_at: '2026-10-05T01:00:00Z'
+    },
+    {
+      review_id: '91e68293-0864-4dcf-a862-941f41b23621',
+      product_id: Number(PRODUCT_ID),
+      rating: 1,
+      comment: '已拒絕',
+      status: 'rejected',
+      created_at: '2026-10-06T01:00:00Z'
+    }
+  );
+  await withServer(supabase, async baseUrl => {
+    const response = await fetch(`${baseUrl}/api/products/${PRODUCT_ID}/reviews`);
+    const body = await response.json();
+    assert.equal(response.status, 200);
+    assert.equal(body.data.review_count, 1);
+    assert.deepEqual(body.data.reviews.map(review => review.comment), ['很喜歡！']);
+    assert.equal(JSON.stringify(body.data).includes('尚待審核'), false);
+    assert.equal(JSON.stringify(body.data).includes('已拒絕'), false);
+  });
+
+  const migration = fs.readFileSync(
+    path.join(__dirname, '..', 'supabase', 'migrations', '20261022000400_tiered_pricing_and_review_moderation.sql'),
+    'utf8'
+  );
+  const listFunctionStart = migration.indexOf('CREATE OR REPLACE FUNCTION public.get_product_reviews(');
+  const summariesStart = migration.indexOf('CREATE OR REPLACE FUNCTION public.get_product_review_summaries(');
+  const checkoutFunctionStart = migration.indexOf('CREATE OR REPLACE FUNCTION public.create_customer_order(');
+  assert.ok(listFunctionStart >= 0 && summariesStart > listFunctionStart && checkoutFunctionStart > summariesStart);
+  assert.match(migration.slice(listFunctionStart, summariesStart), /review\.status = 'approved'/);
+  assert.match(migration.slice(summariesStart, checkoutFunctionStart), /review\.status = 'approved'/);
+  assert.match(
+    migration,
+    /REVOKE UPDATE ON TABLE public\.product_reviews FROM PUBLIC, anon, authenticated;/
+  );
+  assert.match(migration, /GRANT UPDATE ON TABLE public\.product_reviews TO service_role;/);
 });
 
 test('public rating summary endpoint validates IDs and returns grouped approved-review data', async () => {

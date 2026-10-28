@@ -81,6 +81,9 @@ ALTER TABLE public.product_reviews
 CREATE INDEX IF NOT EXISTS product_reviews_status_created_idx
   ON public.product_reviews (status, created_at DESC, review_id DESC);
 
+REVOKE UPDATE ON TABLE public.product_reviews FROM PUBLIC, anon, authenticated;
+GRANT UPDATE ON TABLE public.product_reviews TO service_role;
+
 CREATE OR REPLACE FUNCTION public.get_product_reviews(
   p_product_id text,
   p_limit integer DEFAULT 20,

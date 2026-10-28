@@ -227,6 +227,43 @@ test('checkout validates pickup selection and passes self-pickup details to the 
   assert.equal(rpcCalls[0].args.p_shipping_address, '荃灣店');
 });
 
+test('phone checkout uses the RPC tier price instead of a client-supplied price', async () => {
+  let rpcCall;
+  await withServer(createOrdersRouter({
+    rpc: async (name, args) => {
+      rpcCall = { name, args };
+      return {
+        data: {
+          order_id: ORDER_UUID,
+          order_number: 'LP-20261028-A1B2C3D4',
+          total_amount: 270,
+          items: [{
+            product_id: 51,
+            product_name: '團購商品',
+            quantity: 3,
+            unit_price: 90
+          }]
+        },
+        error: null
+      };
+    }
+  }), async baseUrl => {
+    const response = await postCheckout(baseUrl, {
+      customer: { phone: '+85212345678' },
+      items: [{ product_id: '51', qty: 3, unit_price: 0, total: 0 }]
+    });
+
+    assert.equal(response.status, 201);
+    assert.equal(response.body.data.total_amount, 270);
+    assert.equal(response.body.data.items[0].unit_price, 90);
+  });
+
+  assert.equal(rpcCall.name, 'create_customer_order');
+  assert.deepEqual(rpcCall.args.p_items, [
+    { product_id: '51', quantity: 3 }
+  ]);
+});
+
 test('checkout replaces a UUID mistakenly stored as order_number before responding', async () => {
   const order = { order_id: ORDER_UUID, order_number: ORDER_UUID };
   const updates = [];
