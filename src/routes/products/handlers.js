@@ -1047,7 +1047,7 @@ function createProductsRouter(supabase, options = {}) {
   });
 
   router.patch('/:productId', async (req, res) => {
-    console.log('接收到前端傳來的 PATCH 原始 Body:', req.body);
+    req.log?.debug('Received product PATCH request');
     try {
       if (!requireAdmin(req, res)) {
         return;

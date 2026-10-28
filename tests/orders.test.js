@@ -8,6 +8,15 @@ const ORDER_UUID = 'e1da0bac-9021-4e87-920b-2f5bf5381f32';
 
 async function withServer(router, run) {
   const app = express();
+  const requestLogs = [];
+  app.use((req, res, next) => {
+    req.log = {
+      error: (...args) => requestLogs.push({ level: 'error', args }),
+      info: (...args) => requestLogs.push({ level: 'info', args }),
+      warn: (...args) => requestLogs.push({ level: 'warn', args })
+    };
+    next();
+  });
   app.use(express.json());
   app.use('/api/orders', router);
   const server = http.createServer(app);
@@ -15,7 +24,7 @@ async function withServer(router, run) {
   const { port } = server.address();
 
   try {
-    await run(`http://127.0.0.1:${port}`);
+    await run(`http://127.0.0.1:${port}`, requestLogs);
   } finally {
     await new Promise((resolve, reject) => {
       server.close(error => error ? reject(error) : resolve());
@@ -25,6 +34,15 @@ async function withServer(router, run) {
 
 async function postOrder(baseUrl, body) {
   const response = await fetch(`${baseUrl}/api/orders`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return { status: response.status, body: await response.json() };
+}
+
+async function postCheckout(baseUrl, body) {
+  const response = await fetch(`${baseUrl}/api/orders/checkout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body)
@@ -55,7 +73,7 @@ test('checkout merges duplicate products and returns the official order number, 
         error: null
       };
     }
-  }), async baseUrl => {
+  }), async (baseUrl, requestLogs) => {
     const response = await postOrder(baseUrl, {
       ...validOrder,
       customer_name: '小行星客人',
@@ -69,6 +87,29 @@ test('checkout merges duplicate products and returns the official order number, 
     assert.equal(response.body.data.orderNo, 'LP-20261022-A1B2C3D4');
     assert.equal(Object.hasOwn(response.body.data, 'order_id'), false);
     assert.equal(response.body.data.total_amount, 75);
+
+    const checkout = await postCheckout(baseUrl, {
+      customer: {
+        phone: '+85212345678',
+        name: '小行星客人',
+        email: 'ignored@example.invalid'
+      },
+      pickup: 'sf_station',
+      shipping_address: '852AL',
+      items: [{ product_id: '51', qty: 3 }]
+    });
+    assert.equal(checkout.status, 201);
+    assert.equal(checkout.body.data.order_id, 'LP-20261022-A1B2C3D4');
+    assert.equal(checkout.body.data.order_number, checkout.body.data.order_id);
+    assert.notEqual(checkout.body.data.order_id, ORDER_UUID);
+    assert.deepEqual(checkout.body.data.items, [
+      { product_id: 51, quantity: 3, unit_price: 25 }
+    ]);
+    const ignoredEmailLogs = requestLogs.filter(log =>
+      log.level === 'warn' && log.args[0].field === 'customer.email'
+    );
+    assert.equal(ignoredEmailLogs.length, 1);
+    assert.equal(JSON.stringify(ignoredEmailLogs).includes('ignored@example.invalid'), false);
   });
 
   assert.equal(rpcCall.name, 'create_customer_order');
@@ -224,6 +265,9 @@ test('invalid checkout data and missing service role never call the RPC', async 
       { ...validOrder, customer_phone: 'bad' },
       { ...validOrder, items: [{ product_id: 51, quantity: 0 }] },
       { ...validOrder, items: [{ product_id: 'not-an-id', quantity: 1 }] },
+      { ...validOrder, items: [{ product_id: '9223372036854775808', quantity: 1 }] },
+      { ...validOrder, items: [{ product_id: ORDER_UUID, quantity: 1 }] },
+      { ...validOrder, items: [{ product_id: Number.MAX_SAFE_INTEGER + 1, quantity: 1 }] },
       { ...validOrder, items: [{ product_id: 51, quantity: '1' }] },
       { ...validOrder, items: [{ product_id: 51, quantity: true }] },
       { ...validOrder, shipping_method: 'sf_station' },
@@ -232,6 +276,22 @@ test('invalid checkout data and missing service role never call the RPC', async 
       { ...validOrder, shipping_address: 'x'.repeat(201) }
     ]) {
       const response = await postOrder(baseUrl, body);
+      assert.equal(response.status, 400);
+      assert.equal(response.body.success, false);
+    }
+
+    for (const body of [
+      { customer: { phone: 'bad' }, items: [{ product_id: '51', qty: 1 }] },
+      { customer: { phone: '+85212345678' }, items: [{ product_id: 51, qty: 1 }] },
+      {
+        customer: { phone: '+85212345678' },
+        items: [{ product_id: '9223372036854775808', qty: 1 }]
+      },
+      { customer: { phone: '+85212345678' }, items: [{ product_id: '51', qty: 0 }] },
+      { customer: { phone: '+85212345678' }, items: [{ product_id: '51', qty: 1.5 }] },
+      { customer: { email: 'guest@example.invalid' }, items: [{ product_id: '51', qty: 1 }] }
+    ]) {
+      const response = await postCheckout(baseUrl, body);
       assert.equal(response.status, 400);
       assert.equal(response.body.success, false);
     }

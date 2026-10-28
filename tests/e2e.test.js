@@ -650,6 +650,10 @@ class QueryBuilder {
 
 function createApplication(store) {
   const app = express();
+  app.use((req, res, next) => {
+    req.log = { error() {}, info() {}, warn() {} };
+    next();
+  });
   app.use(express.json({
     limit: '50kb',
     verify(req, res, buffer) {

@@ -17,12 +17,20 @@
     "@supabase/supabase-js": "^2.43.0",
     "chart.js": "^4.5.1",
     "dotenv": "^16.4.5",
+    "exceljs": "^4.4.0",
     "express": "^4.19.2",
     "express-async-errors": "^3.1.1",
     "express-rate-limit": "^8.7.0",
     "helmet": "^8.3.0",
     "node-cache": "^5.1.2",
-    "xlsx": "^0.18.5"
+    "pg": "^8.23.1",
+    "pino": "^10.4.0",
+    "pino-http": "^11.0.0"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "^11.1.1"
+    }
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

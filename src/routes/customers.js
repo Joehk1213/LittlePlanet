@@ -1,6 +1,7 @@
 'use strict';
 
 const express = require('express');
+const normalizePhone = require('../utils/normalize-phone');
 
 const CREDIT_STATUSES = new Set(['normal', 'require_deposit', 'blacklisted']);
 const CUSTOMER_ID_PATTERN =
@@ -26,14 +27,6 @@ function parsePageValue(value, fallback, maximum) {
   }
   const parsed = Number(value);
   return Number.isSafeInteger(parsed) && parsed <= maximum ? parsed : null;
-}
-
-function normalizePhone(value) {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const normalized = value.trim().replace(/^\+/, '');
-  return /^\d{8,15}$/.test(normalized) ? normalized : null;
 }
 
 function getPhoneVariants(phone) {

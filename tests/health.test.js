@@ -19,6 +19,7 @@ test('GET /health returns a cache-disabled liveness response', async () => {
     const response = await fetch(`http://127.0.0.1:${port}/health`);
     const body = await response.json();
     assert.equal(response.status, 200);
+    assert.equal(typeof app.locals.logger.info, 'function');
     assert.deepEqual(Object.keys(body).sort(), ['status', 'timestamp']);
     assert.equal(body.status, 'ok');
     assert.equal(Number.isNaN(Date.parse(body.timestamp)), false);
@@ -31,6 +32,11 @@ test('GET /health returns a cache-disabled liveness response', async () => {
     );
     assert.equal(response.headers.get('x-powered-by'), null);
     assert.equal(response.headers.get('content-security-policy'), null);
+
+    const checkoutService = await fetch(`http://127.0.0.1:${port}/services/checkout.js`);
+    assert.equal(checkoutService.status, 200);
+    assert.match(checkoutService.headers.get('content-type'), /javascript/);
+    assert.match(await checkoutService.text(), /\/api\/orders\/checkout/);
   } finally {
     await new Promise((resolve, reject) => {
       server.close(error => error ? reject(error) : resolve());
@@ -56,6 +62,8 @@ test('production API errors do not return stack traces or database internals', a
     assert.equal(body.success, false);
     assert.equal(body.data, null);
     assert.equal(typeof body.message, 'string');
+    assert.equal(body.code, 'INVALID_JSON');
+    assert.equal(body.error, body.message);
     assert.equal(JSON.stringify(body).includes('SyntaxError'), false);
     assert.equal(JSON.stringify(body).includes('stack'), false);
   } finally {

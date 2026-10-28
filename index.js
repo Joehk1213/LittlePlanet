@@ -1,5 +1,6 @@
 const express = require('express');
 const crypto = require('node:crypto');
+const path = require('node:path');
 require('express-async-errors');
 const { apiNotFound, errorHandler } = require('./src/middleware/error-handler');
 const createAdminSessions = require('./src/middleware/admin-sessions');
@@ -8,6 +9,8 @@ const registerRoutes = require('./src/routes');
 const createWhatsAppSender = require('./src/utils/whatsapp-cloud-api');
 const createApiProtection = require('./src/middleware/api-protection');
 const createSensitiveRateLimiters = require('./src/middleware/sensitive-rate-limits');
+const pino = require('pino');
+const pinoHttp = require('pino-http');
 const helmet = require('helmet');
 require('dotenv').config();
 
@@ -48,6 +51,27 @@ function createRetryFetch(maxAttempts = 3, backoffMs = 500) {
 }
 
 const app = express();
+const logger = pino({ level: process.env.LOG_LEVEL || 'info' });
+app.locals.logger = logger;
+
+app.disable('x-powered-by');
+app.set('env', process.env.NODE_ENV || 'development');
+app.use(pinoHttp({
+  logger,
+  serializers: {
+    req(req) {
+      const queryIndex = req.url.indexOf('?');
+      return {
+        id: req.id,
+        method: req.method,
+        url: queryIndex === -1 ? req.url : req.url.slice(0, queryIndex)
+      };
+    },
+    res(res) {
+      return { statusCode: res.statusCode };
+    }
+  }
+}));
 
 // 💡 內置 Cookie 解析器（零依賴，不需要 npm install，保證順利運行並解決失效問題）
 app.use((req, res, next) => {
@@ -65,9 +89,6 @@ app.use((req, res, next) => {
   }
   next();
 });
-
-app.disable('x-powered-by');
-app.set('env', process.env.NODE_ENV || 'development');
 
 const trustProxyHops = process.env.TRUST_PROXY_HOPS === undefined
   ? 1
@@ -123,6 +144,7 @@ app.use('/api', createApiProtection({
 
 const sensitiveRateLimiters = createSensitiveRateLimiters();
 app.post('/api/orders', sensitiveRateLimiters.checkout);
+app.post('/api/orders/checkout', sensitiveRateLimiters.checkout);
 app.post('/api/products', sensitiveRateLimiters.adminWrite);
 app.post('/api/products/images', sensitiveRateLimiters.adminWrite);
 app.patch('/api/products/:productId', sensitiveRateLimiters.adminWrite);
@@ -170,6 +192,13 @@ app.use(express.json({
 
 // 讓 Express 自動託管 public 資料夾內的靜態檔案
 app.use(express.static('public'));
+app.get('/services/checkout.js', (req, res, next) => {
+  res.sendFile(path.join(__dirname, 'src', 'services', 'checkout.js'), error => {
+    if (error) {
+      next(error);
+    }
+  });
+});
 
 // 初始化 Supabase 連線
 const supabaseUrl = process.env.SUPABASE_URL;
@@ -255,7 +284,7 @@ app.use(errorHandler);
 if (require.main === module) {
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
-    console.log(`伺服器正在運行中，Port 網址為：http://localhost:${PORT}`);
+    logger.info({ port: PORT }, 'LittlePlanet API server started');
   });
 }
 

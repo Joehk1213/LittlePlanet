@@ -47,12 +47,15 @@
 | 方法  | 路徑                                       | 認證                                   | 參數／body                                                                                                               |
 | ----- | ------------------------------------------ | -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | POST  | `/api/orders`                              | 公開                                   | JSON：`customer_phone`、`items`（`product_id`、`quantity`）；可選 `customer_name`、`shipping_method`、`shipping_address` |
+| POST  | `/api/orders/checkout`                     | 公開                                   | JSON：`customer.phone`、`items`（字串 `product_id`、正整數 `qty`）；可選 `customer.name`、`pickup`、`shipping_address` |
 | POST  | `/api/orders/query-order`                  | 公開；必須電話及正式訂單編號吻合       | JSON：`phone`、`orderNo`                                                                                                 |
 | PATCH | `/api/orders/update-info`                  | 公開；必須提供原登記電話及正式訂單編號 | JSON：`phone`、`orderNo`；可更新 `customer_phone`、`shipping_method`                                                     |
 | GET   | `/api/orders/admin/orders`                 | `orders` 管理員 Session                | Query：`limit`、`offset`                                                                                                 |
 | PATCH | `/api/orders/admin/orders/:orderId/status` | `orders` 管理員 Session                | Path：`orderId`；JSON：`status`（`pending`、`shipping`、`completed`）                                                    |
 
 程式內 `/api/orders/admin/orders` 註冊了兩個 GET handler；第一個 handler 會直接回應，後續同路徑 handler 在一般請求流程中不會執行。
+
+`/api/orders/checkout` 使用現行 `create_customer_order()` RPC；`customer.phone` 會依電話規則正規化，商品代號必須是有效正整數 bigint。`customer.email` 暫未有訂單欄位保存，會忽略並記錄欄位名稱。回應的 `data.order_id` 是正式對客訂單編號，不是內部 UUID；內部識別碼不會回傳給訪客。
 
 ## 客戶會員
 

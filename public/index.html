@@ -307,6 +307,7 @@
   </nav>
   <div id="toastNotification" class="pointer-events-none fixed bottom-20 left-1/2 z-[60] -translate-x-1/2 translate-y-3 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white opacity-0 shadow-xl transition sm:bottom-6" role="status" aria-live="polite"></div>
 
+  <script src="/services/checkout.js"></script>
   <script>
     'use strict';
 
@@ -1789,27 +1790,15 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
       button.textContent = '正在建立訂單…';
       status.textContent = '正在安全地提交訂單，請稍候…';
       try {
-        const response = await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-          body: JSON.stringify({
-            customer_phone: phone,
-            customer_name: customerName,
-            shipping_method: shippingMethod,
-            shipping_address: shippingAddress,
-            items: cart.map(item => ({
-              product_id: getProductId(item.product),
-              quantity: item.quantity
-            }))
-          })
+        const { response, result } = await window.LittlePlanetCheckout.submit({
+          customer: { phone, name: customerName },
+          pickup: shippingMethod,
+          shipping_address: shippingAddress,
+          items: cart.map(item => ({
+            product_id: String(getProductId(item.product)),
+            qty: item.quantity
+          }))
         });
-        let result;
-        try {
-          result = await response.json();
-        } catch {
-          // 伺服器回傳非 JSON（例如代理錯誤頁），當作伺服器錯誤處理
-          result = { success: false, message: '伺服器回應異常，請稍後再試。', code: 'SERVER_ERROR' };
-        }
 
         if (!response.ok || !result || result.success !== true || !result.data) {
           const code = result && result.code;
@@ -1839,7 +1828,7 @@ content.append(makeElement('p', `mt-1 text-xs font-semibold ${soldOut ? 'text-sl
         }
 
         const orderData = result.data;
-        const rawOrderNo = orderData.order_number || orderData.orderNo || '';
+        const rawOrderNo = orderData.order_number || orderData.orderNo || orderData.order_id || '';
         const orderNo = typeof rawOrderNo === 'string' ? rawOrderNo.trim() : '';
         if (
           !orderNo ||

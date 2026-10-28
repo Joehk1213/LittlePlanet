@@ -2,6 +2,8 @@
 
 const crypto = require('node:crypto');
 const express = require('express');
+const normalizePhone = require('../utils/normalize-phone');
+const normalizeProductId = require('../utils/normalize-product-id');
 
 const MISSING_SCHEMA_CODES = new Set(['42P01', '42703', '42883', 'PGRST202', 'PGRST204']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -277,7 +279,7 @@ function createOrdersRouter(supabase, options = {}) {
     }
   });
 
-  router.post('/', async (req, res) => {
+  async function checkout(req, res) {
     if (options.serviceRoleAvailable === false || !supabase) {
       return sendError(
         res,
@@ -287,7 +289,49 @@ function createOrdersRouter(supabase, options = {}) {
       );
     }
 
-    const body = req.body && typeof req.body === 'object' ? req.body : {};
+    let body = req.body && typeof req.body === 'object' ? req.body : {};
+    const isCheckoutRoute = req.path === '/checkout';
+    if (isCheckoutRoute) {
+      const customer = body.customer;
+      if (!customer || typeof customer !== 'object' || Array.isArray(customer)) {
+        return sendError(res, 400, '顧客聯絡資料格式無效。');
+      }
+      if (Object.hasOwn(customer, 'email')) {
+        req.log.warn({ field: 'customer.email' }, 'Ignoring unsupported checkout field');
+      }
+      if (
+        (body.pickup !== undefined && body.pickup !== null && typeof body.pickup !== 'string') ||
+        (customer.name !== undefined &&
+          customer.name !== null &&
+          typeof customer.name !== 'string') ||
+        !Array.isArray(body.items)
+      ) {
+        return sendError(res, 400, '結帳資料格式無效。');
+      }
+      const checkoutItems = [];
+      for (const item of body.items) {
+        if (
+          !item ||
+          typeof item !== 'object' ||
+          typeof item.product_id !== 'string' ||
+          typeof item.qty !== 'number' ||
+          !Number.isSafeInteger(item.qty) ||
+          item.qty < 1 ||
+          item.qty > 1000
+        ) {
+          return sendError(res, 400, '商品編號或數量無效。');
+        }
+        checkoutItems.push({ product_id: item.product_id, quantity: item.qty });
+      }
+      body = {
+        customer_phone: customer.phone,
+        customer_name: customer.name,
+        shipping_method: body.pickup,
+        shipping_address: body.shipping_address,
+        items: checkoutItems,
+      };
+    }
+
     if (
       (body.customer_name !== undefined &&
         body.customer_name !== null &&
@@ -301,8 +345,7 @@ function createOrdersRouter(supabase, options = {}) {
     ) {
       return sendError(res, 400, '收件人及取貨資料格式無效。');
     }
-    const customerPhone =
-      typeof body.customer_phone === 'string' ? body.customer_phone.trim().replace(/^\+/, '') : '';
+    const customerPhone = normalizePhone(body.customer_phone) || '';
     const customerName = typeof body.customer_name === 'string' ? body.customer_name.trim() : '';
     const submittedShippingMethod =
       typeof body.shipping_method === 'string' ? body.shipping_method.trim() : '';
@@ -351,18 +394,10 @@ function createOrdersRouter(supabase, options = {}) {
       if (!item || typeof item !== 'object') {
         return sendError(res, 400, '訂單商品資料格式無效。');
       }
-      const productId =
-        typeof item.product_id === 'string' || typeof item.product_id === 'number'
-          ? String(item.product_id).trim()
-          : '';
-      const normalizedProductId = UUID_PATTERN.test(productId)
-        ? productId.toLowerCase()
-        : productId;
+      const normalizedProductId = normalizeProductId(item.product_id);
       const quantity = item.quantity;
       if (
-        !/^(?:[1-9]\d*|[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12})$/i.test(
-          normalizedProductId
-        ) ||
+        normalizedProductId === null ||
         typeof quantity !== 'number' ||
         !Number.isSafeInteger(quantity) ||
         quantity < 1 ||
@@ -392,7 +427,7 @@ function createOrdersRouter(supabase, options = {}) {
       });
 
       if (error) {
-        console.error('建立訂單 RPC 失敗：', error);
+        req.log.error({ event: 'checkout_rpc_failure' }, 'Checkout RPC failed');
         if (MISSING_SCHEMA_CODES.has(error.code)) {
           return sendError(
             res,
@@ -405,8 +440,8 @@ function createOrdersRouter(supabase, options = {}) {
           let stockDetails = null;
           try {
             stockDetails = error.details ? JSON.parse(error.details) : null;
-          } catch (parseError) {
-            console.error('庫存不足 RPC 詳情格式無效：', parseError);
+          } catch {
+            req.log.warn({ event: 'invalid_stock_error_details' }, 'Checkout returned invalid stock details');
           }
           return res.status(409).json({
             success: false,
@@ -432,7 +467,7 @@ function createOrdersRouter(supabase, options = {}) {
         typeof result !== 'object' ||
         !UUID_PATTERN.test(String(result.order_id || ''))
       ) {
-        console.error('結帳 RPC 回傳無效結果：', data);
+        req.log.error({ event: 'invalid_checkout_rpc_result' }, 'Checkout RPC returned an invalid result');
         return sendError(res, 500, '訂單建立結果無效，請聯絡管理員。');
       }
 
@@ -456,7 +491,7 @@ function createOrdersRouter(supabase, options = {}) {
           .maybeSingle();
 
         if (orderLookupError) {
-          console.error('讀取正式訂單編號失敗：', orderLookupError);
+          req.log.error({ event: 'checkout_order_number_lookup_failure' }, 'Checkout order number lookup failed');
           return sendError(res, 500, '訂單已建立，但讀取正式訂單編號失敗，請聯絡管理員。');
         }
         const storedOrderNumber = orderRecord && orderRecord.order_number;
@@ -484,7 +519,7 @@ function createOrdersRouter(supabase, options = {}) {
           .maybeSingle();
 
         if (orderUpdateError) {
-          console.error('儲存正式訂單編號失敗：', orderUpdateError);
+          req.log.error({ event: 'checkout_order_number_update_failure' }, 'Checkout order number update failed');
           return sendError(res, 500, '訂單已建立，但儲存正式訂單編號失敗，請聯絡管理員。');
         }
 
@@ -498,7 +533,7 @@ function createOrdersRouter(supabase, options = {}) {
 
           orderNumber = normalizeOfficialOrderNumber(latestOrder && latestOrder.order_number);
           if (latestOrderError || !orderNumber) {
-            console.error('確認正式訂單編號失敗：', latestOrderError || latestOrder);
+            req.log.error({ event: 'checkout_order_number_confirmation_failure' }, 'Checkout order number confirmation failed');
             return sendError(res, 500, '訂單已建立，但無法確認正式訂單編號，請聯絡管理員。');
           }
         }
@@ -506,25 +541,35 @@ function createOrdersRouter(supabase, options = {}) {
 
       orderNumber = normalizeOfficialOrderNumber(orderNumber);
       if (!orderNumber) {
-        console.error('正式訂單編號不可使用內部 UUID：', internalOrderId);
+        req.log.error({ event: 'invalid_public_order_number' }, 'Checkout returned an invalid public order number');
         return sendError(res, 500, '訂單正式編號無效，請聯絡管理員。');
       }
 
       const { order_id: _internalOrderId, ...publicOrderData } = result;
+      req.log.info({ event: 'checkout_created' }, 'Checkout completed');
       return res.status(201).json({
         success: true,
         data: {
           ...publicOrderData,
           order_number: String(orderNumber),
           orderNo: String(orderNumber),
+          ...(isCheckoutRoute
+            ? {
+                order_id: String(orderNumber),
+                items: Array.isArray(result.items) ? result.items : [],
+              }
+            : {}),
         },
         message: '訂單建立成功',
       });
     } catch (error) {
-      console.error('處理訂單結帳時發生未預期錯誤：', error);
+      req.log.error({ event: 'checkout_unexpected_failure' }, 'Checkout failed unexpectedly');
       return sendError(res, 500, '處理訂單時發生錯誤，請稍後再試。');
     }
-  });
+  }
+
+  router.post('/', checkout);
+  router.post('/checkout', checkout);
 
   router.post('/query-order', async (req, res) => {
     try {

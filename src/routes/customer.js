@@ -1,5 +1,6 @@
 const crypto = require('crypto');
 const express = require('express');
+const normalizePhone = require('../utils/normalize-phone');
 const {
   SESSION_TTL_SECONDS,
   createCustomerSession,
@@ -37,14 +38,6 @@ function sendError(res, status, message) {
     data: null,
     message,
   });
-}
-
-function normalizePhone(value) {
-  if (typeof value !== 'string') {
-    return null;
-  }
-  const normalized = value.trim().replace(/^\+/, '');
-  return /^\d{8,15}$/.test(normalized) ? normalized : null;
 }
 
 function getPhoneVariants(value) {
