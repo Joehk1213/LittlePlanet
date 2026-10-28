@@ -358,7 +358,17 @@
       document.querySelector('#resSubtotal').textContent = total;
       document.querySelector('#resGrandTotal').textContent = total;
 
-      document.querySelector('#resStatusBadge').textContent = order.status === 'completed' ? '已完成' : order.status === 'shipping' ? '已出貨' : '處理中';
+      const orderStatusLabels = {
+        pending: '處理中',
+        paid: '已核實付清',
+        shipping: '已出貨',
+        shipped: '已出貨',
+        picked_up: '已取貨',
+        completed: '已完成',
+        cancelled: '已取消'
+      };
+      document.querySelector('#resStatusBadge').textContent =
+        orderStatusLabels[order.status] || '處理中';
       document.querySelector('#resPaymentBadge').textContent = order.payment_status || '待付款 / 處理中';
 
       const itemsList = document.querySelector('#resItemsList');

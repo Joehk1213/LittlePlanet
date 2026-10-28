@@ -37,6 +37,14 @@ test('GET /health returns a cache-disabled liveness response', async () => {
     assert.equal(checkoutService.status, 200);
     assert.match(checkoutService.headers.get('content-type'), /javascript/);
     assert.match(await checkoutService.text(), /\/api\/orders\/checkout/);
+
+    const adminOrdersService = await fetch(`http://127.0.0.1:${port}/services/adminOrders.js`);
+    assert.equal(adminOrdersService.status, 200);
+    assert.match(adminOrdersService.headers.get('content-type'), /javascript/);
+    assert.match(await adminOrdersService.text(), /LittlePlanetAdminOrders/);
+
+    const adminOrdersApi = await fetch(`http://127.0.0.1:${port}/api/admin/orders`);
+    assert.equal(adminOrdersApi.status, 401);
   } finally {
     await new Promise((resolve, reject) => {
       server.close(error => error ? reject(error) : resolve());

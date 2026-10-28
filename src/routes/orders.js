@@ -4,12 +4,16 @@ const crypto = require('node:crypto');
 const express = require('express');
 const normalizePhone = require('../utils/normalize-phone');
 const normalizeProductId = require('../utils/normalize-product-id');
+const {
+  normalizeAdminOrderStatus,
+  respondToStatusTransition,
+  transitionAdminOrderStatus,
+} = require('../utils/admin-order-status');
 
 const MISSING_SCHEMA_CODES = new Set(['42P01', '42703', '42883', 'PGRST202', 'PGRST204']);
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const UUID_V4_PATTERN =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const ORDER_STATUSES = new Set(['pending', 'shipping', 'completed']);
 const SHIPPING_METHODS = new Set(['面交', '自取', '順豐', '京東']);
 const PAYMENT_PROOF_BUCKET = 'payment-proofs';
 const MAX_ADMIN_PAGE_SIZE = 100;
@@ -245,38 +249,54 @@ function createOrdersRouter(supabase, options = {}) {
     }
     res.set('Cache-Control', 'no-store');
     const { orderId } = req.params;
-    if (!UUID_PATTERN.test(orderId) && !/^[1-9]\d*$/.test(orderId)) {
-      return sendError(res, 400, 'orderId 必須是有效的訂單識別碼。');
+    if (!UUID_PATTERN.test(orderId)) {
+      return sendError(res, 400, 'orderId 必須是有效的 UUID。');
     }
     const status = req.body && req.body.status;
-    if (typeof status !== 'string' || !ORDER_STATUSES.has(status)) {
-      return sendError(res, 400, 'status 必須是 pending、shipping 或 completed。');
+    const normalizedStatus = normalizeAdminOrderStatus(status);
+    if (!normalizedStatus) {
+      return sendError(res, 400, 'status 無效。');
     }
 
     try {
-      const { data, error } = await supabase
-        .from('orders')
-        .update({ status })
-        .eq('order_id', orderId)
-        .select('order_id,status')
-        .maybeSingle();
+      const { data, error } = await transitionAdminOrderStatus(
+        supabase,
+        orderId,
+        normalizedStatus
+      );
       if (error) {
-        console.error('更新訂單狀態失敗：', error);
+        req.log.error(
+          {
+            event: 'admin_order_status_update',
+            code: typeof error.code === 'string' ? error.code : 'UNKNOWN',
+          },
+          'Admin order status update failed'
+        );
+        const transitionResponse = respondToStatusTransition(res, data, error);
+        if (transitionResponse) {
+          return transitionResponse;
+        }
         if (MISSING_SCHEMA_CODES.has(error.code)) {
           return sendError(res, 503, '訂單狀態資料庫 migration 尚未執行。');
         }
         return sendError(res, 500, '更新訂單狀態失敗，請稍後再試。');
       }
-      if (!data) {
-        return sendError(res, 404, '找不到指定訂單。');
+      const transitionResponse = respondToStatusTransition(res, data, null);
+      if (transitionResponse.statusCode < 400) {
+        req.log.info(
+          { order_id: orderId, status: data.status },
+          'Admin order status updated'
+        );
       }
-      return res.json({
-        success: true,
-        data,
-        message: '訂單狀態已更新。',
-      });
+      return transitionResponse;
     } catch (error) {
-      console.error('處理訂單狀態更新時發生未預期錯誤：', error);
+      req.log.error(
+        {
+          event: 'admin_order_status_update_unexpected',
+          code: typeof error.code === 'string' ? error.code : 'UNKNOWN',
+        },
+        'Admin order status update failed unexpectedly'
+      );
       return sendError(res, 500, '更新訂單狀態時發生錯誤，請稍後再試。');
     }
   });

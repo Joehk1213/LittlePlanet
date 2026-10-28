@@ -11,6 +11,7 @@ const createReviewsRouter = require('./reviews');
 const createAnalyticsRouter = require('./Routes-Analytics-Fixed');
 const createWebhookRouter = require('./webhooks');
 const createPaymentProofRouter = require('./payments');
+const createAdminOrdersRouter = require('./admin/orders');
 
 function registerRoutes(app, dependencies) {
   const {
@@ -55,6 +56,13 @@ function registerRoutes(app, dependencies) {
   app.use(
     '/api/orders',
     createOrdersRouter(adminSupabase, {
+      serviceRoleAvailable,
+      isSessionAuthorized: adminSessions.isSessionAuthorized,
+    })
+  );
+  app.use(
+    '/api/admin/orders',
+    createAdminOrdersRouter(adminSupabase, {
       serviceRoleAvailable,
       isSessionAuthorized: adminSessions.isSessionAuthorized,
     })

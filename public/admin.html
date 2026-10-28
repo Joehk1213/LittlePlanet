@@ -473,8 +473,11 @@
             <div class="order-tabs" id="order-tabs" style="margin-top: 14px;">
                 <button type="button" class="order-tab active" data-status="all">全部訂單</button>
                 <button type="button" class="order-tab" data-status="pending">⏳ 待處理</button>
-                <button type="button" class="order-tab" data-status="shipping">🚚 已出貨</button>
+                <button type="button" class="order-tab" data-status="paid">💳 已核實付清</button>
+                <button type="button" class="order-tab" data-status="shipped">🚚 已出貨</button>
+                <button type="button" class="order-tab" data-status="picked_up">📦 已取貨</button>
                 <button type="button" class="order-tab" data-status="completed">✅ 已完成</button>
+                <button type="button" class="order-tab" data-status="cancelled">取消</button>
             </div>
             <p id="orders-status" class="chart-status" role="status" aria-live="polite">登入後載入訂單</p>
             <div style="overflow-x: auto;">
@@ -725,6 +728,7 @@
     <div id="toast-notification" role="status" aria-live="polite"></div>
 
     <script src="/vendor/chart.umd.min.js"></script>
+    <script src="/services/adminOrders.js"></script>
     <script>
         let revenueChart = null;
         let ordersChart = null;
@@ -733,6 +737,34 @@
         let allCachedOrders = []; 
         let currentOrderTab = 'all';
         const ORDER_PAGE_SIZE = 50;
+        const ORDER_STATUS_TRANSITIONS = {
+            pending: ['pending', 'paid', 'cancelled'],
+            paid: ['paid', 'shipped', 'picked_up', 'cancelled'],
+            shipped: ['shipped', 'completed'],
+            picked_up: ['picked_up', 'completed'],
+            completed: ['completed'],
+            cancelled: ['cancelled']
+        };
+        const ORDER_STATUS_LABELS = {
+            pending: '⏳ 待處理',
+            paid: '💳 已核實付清',
+            shipped: '🚚 已出貨',
+            picked_up: '📦 已取貨',
+            completed: '✅ 已完成',
+            cancelled: '取消'
+        };
+        function setOrderStatusOptions(select, status) {
+            const currentStatus = status === 'shipping' ? 'shipped' : status;
+            const selectedStatus = ORDER_STATUS_TRANSITIONS[currentStatus]
+                ? currentStatus
+                : 'pending';
+            select.replaceChildren();
+            for (const value of ORDER_STATUS_TRANSITIONS[selectedStatus]) {
+                select.add(new Option(ORDER_STATUS_LABELS[value], value));
+            }
+            select.value = selectedStatus;
+            select.dataset.savedStatus = selectedStatus;
+        }
         const REVIEW_PAGE_SIZE = 50;
         let orderOffset = 0;
         let orderTotalCount = 0;
@@ -3457,12 +3489,13 @@
             status.textContent = '正在載入訂單…';
             setTableSkeleton(document.getElementById('orders-tbody'), 10);
             try {
-                const query = new URLSearchParams({
-                    limit: String(ORDER_PAGE_SIZE),
-                    offset: String(offset)
+                const { response, result } = await window.LittlePlanetAdminOrders.listOrders({
+                    limit: ORDER_PAGE_SIZE,
+                    offset
                 });
-                const response = await adminFetch(`/api/orders/admin/orders?${query}`);
-                const result = await response.json();
+                if (response.status === 401) {
+                    setAdminAuthenticated(false);
+                }
                 if (
                     !response.ok ||
                     !result ||
@@ -3596,6 +3629,14 @@
                 amountCell.textContent = Number.isFinite(Number(order.total_amount))
                     ? `$${Number(order.total_amount).toFixed(2)}`
                     : '—';
+                const profitLabel = document.createElement('small');
+                profitLabel.style.cssText = 'display: block; margin-top: 4px; font-weight: 400; color: #475569;';
+                profitLabel.textContent = order.profit_total !== null &&
+                    order.profit_total !== undefined &&
+                    Number.isFinite(Number(order.profit_total))
+                    ? `利潤 $${Number(order.profit_total).toFixed(2)}`
+                    : '成本未完整';
+                amountCell.append(profitLabel);
 
                 const proofCell = document.createElement('td');
                 if (typeof order.payment_proof_signed_url === 'string' &&
@@ -3663,22 +3704,8 @@
                 const select = document.createElement('select');
                 select.className = 'order-status-select';
                 select.dataset.orderId = String(order.order_id);
-                select.dataset.savedStatus = order.status;
                 select.setAttribute('aria-label', `訂單狀態`);
-                for (const [value, label] of [
-                    ['pending', '⏳ 待處理'],
-                    ['shipping', '🚚 已出貨'],
-                    ['completed', '✅ 已完成']
-                ]) {
-                    const option = document.createElement('option');
-                    option.value = value;
-                    option.textContent = label;
-                    select.append(option);
-                }
-                select.value = ['pending', 'shipping', 'completed'].includes(order.status)
-                    ? order.status
-                    : 'pending';
-                select.dataset.savedStatus = select.value;
+                setOrderStatusOptions(select, order.status);
                 stateCell.append(select);
 
                 // 8. 更新提示
@@ -3729,7 +3756,7 @@
             if (!select) return;
             const previousStatus = select.dataset.savedStatus;
             const feedback = select.closest('tr').querySelector('.order-feedback');
-            if (!['pending', 'shipping', 'completed'].includes(select.value)) {
+            if (!(ORDER_STATUS_TRANSITIONS[previousStatus] || []).includes(select.value)) {
                 select.value = previousStatus;
                 return;
             }
@@ -3739,27 +3766,26 @@
             feedback.className = 'order-feedback';
             feedback.textContent = '正在更新…';
             try {
-                const response = await adminFetch(
-                    `/api/orders/admin/orders/${encodeURIComponent(select.dataset.orderId)}/status`,
-                    {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ status: select.value })
-                    }
+                const { response, result } = await window.LittlePlanetAdminOrders.updateOrderStatus(
+                    select.dataset.orderId,
+                    select.value
                 );
-                const result = await response.json();
+                if (response.status === 401) {
+                    setAdminAuthenticated(false);
+                }
                 if (!response.ok || !result || result.success !== true || !result.data) {
                     throw new Error(result && result.message
                         ? result.message
                         : `訂單狀態更新失敗（HTTP ${response.status}）。`);
                 }
-                select.dataset.savedStatus = result.data.status;
+                setOrderStatusOptions(select, result.data.status);
                 
                 const cached = allCachedOrders.find(o => String(o.order_id) === select.dataset.orderId);
                 if (cached) cached.status = result.data.status;
 
                 feedback.className = 'order-feedback success';
                 feedback.textContent = result.message || '狀態已更新。';
+                renderFilteredOrders();
                 showToast('訂單狀態更新成功！');
             } catch (error) {
                 console.error('更新管理員訂單狀態失敗：', error);

@@ -10,6 +10,10 @@ const ORDER_ID = 'e1da0bac-9021-4e87-920b-2f5bf5381f32';
 
 async function withServer(supabase, run) {
   const app = express();
+  app.use((req, res, next) => {
+    req.log = { error() {}, info() {} };
+    next();
+  });
   app.use(express.json());
   app.use('/api/orders', createOrdersRouter(supabase, {
     serviceRoleAvailable: true,
@@ -37,7 +41,9 @@ function createSupabase() {
     customer_phone: '85212345678',
     total_amount: 49.5,
     order_date: '2026-10-03T01:00:00.000Z',
-    status: 'pending'
+    status: 'pending',
+    payment_status: '已付清',
+    shipping_status: '已出貨'
   }];
   const items = [{
     item_id: 1,
@@ -138,6 +144,18 @@ function createSupabase() {
     },
     from(table) {
       return new Query(table);
+    },
+    async rpc(name, args) {
+      assert.equal(name, 'transition_admin_order_status');
+      const order = orders.find(item => item.order_id === args.p_order_id);
+      if (!order) {
+        return { data: null, error: { code: 'P0002' } };
+      }
+      order.status = args.p_status;
+      return {
+        data: { order_id: order.order_id, status: order.status },
+        error: null
+      };
     }
   };
 }
@@ -255,7 +273,7 @@ test('admin order status update validates status and persists the allowed value'
     const invalid = await fetch(`${baseUrl}/api/orders/admin/orders/${ORDER_ID}/status`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', 'x-admin-session': 'valid' },
-      body: JSON.stringify({ status: 'cancelled' })
+      body: JSON.stringify({ status: 'invalid' })
     });
     assert.equal(invalid.status, 400);
 
@@ -267,8 +285,8 @@ test('admin order status update validates status and persists the allowed value'
     const result = await updated.json();
     assert.equal(updated.status, 200);
     assert.equal(result.success, true);
-    assert.equal(result.data.status, 'shipping');
-    assert.equal(supabase.orders[0].status, 'shipping');
+    assert.equal(result.data.status, 'shipped');
+    assert.equal(supabase.orders[0].status, 'shipped');
 
     const invalidId = await fetch(`${baseUrl}/api/orders/admin/orders/not-a-uuid/status`, {
       method: 'PATCH',

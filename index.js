@@ -199,6 +199,13 @@ app.get('/services/checkout.js', (req, res, next) => {
     }
   });
 });
+app.get('/services/adminOrders.js', (req, res, next) => {
+  res.sendFile(path.join(__dirname, 'src', 'services', 'adminOrders.js'), error => {
+    if (error) {
+      next(error);
+    }
+  });
+});
 
 // 初始化 Supabase 連線
 const supabaseUrl = process.env.SUPABASE_URL;
