@@ -1,0 +1,5 @@
+CSV: source\products.csv
+Records: 27
+Columns: 16
+ERROR: Missing required column: cost_price
+Validation failed: 1 error(s).

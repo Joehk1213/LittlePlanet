@@ -1,0 +1,24 @@
+=== npm run lint ===
+
+> littleplanet@1.0.0 lint
+> eslint "src/**/*.js" "scripts/**/*.js"
+
+lint_exit=0
+
+=== npm test (last 15 lines) ===
+✔ rejects repeated or ambiguous product codes (2.4318ms)
+✔ rejects unavailable products and invalid parser inputs explicitly (0.5653ms)
+✔ wishlist endpoints require a member session and return only the current member data (246.2814ms)
+✔ wishlist creation validates same-origin requests and product identifiers (98.4009ms)
+✔ member adds and removes a wishlist item without affecting another member (41.4534ms)
+讀取會員收藏清單失敗： { code: 'XX000', message: 'database unavailable' }
+✔ wishlist database failures return a structured error response (21.1156ms)
+ℹ tests 180
+ℹ suites 0
+ℹ pass 179
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 1
+ℹ todo 0
+ℹ duration_ms 8230.1191
+test_exit=0
