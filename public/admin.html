@@ -3643,9 +3643,13 @@
                     : '—';
                 const shippingFeeLabel = document.createElement('small');
                 shippingFeeLabel.style.cssText = 'display: block; margin-top: 4px; font-weight: 400; color: #475569;';
-                shippingFeeLabel.textContent = Number.isFinite(Number(order.shipping_fee))
+                shippingFeeLabel.textContent =
+                    order.shipping_details_message !== '資料不足' &&
+                    order.shipping_fee !== null &&
+                    order.shipping_fee !== undefined &&
+                    Number.isFinite(Number(order.shipping_fee))
                     ? `運費 $${Number(order.shipping_fee).toFixed(2)}`
-                    : '運費資料未提供';
+                    : '運費：資料不足';
                 amountCell.append(shippingFeeLabel);
                 const profitLabel = document.createElement('small');
                 profitLabel.style.cssText = 'display: block; margin-top: 4px; font-weight: 400; color: #475569;';

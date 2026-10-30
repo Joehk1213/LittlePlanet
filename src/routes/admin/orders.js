@@ -2,6 +2,7 @@
 
 const express = require('express');
 const normalizePhone = require('../../utils/normalize-phone');
+const { notifyShippedOrder } = require('../../utils/whatsapp-notify');
 const {
   ORDER_STATUSES,
   respondToStatusTransition,
@@ -194,6 +195,38 @@ function createAdminOrdersRouter(supabase, options = {}) {
         return sendError(res, 500, '訂單列表回傳格式無效。');
       }
 
+      const shippingDetailsByOrder = new Map();
+      let shippingDetailsAvailable = true;
+      if (orders.length > 0) {
+        const { data: shippingDetails, error: shippingDetailsError } = await supabase
+          .from('orders')
+          .select('order_id,shipping_fee,pickup_location_id')
+          .in('order_id', orders.map(order => order.order_id));
+        if (shippingDetailsError && MISSING_SCHEMA_CODES.has(shippingDetailsError.code)) {
+          shippingDetailsAvailable = false;
+          req.log.warn(
+            {
+              event: 'admin_order_shipping_fields_unavailable',
+              code: shippingDetailsError.code,
+            },
+            'Optional shipping details are not available in this database schema'
+          );
+        } else if (shippingDetailsError) {
+          logDatabaseError(req, 'admin_order_shipping_details', shippingDetailsError);
+          return sendError(res, 500, '讀取訂單運費資料失敗，請稍後再試。');
+        } else if (!Array.isArray(shippingDetails)) {
+          req.log.error(
+            { event: 'admin_order_shipping_details_invalid_result' },
+            'Invalid optional shipping details result'
+          );
+          return sendError(res, 500, '訂單運費資料回傳格式無效。');
+        } else {
+          for (const details of shippingDetails) {
+            shippingDetailsByOrder.set(String(details.order_id), details);
+          }
+        }
+      }
+
       const orderIds = orders.map((order) => order.order_id);
       let items = [];
       let profitRows = [];
@@ -320,8 +353,18 @@ function createAdminOrdersRouter(supabase, options = {}) {
             const { payment_proof_url: proofPath, ...orderData } = order;
             const profit = profitByOrder.get(String(order.order_id));
             const parsedItemsCount = Number(profit && profit.items_count);
+            const shippingDetails = shippingDetailsByOrder.get(String(order.order_id));
             return {
               ...orderData,
+              shipping_fee: shippingDetailsAvailable && shippingDetails
+                ? shippingDetails.shipping_fee
+                : null,
+              pickup_location_id: shippingDetailsAvailable && shippingDetails
+                ? shippingDetails.pickup_location_id
+                : null,
+              shipping_details_message: shippingDetailsAvailable && shippingDetails
+                ? null
+                : '資料不足',
               payment_proof_signed_url: proofPath
                 ? signedProofsByPath.get(proofPath) || null
                 : null,
@@ -381,6 +424,17 @@ function createAdminOrdersRouter(supabase, options = {}) {
           { order_id: orderId, status: data.status },
           'Admin order status updated'
         );
+        if (data.status === 'shipped') {
+          await notifyShippedOrder({
+            supabase,
+            orderId,
+            logger: req.log,
+            sender: options.whatsappSender,
+            serviceRoleAvailable: options.serviceRoleAvailable === true,
+            notifier: options.sendWhatsAppNotification,
+            env: options.env || process.env,
+          });
+        }
       }
       return result;
     } catch (error) {
