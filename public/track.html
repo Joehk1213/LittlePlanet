@@ -146,6 +146,7 @@
         <div class="flex justify-end pt-2">
           <div class="w-full sm:w-72 space-y-2 text-sm">
             <div class="flex justify-between text-slate-600 dark:text-slate-400"><span>商品小計</span><span id="resSubtotal">HK$0.00</span></div>
+            <div class="flex justify-between text-slate-600 dark:text-slate-400"><span>運費</span><span id="resShippingFee">HK$0.00</span></div>
             <div class="flex justify-between text-base font-black text-slate-900 dark:text-slate-100 border-t border-slate-200 dark:border-slate-800 pt-2"><span>應付總額</span><span id="resGrandTotal" class="text-indigo-600 dark:text-indigo-400">HK$0.00</span></div>
           </div>
         </div>
@@ -353,9 +354,16 @@
       document.querySelector('#paymentProofStatus').textContent = proofStatusText;
       document.querySelector('#paymentProofForm').hidden = proofStatus === 'verified';
       
-      const total = order.total_amount != null ? `HK$${order.total_amount}` : '計算中';
+      const totalAmount = Number(order.total_amount);
+      const shippingFee = Number(order.shipping_fee || 0);
+      const validTotal = Number.isFinite(totalAmount) ? totalAmount : null;
+      const validShippingFee = Number.isFinite(shippingFee) && shippingFee >= 0 ? shippingFee : 0;
+      const formatAmount = amount => `HK$${amount.toFixed(2)}`;
+      const total = validTotal === null ? '計算中' : formatAmount(validTotal);
       document.querySelector('#resTotalAmount').textContent = total;
-      document.querySelector('#resSubtotal').textContent = total;
+      document.querySelector('#resSubtotal').textContent =
+        validTotal === null ? '計算中' : formatAmount(Math.max(0, validTotal - validShippingFee));
+      document.querySelector('#resShippingFee').textContent = formatAmount(validShippingFee);
       document.querySelector('#resGrandTotal').textContent = total;
 
       const orderStatusLabels = {
