@@ -157,7 +157,7 @@ function createAdminOrdersRouter(supabase, options = {}) {
       let ordersQuery = supabase
         .from('orders')
         .select(
-          'order_id,order_number,customer_phone,customer_name,shipping_address,shipping_fee,pickup_location_id,pickup_slot,total_amount,order_date,status,payment_status,payment_proof_url,payment_proof_status,shipping_status,shipping_method,shipping_carrier,tracking_number',
+          'order_id,order_number,customer_phone,customer_name,shipping_address,total_amount,order_date,status,payment_status,payment_proof_url,payment_proof_status,shipping_status,shipping_method,shipping_carrier,tracking_number',
           { count: 'exact' }
         );
       if (phoneVariants) {
@@ -200,7 +200,7 @@ function createAdminOrdersRouter(supabase, options = {}) {
       if (orders.length > 0) {
         const { data: shippingDetails, error: shippingDetailsError } = await supabase
           .from('orders')
-          .select('order_id,shipping_fee,pickup_location_id')
+          .select('order_id,shipping_fee,pickup_location_id,pickup_slot')
           .in('order_id', orders.map(order => order.order_id));
         if (shippingDetailsError && MISSING_SCHEMA_CODES.has(shippingDetailsError.code)) {
           shippingDetailsAvailable = false;
@@ -361,6 +361,9 @@ function createAdminOrdersRouter(supabase, options = {}) {
                 : null,
               pickup_location_id: shippingDetailsAvailable && shippingDetails
                 ? shippingDetails.pickup_location_id
+                : null,
+              pickup_slot: shippingDetailsAvailable && shippingDetails
+                ? shippingDetails.pickup_slot
                 : null,
               shipping_details_message: shippingDetailsAvailable && shippingDetails
                 ? null
