@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const express = require('express');
 const { parseWhatsAppOrderMessage } = require('../utils/whatsapp-order-parser');
+const normalizePhone = require('../utils/normalize-phone');
 
 const MISSING_RPC_CODES = new Set(['42883', 'PGRST202']);
 const INTENT_TOKEN_PATTERN =
@@ -32,15 +33,6 @@ function constantTimeStringEquals(expected, supplied) {
     expectedBuffer.length === suppliedBuffer.length &&
     crypto.timingSafeEqual(expectedBuffer, suppliedBuffer)
   );
-}
-
-function normalizePhone(value) {
-  if (typeof value !== 'string') {
-    return null;
-  }
-
-  const phone = value.trim().replace(/^\+/, '');
-  return /^\d{8,15}$/.test(phone) ? phone : null;
 }
 
 function parseOrderId(value) {

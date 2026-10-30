@@ -4,6 +4,7 @@ const crypto = require('node:crypto');
 const express = require('express');
 const normalizePhone = require('../utils/normalize-phone');
 const normalizeProductId = require('../utils/normalize-product-id');
+const { notifyShippedOrder } = require('../utils/whatsapp-notify');
 const {
   normalizeAdminOrderStatus,
   respondToStatusTransition,
@@ -287,6 +288,17 @@ function createOrdersRouter(supabase, options = {}) {
           { order_id: orderId, status: data.status },
           'Admin order status updated'
         );
+        if (data.status === 'shipped') {
+          await notifyShippedOrder({
+            supabase,
+            orderId,
+            logger: req.log,
+            sender: options.whatsappSender,
+            serviceRoleAvailable: options.serviceRoleAvailable === true,
+            notifier: options.sendWhatsAppNotification,
+            env: options.env || process.env,
+          });
+        }
       }
       return transitionResponse;
     } catch (error) {
