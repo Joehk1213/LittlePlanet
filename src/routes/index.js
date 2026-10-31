@@ -58,6 +58,7 @@ function registerRoutes(app, dependencies) {
     createOrdersRouter(adminSupabase, {
       serviceRoleAvailable,
       isSessionAuthorized: adminSessions.isSessionAuthorized,
+      whatsappSender,
     })
   );
   app.use(
@@ -65,6 +66,7 @@ function registerRoutes(app, dependencies) {
     createAdminOrdersRouter(adminSupabase, {
       serviceRoleAvailable,
       isSessionAuthorized: adminSessions.isSessionAuthorized,
+      whatsappSender,
     })
   );
   app.use(

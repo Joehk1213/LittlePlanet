@@ -2,6 +2,7 @@
 
 const express = require('express');
 const normalizePhone = require('../../utils/normalize-phone');
+const { notifyShippedOrder } = require('../../utils/whatsapp-notify');
 const {
   ORDER_STATUSES,
   respondToStatusTransition,
@@ -351,8 +352,8 @@ function createAdminOrdersRouter(supabase, options = {}) {
           orders: orders.map((order) => {
             const { payment_proof_url: proofPath, ...orderData } = order;
             const profit = profitByOrder.get(String(order.order_id));
-            const shippingDetails = shippingDetailsByOrder.get(String(order.order_id));
             const parsedItemsCount = Number(profit && profit.items_count);
+            const shippingDetails = shippingDetailsByOrder.get(String(order.order_id));
             return {
               ...orderData,
               shipping_fee: shippingDetailsAvailable && shippingDetails
@@ -426,6 +427,17 @@ function createAdminOrdersRouter(supabase, options = {}) {
           { order_id: orderId, status: data.status },
           'Admin order status updated'
         );
+        if (data.status === 'shipped') {
+          await notifyShippedOrder({
+            supabase,
+            orderId,
+            logger: req.log,
+            sender: options.whatsappSender,
+            serviceRoleAvailable: options.serviceRoleAvailable === true,
+            notifier: options.sendWhatsAppNotification,
+            env: options.env || process.env,
+          });
+        }
       }
       return result;
     } catch (error) {
