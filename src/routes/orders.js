@@ -4,6 +4,8 @@ const crypto = require('node:crypto');
 const express = require('express');
 const normalizePhone = require('../utils/normalize-phone');
 const normalizeProductId = require('../utils/normalize-product-id');
+const { calculateShippingFee, validateShippingData } = require('../utils/calculate-shipping');
+const { readProductCatalog } = require('../utils/product-csv');
 const {
   normalizeAdminOrderStatus,
   respondToStatusTransition,
@@ -113,7 +115,7 @@ function createOrdersRouter(supabase, options = {}) {
       } = await supabase
         .from('orders')
         .select(
-          'order_id,customer_phone,customer_name,shipping_address,total_amount,order_date,status,order_number,payment_status,payment_proof_url,payment_proof_status,shipping_status,shipping_method,shipping_carrier,tracking_number',
+          'order_id,customer_phone,customer_name,shipping_address,shipping_fee,pickup_location_id,pickup_slot,total_amount,order_date,status,order_number,payment_status,payment_proof_url,payment_proof_status,shipping_status,shipping_method,shipping_carrier,tracking_number',
           { count: 'exact' }
         )
         .order('order_date', { ascending: false })
@@ -315,6 +317,9 @@ function createOrdersRouter(supabase, options = {}) {
     const isCheckoutRoute = req.path === '/checkout';
     const hasIdempotencyKey = Object.hasOwn(body, 'idempotency_key');
     const rawIdempotencyKey = body.idempotency_key;
+    const rawPickupLocationId = body.pickup_location_id;
+    const rawPickupSlot = body.pickup_slot;
+    const rawShippingFee = body.shipping_fee;
     if (isCheckoutRoute) {
       const customer = body.customer;
       if (!customer || typeof customer !== 'object' || Array.isArray(customer)) {
@@ -355,6 +360,9 @@ function createOrdersRouter(supabase, options = {}) {
         customer_name: customer.name,
         shipping_method: body.pickup,
         shipping_address: body.shipping_address,
+        pickup_location_id: rawPickupLocationId,
+        pickup_slot: rawPickupSlot,
+        shipping_fee: rawShippingFee,
         items: checkoutItems,
         idempotency_key: rawIdempotencyKey,
       };
@@ -367,6 +375,18 @@ function createOrdersRouter(supabase, options = {}) {
       return sendError(res, 400, '請提供有效的結帳請求識別碼。', 'INVALID_IDEMPOTENCY_KEY');
     }
     const idempotencyKey = hasIdempotencyKey ? rawIdempotencyKey.toLowerCase() : null;
+
+    const validatedShippingData = validateShippingData({
+      pickup_location_id: body.pickup_location_id,
+      pickup_slot: body.pickup_slot,
+      shipping_fee: body.shipping_fee,
+    });
+    if (validatedShippingData.error) {
+      return sendError(res, 400, validatedShippingData.error, 'INVALID_SHIPPING_DETAILS');
+    }
+    if (validatedShippingData.values.shipping_fee !== undefined) {
+      req.log.warn({ field: 'shipping_fee' }, 'Ignoring client-supplied shipping fee');
+    }
 
     if (
       (body.customer_name !== undefined &&
@@ -453,10 +473,28 @@ function createOrdersRouter(supabase, options = {}) {
       quantity,
     }));
 
+    let csvCatalog;
+    try {
+      csvCatalog = typeof options.shippingCatalog === 'function'
+        ? options.shippingCatalog()
+        : options.shippingCatalog || readProductCatalog();
+    } catch {
+      req.log.error({ event: 'shipping_catalog_read_failed' }, 'Shipping data unavailable');
+    }
+    const calculatedShippingFee = calculateShippingFee(
+      rpcItems,
+      validatedShippingData.values.pickup_location_id,
+      csvCatalog,
+      req.log
+    );
+    const shippingFee = calculatedShippingFee === null ? 0 : calculatedShippingFee;
+
     req.log.info({
       phone_suffix: customerPhone.slice(-4),
       idem_key: idempotencyKey,
       items_count: rpcItems.length,
+      shipping_fee: shippingFee,
+      pickup_location_id: validatedShippingData.values.pickup_location_id,
     }, 'Checkout request received');
 
     try {
@@ -467,6 +505,9 @@ function createOrdersRouter(supabase, options = {}) {
         p_shipping_method: shippingMethod,
         p_shipping_address: shippingAddress,
         p_idempotency_key: idempotencyKey,
+        p_pickup_location_id: validatedShippingData.values.pickup_location_id,
+        p_pickup_slot: validatedShippingData.values.pickup_slot,
+        p_shipping_fee: shippingFee,
       });
 
       if (error) {
@@ -595,11 +636,21 @@ function createOrdersRouter(supabase, options = {}) {
       }
 
       const { order_id: _internalOrderId, ...publicOrderData } = result;
-      req.log.info({ event: 'checkout_created' }, 'Checkout completed');
+      req.log.info({
+        event: 'checkout_created',
+        phone_suffix: customerPhone.slice(-4),
+        shipping_fee: typeof result.shipping_fee === 'number' ? result.shipping_fee : shippingFee,
+        pickup_location_id:
+          result.pickup_location_id ?? validatedShippingData.values.pickup_location_id,
+      }, 'Checkout completed');
       return res.status(201).json({
         success: true,
         data: {
           ...publicOrderData,
+          shipping_fee: typeof result.shipping_fee === 'number' ? result.shipping_fee : shippingFee,
+          pickup_location_id:
+            result.pickup_location_id ?? validatedShippingData.values.pickup_location_id,
+          pickup_slot: result.pickup_slot ?? validatedShippingData.values.pickup_slot,
           order_number: String(orderNumber),
           orderNo: String(orderNumber),
           ...(isCheckoutRoute
@@ -647,7 +698,7 @@ function createOrdersRouter(supabase, options = {}) {
       const { data: order, error } = await supabase
         .from('orders')
         .select(
-          'order_id, order_number, customer_phone, customer_name, shipping_address, total_amount, order_date, status, payment_status, payment_proof_url, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number'
+          'order_id, order_number, customer_phone, customer_name, shipping_address, shipping_fee, pickup_location_id, pickup_slot, total_amount, order_date, status, payment_status, payment_proof_url, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number'
         )
         .in('customer_phone', phoneVariants)
         .eq('order_number', trimmedOrderNo.toUpperCase())
@@ -741,7 +792,7 @@ function createOrdersRouter(supabase, options = {}) {
         .eq('customer_phone', trimmedPhone)
         .eq('order_number', trimmedOrderNo)
         .select(
-          'order_id, order_number, customer_phone, total_amount, status, payment_status, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number'
+          'order_id, order_number, customer_phone, shipping_fee, pickup_location_id, pickup_slot, total_amount, status, payment_status, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number'
         )
         .maybeSingle();
 

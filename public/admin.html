@@ -3599,6 +3599,18 @@
                     pickupDetails.textContent = `取貨資料：${order.shipping_address}`;
                     phoneCell.append(pickupDetails);
                 }
+                if (order.pickup_location_id || order.pickup_slot) {
+                    const pickupSlot = document.createElement('small');
+                    pickupSlot.style.cssText = 'display: block; margin-top: 4px; color: #64748b;';
+                    const location = order.pickup_location_id
+                        ? `自取地點：${order.pickup_location_id}`
+                        : '';
+                    const slot = order.pickup_slot
+                        ? `時段：${new Date(order.pickup_slot).toLocaleString('zh-HK')}`
+                        : '';
+                    pickupSlot.textContent = [location, slot].filter(Boolean).join('；');
+                    phoneCell.append(pickupSlot);
+                }
 
                 // 4. 購買品項
                 const itemsCell = document.createElement('td');
@@ -3629,6 +3641,12 @@
                 amountCell.textContent = Number.isFinite(Number(order.total_amount))
                     ? `$${Number(order.total_amount).toFixed(2)}`
                     : '—';
+                const shippingFeeLabel = document.createElement('small');
+                shippingFeeLabel.style.cssText = 'display: block; margin-top: 4px; font-weight: 400; color: #475569;';
+                shippingFeeLabel.textContent = Number.isFinite(Number(order.shipping_fee))
+                    ? `運費 $${Number(order.shipping_fee).toFixed(2)}`
+                    : '運費資料未提供';
+                amountCell.append(shippingFeeLabel);
                 const profitLabel = document.createElement('small');
                 profitLabel.style.cssText = 'display: block; margin-top: 4px; font-weight: 400; color: #475569;';
                 profitLabel.textContent = order.profit_total !== null &&
