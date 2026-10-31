@@ -54,6 +54,86 @@ async function postCheckout(baseUrl, body, includeDefaultIdempotencyKey = true) 
   return { status: response.status, body: await response.json() };
 }
 
+function createShippingDetailsSupabase(options = {}) {
+  const order = {
+    order_id: ORDER_UUID,
+    order_number: 'LP-20261022-A1B2C3D4',
+    customer_phone: '85212345678',
+    customer_name: '測試顧客',
+    shipping_address: '順豐站：852AL',
+    shipping_fee: 0,
+    pickup_location_id: null,
+    pickup_slot: null,
+    shipping_details_initialized: false,
+    total_amount: 25,
+    order_date: '2026-10-22T00:00:00.000Z',
+    status: 'pending',
+    payment_status: '未付款',
+    payment_proof_url: null,
+    payment_proof_status: 'pending',
+    shipping_status: '待到貨',
+    shipping_method: '順豐',
+    shipping_carrier: null,
+    tracking_number: null,
+    ...options.order
+  };
+
+  return {
+    from(table) {
+      let fields = '';
+      const query = {
+        select(value) {
+          fields = value;
+          return query;
+        },
+        in() {
+          return query;
+        },
+        eq() {
+          return query;
+        },
+        order() {
+          return query;
+        },
+        range() {
+          return query;
+        },
+        limit() {
+          return query;
+        },
+        async maybeSingle() {
+          if (
+            table === 'orders' &&
+            options.shippingColumnsMissing &&
+            fields.includes('shipping_fee')
+          ) {
+            return { data: null, error: { code: '42703' } };
+          }
+          return { data: table === 'orders' ? order : null, error: null };
+        },
+        then(resolve, reject) {
+          let result;
+          if (
+            table === 'orders' &&
+            options.shippingColumnsMissing &&
+            fields.includes('shipping_fee')
+          ) {
+            result = { data: null, error: { code: '42703' }, count: null };
+          } else if (table === 'orders' && fields.includes('shipping_fee')) {
+            result = { data: [order], error: null, count: 1 };
+          } else if (table === 'orders') {
+            result = { data: [order], error: null, count: 1 };
+          } else {
+            result = { data: [], error: null };
+          }
+          return Promise.resolve(result).then(resolve, reject);
+        }
+      };
+      return query;
+    }
+  };
+}
+
 const validOrder = {
   customer_phone: '+85212345678',
   items: [
@@ -329,6 +409,64 @@ test('checkout replaces a UUID mistakenly stored as order_number before respondi
     assert.equal(Object.hasOwn(response.body.data, 'order_id'), false);
   });
   assert.equal(order.order_number, updates[0].order_number);
+});
+
+test('admin and customer order views never present an uninitialized shipping fee as zero', async () => {
+  await withServer(createOrdersRouter(createShippingDetailsSupabase(), {
+    serviceRoleAvailable: true,
+    isSessionAuthorized: () => true
+  }), async baseUrl => {
+    const adminResponse = await fetch(`${baseUrl}/api/orders/admin/orders`, {
+      headers: { 'x-admin-session': 'valid' }
+    });
+    const adminBody = await adminResponse.json();
+    assert.equal(adminResponse.status, 200);
+    assert.equal(adminBody.data.orders[0].shipping_fee, null);
+    assert.equal(adminBody.data.orders[0].shipping_details_message, '資料不足');
+
+    const customerResponse = await fetch(`${baseUrl}/api/orders/query-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: '85212345678', orderNo: 'LP-20261022-A1B2C3D4' })
+    });
+    const customerBody = await customerResponse.json();
+    assert.equal(customerResponse.status, 200);
+    assert.equal(customerBody.data.shipping_details_initialized, false);
+    assert.equal(customerBody.data.shipping_fee, null);
+    assert.equal(customerBody.data.shipping_details_message, '資料不足');
+  });
+});
+
+test('customer order lookup falls back safely when optional shipping columns are missing', async () => {
+  await withServer(createOrdersRouter(createShippingDetailsSupabase({
+    shippingColumnsMissing: true,
+    order: {
+      shipping_fee: undefined,
+      shipping_details_initialized: undefined
+    }
+  }), {
+    serviceRoleAvailable: true,
+    isSessionAuthorized: () => true
+  }), async baseUrl => {
+    const adminResponse = await fetch(`${baseUrl}/api/orders/admin/orders`, {
+      headers: { 'x-admin-session': 'valid' }
+    });
+    const adminBody = await adminResponse.json();
+    assert.equal(adminResponse.status, 200);
+    assert.equal(adminBody.data.orders[0].shipping_fee, null);
+    assert.equal(adminBody.data.orders[0].shipping_details_message, '資料不足');
+
+    const response = await fetch(`${baseUrl}/api/orders/query-order`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone: '85212345678', orderNo: 'LP-20261022-A1B2C3D4' })
+    });
+    const body = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(body.data.shipping_fee, null);
+    assert.equal(body.data.shipping_details_message, '資料不足');
+  });
 });
 
 test('stock conflict is surfaced without a success-shaped fallback', async () => {

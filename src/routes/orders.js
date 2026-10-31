@@ -4,6 +4,9 @@ const crypto = require('node:crypto');
 const express = require('express');
 const normalizePhone = require('../utils/normalize-phone');
 const normalizeProductId = require('../utils/normalize-product-id');
+const { calculateShippingFee, validateShippingData } = require('../utils/calculate-shipping');
+const { readProductCatalog } = require('../utils/product-csv');
+const { notifyShippedOrder } = require('../utils/whatsapp-notify');
 const {
   normalizeAdminOrderStatus,
   respondToStatusTransition,
@@ -132,6 +135,28 @@ function createOrdersRouter(supabase, options = {}) {
       }
 
       const orderIds = orders.map((order) => order.order_id);
+      const shippingDetailsByOrder = new Map();
+      let shippingDetailsAvailable = true;
+      if (orderIds.length > 0) {
+        const { data: shippingDetails, error: shippingDetailsError } = await supabase
+          .from('orders')
+          .select('order_id,shipping_fee,pickup_location_id,pickup_slot,shipping_details_initialized')
+          .in('order_id', orderIds);
+        if (shippingDetailsError && MISSING_SCHEMA_CODES.has(shippingDetailsError.code)) {
+          shippingDetailsAvailable = false;
+        } else if (shippingDetailsError) {
+          console.error('管理員訂單運費資料查詢失敗，錯誤代碼：', shippingDetailsError.code);
+          return sendError(res, 500, '讀取訂單運費資料失敗，請稍後再試。');
+        } else if (!Array.isArray(shippingDetails)) {
+          console.error('管理員訂單運費資料查詢回傳格式無效。');
+          return sendError(res, 500, '訂單運費資料回傳格式無效。');
+        } else {
+          for (const details of shippingDetails) {
+            shippingDetailsByOrder.set(String(details.order_id), details);
+          }
+        }
+      }
+
       let items = [];
       if (orderIds.length > 0) {
         const { data, error: itemsError } = await supabase
@@ -225,8 +250,21 @@ function createOrdersRouter(supabase, options = {}) {
         data: {
           orders: orders.map((order) => {
             const { payment_proof_url: proofPath, ...orderData } = order;
+            const shippingDetails = shippingDetailsByOrder.get(String(order.order_id));
+            const shippingDetailsInitialized = Boolean(
+              shippingDetailsAvailable &&
+              shippingDetails &&
+              shippingDetails.shipping_details_initialized === true
+            );
             return {
               ...orderData,
+              shipping_fee: shippingDetailsInitialized ? shippingDetails.shipping_fee : null,
+              pickup_location_id: shippingDetailsInitialized
+                ? shippingDetails.pickup_location_id
+                : null,
+              pickup_slot: shippingDetailsInitialized ? shippingDetails.pickup_slot : null,
+              shipping_details_initialized: shippingDetailsInitialized,
+              shipping_details_message: shippingDetailsInitialized ? null : '資料不足',
               payment_proof_signed_url: proofPath ? proofUrlsByPath.get(proofPath) || null : null,
               items: itemsByOrder.get(String(order.order_id)) || [],
             };
@@ -287,6 +325,17 @@ function createOrdersRouter(supabase, options = {}) {
           { order_id: orderId, status: data.status },
           'Admin order status updated'
         );
+        if (data.status === 'shipped') {
+          await notifyShippedOrder({
+            supabase,
+            orderId,
+            logger: req.log,
+            sender: options.whatsappSender,
+            serviceRoleAvailable: options.serviceRoleAvailable === true,
+            notifier: options.sendWhatsAppNotification,
+            env: options.env || process.env,
+          });
+        }
       }
       return transitionResponse;
     } catch (error) {
@@ -315,6 +364,9 @@ function createOrdersRouter(supabase, options = {}) {
     const isCheckoutRoute = req.path === '/checkout';
     const hasIdempotencyKey = Object.hasOwn(body, 'idempotency_key');
     const rawIdempotencyKey = body.idempotency_key;
+    const rawPickupLocationId = body.pickup_location_id;
+    const rawPickupSlot = body.pickup_slot;
+    const rawShippingFee = body.shipping_fee;
     if (isCheckoutRoute) {
       const customer = body.customer;
       if (!customer || typeof customer !== 'object' || Array.isArray(customer)) {
@@ -355,6 +407,9 @@ function createOrdersRouter(supabase, options = {}) {
         customer_name: customer.name,
         shipping_method: body.pickup,
         shipping_address: body.shipping_address,
+        pickup_location_id: rawPickupLocationId,
+        pickup_slot: rawPickupSlot,
+        shipping_fee: rawShippingFee,
         items: checkoutItems,
         idempotency_key: rawIdempotencyKey,
       };
@@ -367,6 +422,18 @@ function createOrdersRouter(supabase, options = {}) {
       return sendError(res, 400, '請提供有效的結帳請求識別碼。', 'INVALID_IDEMPOTENCY_KEY');
     }
     const idempotencyKey = hasIdempotencyKey ? rawIdempotencyKey.toLowerCase() : null;
+
+    const validatedShippingData = validateShippingData({
+      pickup_location_id: body.pickup_location_id,
+      pickup_slot: body.pickup_slot,
+      shipping_fee: body.shipping_fee,
+    });
+    if (validatedShippingData.error) {
+      return sendError(res, 400, validatedShippingData.error, 'INVALID_SHIPPING_DETAILS');
+    }
+    if (validatedShippingData.values.shipping_fee !== undefined) {
+      req.log.warn({ field: 'shipping_fee' }, 'Ignoring client-supplied shipping fee');
+    }
 
     if (
       (body.customer_name !== undefined &&
@@ -453,10 +520,28 @@ function createOrdersRouter(supabase, options = {}) {
       quantity,
     }));
 
+    let csvCatalog;
+    try {
+      csvCatalog = typeof options.shippingCatalog === 'function'
+        ? options.shippingCatalog()
+        : options.shippingCatalog || readProductCatalog();
+    } catch {
+      req.log.error({ event: 'shipping_catalog_read_failed' }, 'Shipping data unavailable');
+    }
+    const calculatedShippingFee = calculateShippingFee(
+      rpcItems,
+      validatedShippingData.values.pickup_location_id,
+      csvCatalog,
+      req.log
+    );
+    const shippingFee = calculatedShippingFee === null ? 0 : calculatedShippingFee;
+
     req.log.info({
       phone_suffix: customerPhone.slice(-4),
       idem_key: idempotencyKey,
       items_count: rpcItems.length,
+      shipping_fee: shippingFee,
+      pickup_location_id: validatedShippingData.values.pickup_location_id,
     }, 'Checkout request received');
 
     try {
@@ -467,6 +552,9 @@ function createOrdersRouter(supabase, options = {}) {
         p_shipping_method: shippingMethod,
         p_shipping_address: shippingAddress,
         p_idempotency_key: idempotencyKey,
+        p_pickup_location_id: validatedShippingData.values.pickup_location_id,
+        p_pickup_slot: validatedShippingData.values.pickup_slot,
+        p_shipping_fee: shippingFee,
       });
 
       if (error) {
@@ -595,11 +683,21 @@ function createOrdersRouter(supabase, options = {}) {
       }
 
       const { order_id: _internalOrderId, ...publicOrderData } = result;
-      req.log.info({ event: 'checkout_created' }, 'Checkout completed');
+      req.log.info({
+        event: 'checkout_created',
+        phone_suffix: customerPhone.slice(-4),
+        shipping_fee: typeof result.shipping_fee === 'number' ? result.shipping_fee : shippingFee,
+        pickup_location_id:
+          result.pickup_location_id ?? validatedShippingData.values.pickup_location_id,
+      }, 'Checkout completed');
       return res.status(201).json({
         success: true,
         data: {
           ...publicOrderData,
+          shipping_fee: typeof result.shipping_fee === 'number' ? result.shipping_fee : shippingFee,
+          pickup_location_id:
+            result.pickup_location_id ?? validatedShippingData.values.pickup_location_id,
+          pickup_slot: result.pickup_slot ?? validatedShippingData.values.pickup_slot,
           order_number: String(orderNumber),
           orderNo: String(orderNumber),
           ...(isCheckoutRoute
@@ -644,15 +742,27 @@ function createOrdersRouter(supabase, options = {}) {
           `+852${rawPhone}`,
         ]),
       ];
-      const { data: order, error } = await supabase
+      const orderFields =
+        'order_id, order_number, customer_phone, customer_name, shipping_address, total_amount, order_date, status, payment_status, payment_proof_url, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number';
+      let orderResult = await supabase
         .from('orders')
         .select(
-          'order_id, order_number, customer_phone, customer_name, shipping_address, total_amount, order_date, status, payment_status, payment_proof_url, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number'
+          `${orderFields}, shipping_fee, pickup_location_id, pickup_slot, shipping_details_initialized`
         )
         .in('customer_phone', phoneVariants)
         .eq('order_number', trimmedOrderNo.toUpperCase())
         .maybeSingle();
 
+      if (orderResult.error && MISSING_SCHEMA_CODES.has(orderResult.error.code)) {
+        orderResult = await supabase
+          .from('orders')
+          .select(orderFields)
+          .in('customer_phone', phoneVariants)
+          .eq('order_number', trimmedOrderNo.toUpperCase())
+          .maybeSingle();
+      }
+
+      const { data: order, error } = orderResult;
       if (error) {
         console.error('單筆訂單查詢失敗：', error);
         return sendError(res, 500, '查詢訂單時發生錯誤，請稍後再試。');
@@ -697,7 +807,16 @@ function createOrdersRouter(supabase, options = {}) {
         };
       });
 
-      const { payment_proof_url: proofPath, ...publicOrder } = order;
+      const { payment_proof_url: proofPath, ...orderData } = order;
+      const shippingDetailsInitialized = order.shipping_details_initialized === true;
+      const publicOrder = {
+        ...orderData,
+        shipping_fee: shippingDetailsInitialized ? order.shipping_fee : null,
+        pickup_location_id: shippingDetailsInitialized ? order.pickup_location_id : null,
+        pickup_slot: shippingDetailsInitialized ? order.pickup_slot : null,
+        shipping_details_initialized: shippingDetailsInitialized,
+        shipping_details_message: shippingDetailsInitialized ? null : '資料不足',
+      };
       return res.json({
         success: true,
         data: {
@@ -741,7 +860,7 @@ function createOrdersRouter(supabase, options = {}) {
         .eq('customer_phone', trimmedPhone)
         .eq('order_number', trimmedOrderNo)
         .select(
-          'order_id, order_number, customer_phone, total_amount, status, payment_status, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number'
+          'order_id, order_number, customer_phone, shipping_fee, pickup_location_id, pickup_slot, shipping_details_initialized, total_amount, status, payment_status, payment_proof_status, shipping_status, shipping_method, shipping_carrier, tracking_number'
         )
         .maybeSingle();
 
@@ -754,9 +873,16 @@ function createOrdersRouter(supabase, options = {}) {
         return sendError(res, 404, '找不到對應的訂單，或驗證資料不符。');
       }
 
+      const shippingDetailsInitialized = data.shipping_details_initialized === true;
       return res.json({
         success: true,
-        data,
+        data: {
+          ...data,
+          shipping_fee: shippingDetailsInitialized ? data.shipping_fee : null,
+          pickup_location_id: shippingDetailsInitialized ? data.pickup_location_id : null,
+          pickup_slot: shippingDetailsInitialized ? data.pickup_slot : null,
+          shipping_details_message: shippingDetailsInitialized ? null : '資料不足',
+        },
         message: '訂單資料已成功更新。',
       });
     } catch (error) {

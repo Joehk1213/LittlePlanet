@@ -17,7 +17,8 @@ async function withServer(supabase, run, options = {}) {
   app.use((req, res, next) => {
     req.log = {
       error: (...args) => logs.push({ level: 'error', args }),
-      info: (...args) => logs.push({ level: 'info', args })
+      info: (...args) => logs.push({ level: 'info', args }),
+      warn: (...args) => logs.push({ level: 'warn', args })
     };
     next();
   });
@@ -51,7 +52,11 @@ function createSupabase(options = {}) {
     payment_status: '已付清',
     payment_proof_url: null,
     shipping_status: '待到貨',
-    shipping_method: '順豐'
+    shipping_method: '順豐',
+    shipping_fee: 30,
+    pickup_location_id: null,
+    pickup_slot: null,
+    shipping_details_initialized: true
   }];
   const tables = {
     orders,
@@ -133,6 +138,13 @@ function createSupabase(options = {}) {
 
     async execute() {
       calls.push({ table: this.table, method: 'select' });
+      if (
+        this.table === 'orders' &&
+        this.fields.includes('shipping_fee') &&
+        options.shippingDetailsError
+      ) {
+        return { data: null, error: options.shippingDetailsError };
+      }
       const rows = tables[this.table] || [];
       const filtered = rows.filter(row => this.filters.every(filter => filter(row)));
       const selected = this.fromIndex === undefined
@@ -192,6 +204,8 @@ test('admin order list normalizes phone, applies filters and returns profit and 
     assert.equal(result.data.orders[0].profit_total, 19.5);
     assert.equal(result.data.orders[0].items[0].product_name, '小行星貼紙');
     assert.equal(result.data.orders[0].payment_proof_url, undefined);
+    assert.equal(result.data.orders[0].shipping_fee, 30);
+    assert.equal(result.data.orders[0].shipping_details_message, null);
     assert.ok(supabase.calls.some(call =>
       call.table === 'orders' &&
       call.method === 'in' &&
@@ -219,6 +233,47 @@ test('admin order list reports unknown product costs as unknown profit', async (
     const result = await response.json();
     assert.equal(response.status, 200);
     assert.equal(result.data.orders[0].profit_total, null);
+  });
+});
+
+test('admin order list remains available when optional shipping fields are not migrated', async () => {
+  const supabase = createSupabase({
+    shippingDetailsError: { code: '42703' }
+  });
+  await withServer(supabase, async (baseUrl, logs) => {
+    const response = await fetch(`${baseUrl}/api/admin/orders`, {
+      headers: { 'x-admin-session': 'valid' }
+    });
+    const result = await response.json();
+
+    assert.equal(response.status, 200);
+    assert.equal(result.data.orders[0].shipping_fee, null);
+    assert.equal(result.data.orders[0].pickup_location_id, null);
+    assert.equal(result.data.orders[0].pickup_slot, null);
+    assert.equal(result.data.orders[0].shipping_details_message, '資料不足');
+    assert.ok(logs.some(log => log.level === 'warn' &&
+      log.args[0].event === 'admin_order_shipping_fields_unavailable'));
+  });
+});
+
+test('admin order list shows insufficient shipping data for uninitialized orders', async () => {
+  const order = {
+    ...createSupabase().orders[0],
+    shipping_fee: 0,
+    shipping_details_initialized: false
+  };
+  const supabase = createSupabase({ orders: [order] });
+  await withServer(supabase, async baseUrl => {
+    const response = await fetch(`${baseUrl}/api/admin/orders`, {
+      headers: { 'x-admin-session': 'valid' }
+    });
+    const result = await response.json();
+    const listedOrder = result.data.orders[0];
+
+    assert.equal(response.status, 200);
+    assert.equal(listedOrder.shipping_details_initialized, false);
+    assert.equal(listedOrder.shipping_fee, null);
+    assert.equal(listedOrder.shipping_details_message, '資料不足');
   });
 });
 
