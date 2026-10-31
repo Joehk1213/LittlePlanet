@@ -156,7 +156,7 @@ function createAdminOrdersRouter(supabase, options = {}) {
       let ordersQuery = supabase
         .from('orders')
         .select(
-          'order_id,order_number,customer_phone,customer_name,shipping_address,shipping_fee,pickup_location_id,pickup_slot,total_amount,order_date,status,payment_status,payment_proof_url,payment_proof_status,shipping_status,shipping_method,shipping_carrier,tracking_number',
+          'order_id,order_number,customer_phone,customer_name,shipping_address,total_amount,order_date,status,payment_status,payment_proof_url,payment_proof_status,shipping_status,shipping_method,shipping_carrier,tracking_number',
           { count: 'exact' }
         );
       if (phoneVariants) {
@@ -192,6 +192,38 @@ function createAdminOrdersRouter(supabase, options = {}) {
       if (!Array.isArray(orders)) {
         req.log.error({ event: 'admin_orders_list_invalid_result' }, 'Invalid admin order list result');
         return sendError(res, 500, '訂單列表回傳格式無效。');
+      }
+
+      const shippingDetailsByOrder = new Map();
+      let shippingDetailsAvailable = true;
+      if (orders.length > 0) {
+        const { data: shippingDetails, error: shippingDetailsError } = await supabase
+          .from('orders')
+          .select('order_id,shipping_fee,pickup_location_id,pickup_slot')
+          .in('order_id', orders.map((order) => order.order_id));
+        if (shippingDetailsError && MISSING_SCHEMA_CODES.has(shippingDetailsError.code)) {
+          shippingDetailsAvailable = false;
+          req.log.warn(
+            {
+              event: 'admin_order_shipping_fields_unavailable',
+              code: shippingDetailsError.code,
+            },
+            'Optional shipping details are not available in this database schema'
+          );
+        } else if (shippingDetailsError) {
+          logDatabaseError(req, 'admin_order_shipping_details', shippingDetailsError);
+          return sendError(res, 500, '讀取訂單運費資料失敗，請稍後再試。');
+        } else if (!Array.isArray(shippingDetails)) {
+          req.log.error(
+            { event: 'admin_order_shipping_details_invalid_result' },
+            'Invalid optional shipping details result'
+          );
+          return sendError(res, 500, '訂單運費資料回傳格式無效。');
+        } else {
+          for (const details of shippingDetails) {
+            shippingDetailsByOrder.set(String(details.order_id), details);
+          }
+        }
       }
 
       const orderIds = orders.map((order) => order.order_id);
@@ -319,9 +351,22 @@ function createAdminOrdersRouter(supabase, options = {}) {
           orders: orders.map((order) => {
             const { payment_proof_url: proofPath, ...orderData } = order;
             const profit = profitByOrder.get(String(order.order_id));
+            const shippingDetails = shippingDetailsByOrder.get(String(order.order_id));
             const parsedItemsCount = Number(profit && profit.items_count);
             return {
               ...orderData,
+              shipping_fee: shippingDetailsAvailable && shippingDetails
+                ? shippingDetails.shipping_fee
+                : null,
+              pickup_location_id: shippingDetailsAvailable && shippingDetails
+                ? shippingDetails.pickup_location_id
+                : null,
+              pickup_slot: shippingDetailsAvailable && shippingDetails
+                ? shippingDetails.pickup_slot
+                : null,
+              shipping_details_message: shippingDetailsAvailable && shippingDetails
+                ? null
+                : '資料不足',
               payment_proof_signed_url: proofPath
                 ? signedProofsByPath.get(proofPath) || null
                 : null,
