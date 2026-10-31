@@ -2,7 +2,7 @@
 
 ## Result
 
-**BLOCKED — no live database connection was established and neither migration was applied.** The offline PostgreSQL data directory was backed up and verified, but current production target identity and schema history could not be validated. No database or application data was changed.
+**BLOCKED — no live database connection was established and neither migration was applied.** The offline PostgreSQL data directory was backed up and copied to the configured Compose target with matching file hashes. Compose configuration now validates against that target, but no service was started, so production database identity and schema history remain unverified. No database or application data was changed.
 
 ## Host, branch, and archive gate
 
@@ -26,14 +26,18 @@ No worktree entries were present under `database/family-rag`, `src/rag`, or `.en
 - Backup copy: `C:\backup\littleplanet-postgres_live-20261031\postgres_live`.
 - Verified at `2026-10-31 14:24:00 +08:00`: 1,074 files and 42,451,226 bytes at source and destination; all per-file SHA256 hashes matched.
 - This was a file-level copy of the offline data directory. Restore was not tested; it is not evidence that the production database is startable or current.
+- Follow-up copy for the Compose mount: `D:\docker-data\littleplanet\postgres_live` → `D:\docker-data\littleplanet\postgres`.
+- Reverified at `2026-10-31 14:31`: 1,074 files and 42,451,226 bytes on each side; all per-file SHA256 hashes matched; both `PG_VERSION` markers are `17`.
+- `.env.docker` was copied to `D:\docker-data\littleplanet\.env.docker.bak-20261031` before changing `LITTLEPLANET_DATA_ROOT` from `C:/docker-data/littleplanet` to `D:\docker-data\littleplanet`.
 
 ## Connection and deployment blockers
 
 - `psql`, `pg_dump`, `pg_restore`, and Supabase CLI are not installed. Docker is installed, but this task explicitly prohibited Docker operations beyond the initial read-only inspection; no container was started.
 - The production env file at `D:\docker-data\littleplanet\.env.docker` contains configured Supabase URL, service-role key, and database-password variables. Their values were not displayed or recorded. `WHATSAPP_API_TOKEN` is defined but empty, and `WHATSAPP_ENABLED` is not true; no WhatsApp request was made.
-- The configured Supabase host `littleplanet.localhost` did not resolve. Ports 443 and 5432 were not reachable. No migration-history or live-schema query could be made.
+- The configured Supabase host `littleplanet.localhost` did not resolve during the initial preflight. Ports 443 and 5432 were not reachable; no migration-history or live-schema query could be made. Connectivity was not retested by starting services.
 - The repository has no `docker-compose.prod.yml` or `docker-compose.yml`. A deployment copy exists at `D:\docker-data\littleplanet\app\docker-compose.prod.yml`, but it was not run or runtime-validated.
-- The deployment env sets `LITTLEPLANET_DATA_ROOT=C:/docker-data/littleplanet`, so the Compose DB service would mount `C:\docker-data\littleplanet\postgres`; that directory does not exist. The candidate offline data is instead at `D:\docker-data\littleplanet\postgres_live`. Starting that Compose service without resolving the mismatch risks initializing a different, empty data directory. Therefore Compose status is **config 未驗證**, and no service was started.
+- Initially the deployment env pointed to `C:/docker-data/littleplanet`, while the offline PGDATA was at `D:\docker-data\littleplanet\postgres_live`. After backing up the env and copying PGDATA to the Compose target, `LITTLEPLANET_DATA_ROOT` now points to `D:\docker-data\littleplanet`.
+- `docker compose --env-file ..\.env.docker -f docker-compose.prod.yml config --format json` completed successfully without printing environment values. The `db` service uses `supabase/postgres:17.6.1.136` and resolves its `/var/lib/postgresql/data` bind source to `D:\docker-data\littleplanet\postgres`. This is a Compose **config PASS only**; no service was started, no DB connection was made, and no migration was applied.
 
 ## Migration and database verification status
 
