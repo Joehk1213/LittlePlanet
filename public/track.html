@@ -355,15 +355,26 @@
       document.querySelector('#paymentProofForm').hidden = proofStatus === 'verified';
       
       const totalAmount = Number(order.total_amount);
-      const shippingFee = Number(order.shipping_fee || 0);
+      const shippingFee = order.shipping_details_initialized === true
+        ? Number(order.shipping_fee)
+        : null;
       const validTotal = Number.isFinite(totalAmount) ? totalAmount : null;
-      const validShippingFee = Number.isFinite(shippingFee) && shippingFee >= 0 ? shippingFee : 0;
+      const validShippingFee =
+        shippingFee !== null && Number.isFinite(shippingFee) && shippingFee >= 0
+          ? shippingFee
+          : null;
       const formatAmount = amount => `HK$${amount.toFixed(2)}`;
       const total = validTotal === null ? '計算中' : formatAmount(validTotal);
       document.querySelector('#resTotalAmount').textContent = total;
       document.querySelector('#resSubtotal').textContent =
-        validTotal === null ? '計算中' : formatAmount(Math.max(0, validTotal - validShippingFee));
-      document.querySelector('#resShippingFee').textContent = formatAmount(validShippingFee);
+        validTotal === null
+          ? '計算中'
+          : validShippingFee === null
+            ? '資料不足'
+            : formatAmount(Math.max(0, validTotal - validShippingFee));
+      document.querySelector('#resShippingFee').textContent = validShippingFee === null
+        ? '資料不足'
+        : formatAmount(validShippingFee);
       document.querySelector('#resGrandTotal').textContent = total;
 
       const orderStatusLabels = {

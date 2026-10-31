@@ -42,3 +42,16 @@ test('admin uses timed toasts and table skeletons during order and customer load
   assert.match(script, /setTableSkeleton\(document\.getElementById\('orders-tbody'\), 10\)/);
   assert.doesNotThrow(() => new vm.Script(script, { filename: 'public/admin.html' }));
 });
+
+test('order tracking labels uninitialized shipping fees as insufficient data', () => {
+  const html = fs.readFileSync(path.join(publicDirectory, 'track.html'), 'utf8');
+  const script = [...html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)]
+    .map(match => match[1])
+    .filter(Boolean)
+    .join('\n');
+
+  assert.match(script, /order\.shipping_details_initialized === true/);
+  assert.match(script, /validShippingFee === null[\s\S]*?'資料不足'/);
+  assert.doesNotMatch(script, /Number\(order\.shipping_fee\s*\|\|\s*0\)/);
+  assert.doesNotThrow(() => new vm.Script(script, { filename: 'public/track.html' }));
+});

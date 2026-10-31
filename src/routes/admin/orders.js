@@ -200,7 +200,7 @@ function createAdminOrdersRouter(supabase, options = {}) {
       if (orders.length > 0) {
         const { data: shippingDetails, error: shippingDetailsError } = await supabase
           .from('orders')
-          .select('order_id,shipping_fee,pickup_location_id,pickup_slot')
+          .select('order_id,shipping_fee,pickup_location_id,pickup_slot,shipping_details_initialized')
           .in('order_id', orders.map((order) => order.order_id));
         if (shippingDetailsError && MISSING_SCHEMA_CODES.has(shippingDetailsError.code)) {
           shippingDetailsAvailable = false;
@@ -354,18 +354,24 @@ function createAdminOrdersRouter(supabase, options = {}) {
             const profit = profitByOrder.get(String(order.order_id));
             const parsedItemsCount = Number(profit && profit.items_count);
             const shippingDetails = shippingDetailsByOrder.get(String(order.order_id));
+            const shippingDetailsInitialized = Boolean(
+              shippingDetailsAvailable &&
+              shippingDetails &&
+              shippingDetails.shipping_details_initialized === true
+            );
             return {
               ...orderData,
-              shipping_fee: shippingDetailsAvailable && shippingDetails
+              shipping_fee: shippingDetailsInitialized
                 ? shippingDetails.shipping_fee
                 : null,
-              pickup_location_id: shippingDetailsAvailable && shippingDetails
+              pickup_location_id: shippingDetailsInitialized
                 ? shippingDetails.pickup_location_id
                 : null,
-              pickup_slot: shippingDetailsAvailable && shippingDetails
+              pickup_slot: shippingDetailsInitialized
                 ? shippingDetails.pickup_slot
                 : null,
-              shipping_details_message: shippingDetailsAvailable && shippingDetails
+              shipping_details_initialized: shippingDetailsInitialized,
+              shipping_details_message: shippingDetailsInitialized
                 ? null
                 : '資料不足',
               payment_proof_signed_url: proofPath
